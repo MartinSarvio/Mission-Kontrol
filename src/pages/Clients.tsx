@@ -15,12 +15,12 @@ export default function Clients() {
 
   return (
     <div>
-      <h1 className="page-title mb-1">Clients</h1>
-      <p className="caption mb-6">{clients.length} clients registered</p>
+      <h1 className="page-title mb-1">Klienter</h1>
+      <p className="caption mb-6">{clients.length} klient registreret</p>
 
       <div className="flex items-center gap-3 mb-6">
-        <div className="flex-1"><SearchBar value={search} onChange={setSearch} placeholder="Search clients..." /></div>
-        <button className="btn-primary">Add Client</button>
+        <div className="flex-1"><SearchBar value={search} onChange={setSearch} placeholder="Søg klienter..." /></div>
+        <button className="btn-primary">Tilføj Klient</button>
       </div>
 
       <Card>
@@ -28,13 +28,13 @@ export default function Clients() {
           data={filtered}
           onRowClick={setSelected}
           columns={[
-            { key: 'name', header: 'Client', render: c => <span className="font-medium">{c.name}</span> },
-            { key: 'company', header: 'Company', render: c => <span className="text-apple-gray-500">{c.company}</span> },
+            { key: 'name', header: 'Klient', render: c => <span className="font-medium">{c.name}</span> },
+            { key: 'company', header: 'Virksomhed', render: c => <span className="text-apple-gray-500">{c.company}</span> },
             { key: 'status', header: 'Status', render: c => <StatusBadge status={c.status} /> },
-            { key: 'tasks', header: 'Active Tasks', render: c => c.activeTasks },
-            { key: 'spend', header: 'Total Spend', render: c => `$${c.totalSpend.toFixed(2)}` },
-            { key: 'role', header: 'Role', render: c => <span className="capitalize">{c.role}</span> },
-            { key: 'active', header: 'Last Active', render: c => <span className="caption">{c.lastActive}</span> },
+            { key: 'tasks', header: 'Aktive Opgaver', render: c => c.activeTasks },
+            { key: 'spend', header: 'Samlet Forbrug', render: c => c.totalSpend > 0 ? `$${c.totalSpend.toFixed(2)}` : 'API-nøgle' },
+            { key: 'role', header: 'Rolle', render: c => <span className="capitalize">{c.role}</span> },
+            { key: 'active', header: 'Sidst Aktiv', render: c => <span className="caption">{c.lastActive}</span> },
           ]}
         />
       </Card>
@@ -44,13 +44,13 @@ export default function Clients() {
           <div className="space-y-4 text-sm">
             <div className="grid grid-cols-2 gap-4">
               <div><p className="caption">Email</p><p className="font-medium">{selected.email}</p></div>
-              <div><p className="caption">Company</p><p className="font-medium">{selected.company}</p></div>
+              <div><p className="caption">Virksomhed</p><p className="font-medium">{selected.company}</p></div>
               <div><p className="caption">Status</p><StatusBadge status={selected.status} /></div>
-              <div><p className="caption">Role</p><p className="font-medium capitalize">{selected.role}</p></div>
-              <div><p className="caption">Active Tasks</p><p className="font-medium">{selected.activeTasks}</p></div>
-              <div><p className="caption">Documents</p><p className="font-medium">{selected.documents}</p></div>
-              <div><p className="caption">API Key</p><p className="font-mono text-xs bg-apple-gray-50 px-2 py-1 rounded">{selected.apiKey}</p></div>
-              <div><p className="caption">Total Spend</p><p className="font-medium">${selected.totalSpend.toFixed(2)}</p></div>
+              <div><p className="caption">Rolle</p><p className="font-medium capitalize">{selected.role}</p></div>
+              <div><p className="caption">Aktive Opgaver</p><p className="font-medium">{selected.activeTasks}</p></div>
+              <div><p className="caption">Dokumenter</p><p className="font-medium">{selected.documents}</p></div>
+              <div><p className="caption">Forbindelse</p><p className="font-mono text-xs bg-apple-gray-50 px-2 py-1 rounded">{selected.apiKey}</p></div>
+              <div><p className="caption">Samlet Forbrug</p><p className="font-medium">{selected.totalSpend > 0 ? `$${selected.totalSpend.toFixed(2)}` : 'Via API-nøgle'}</p></div>
             </div>
           </div>
         )}

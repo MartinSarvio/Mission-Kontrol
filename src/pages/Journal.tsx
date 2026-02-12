@@ -18,15 +18,15 @@ export default function Journal() {
   return (
     <div>
       <h1 className="page-title mb-1">Journal</h1>
-      <p className="caption mb-6">Unified activity timeline</p>
+      <p className="caption mb-6">Samlet aktivitetstidslinje</p>
 
       <div className="flex items-center gap-3 mb-6">
-        <SearchBar value={search} onChange={setSearch} placeholder="Search entries..." />
+        <SearchBar value={search} onChange={setSearch} placeholder="Søg i indlæg..." />
         <div className="flex gap-1">
           {['all', 'info', 'warning', 'error', 'critical'].map(f => (
             <button key={f} onClick={() => setFilter(f)}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${filter === f ? 'bg-apple-blue text-white' : 'bg-white text-apple-gray-500 hover:bg-apple-gray-100'}`}>
-              {f === 'all' ? 'All' : f.charAt(0).toUpperCase() + f.slice(1)}
+              {f === 'all' ? 'Alle' : f === 'info' ? 'Info' : f === 'warning' ? 'Advarsel' : f === 'error' ? 'Fejl' : 'Kritisk'}
             </button>
           ))}
         </div>
@@ -66,10 +66,10 @@ export default function Journal() {
                   </div>
                 </div>
                 <div className="flex gap-6">
-                  <div><span className="caption">Client:</span> <span className="font-medium">{entry.client}</span></div>
-                  <div><span className="caption">Latency:</span> <span className="font-medium">{entry.latencyMs}ms</span></div>
-                  <div><span className="caption">Cost:</span> <span className="font-medium">${entry.cost.toFixed(3)}</span></div>
-                  <div><span className="caption">Tools:</span> <span className="font-medium">{entry.tools.join(', ')}</span></div>
+                  <div><span className="caption">Klient:</span> <span className="font-medium">{entry.client}</span></div>
+                  <div><span className="caption">Latens:</span> <span className="font-medium">{entry.latencyMs}ms</span></div>
+                  <div><span className="caption">Omkostning:</span> <span className="font-medium">${entry.cost.toFixed(3)}</span></div>
+                  <div><span className="caption">Værktøjer:</span> <span className="font-medium">{entry.tools.join(', ')}</span></div>
                 </div>
                 {entry.error && (
                   <div className="bg-red-50 text-red-700 p-3 rounded-lg text-sm">⚠️ {entry.error}</div>

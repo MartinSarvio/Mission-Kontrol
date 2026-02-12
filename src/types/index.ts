@@ -1,4 +1,4 @@
-export type Status = 'active' | 'idle' | 'running' | 'failed' | 'paused' | 'warning' | 'success' | 'error' | 'blocked' | 'completed'
+export type Status = 'active' | 'idle' | 'running' | 'failed' | 'paused' | 'warning' | 'success' | 'error' | 'blocked' | 'completed' | 'setup' | 'off' | 'ok'
 export type Severity = 'info' | 'warning' | 'error' | 'critical'
 export type Role = 'admin' | 'operator' | 'viewer'
 

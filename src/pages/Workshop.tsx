@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import Card from '../components/Card'
-import { workshopTemplates } from '../data/mock'
+import { workshopTemplates, availableModels } from '../data/mock'
 
 export default function Workshop() {
   const [prompt, setPrompt] = useState('')
@@ -8,8 +8,8 @@ export default function Workshop() {
 
   return (
     <div>
-      <h1 className="page-title mb-1">Workshop</h1>
-      <p className="caption mb-6">Prompt playground and workflow testing</p>
+      <h1 className="page-title mb-1">Værksted</h1>
+      <p className="caption mb-6">Prompt-legeplads og workflow-test</p>
 
       <div className="grid grid-cols-3 gap-6">
         <div className="col-span-2">
@@ -17,34 +17,33 @@ export default function Workshop() {
             <textarea
               value={prompt}
               onChange={e => setPrompt(e.target.value)}
-              placeholder="Enter your prompt or workflow here..."
+              placeholder="Skriv din prompt eller workflow her..."
               className="w-full h-64 input resize-none font-mono text-sm"
             />
             <div className="flex items-center gap-3 mt-4">
-              <button className="btn-primary">Run</button>
-              <button className="btn-secondary">Save as Template</button>
+              <button className="btn-primary">Kør</button>
+              <button className="btn-secondary">Gem som Skabelon</button>
               <select className="input text-sm">
-                <option>OrderFlow Agent</option>
-                <option>Support Agent</option>
-                <option>Analytics Agent</option>
-                <option>Content Agent</option>
+                {availableModels.slice(0, 5).map(m => (
+                  <option key={m}>{m}</option>
+                ))}
               </select>
             </div>
           </Card>
 
           <Card title="Output" className="mt-4">
             <div className="bg-apple-gray-50 rounded-lg p-4 min-h-[120px] text-sm text-apple-gray-500 font-mono">
-              Run a prompt to see output here...
+              Kør en prompt for at se output her...
             </div>
             <div className="flex gap-3 mt-3">
-              <button className="text-xs text-apple-blue hover:underline">View in Journal →</button>
-              <button className="text-xs text-apple-blue hover:underline">View Trace →</button>
+              <button className="text-xs text-apple-blue hover:underline">Vis i Journal →</button>
+              <button className="text-xs text-apple-blue hover:underline">Vis Trace →</button>
             </div>
           </Card>
         </div>
 
         <div>
-          <Card title="Templates" subtitle={`${workshopTemplates.length} saved`}>
+          <Card title="Skabeloner" subtitle={`${workshopTemplates.length} gemt`}>
             <div className="space-y-2">
               {workshopTemplates.map(t => (
                 <div
@@ -53,18 +52,32 @@ export default function Workshop() {
                   className={`p-3 rounded-lg cursor-pointer transition-colors ${selectedTemplate === t.id ? 'bg-blue-50 border border-apple-blue/20' : 'bg-apple-gray-50 hover:bg-apple-gray-100'}`}
                 >
                   <p className="text-sm font-medium">{t.name}</p>
-                  <p className="caption mt-1">{t.runs} runs · Last used {t.lastUsed}</p>
+                  <p className="caption mt-1">{t.runs} kørsler · Sidst brugt {t.lastUsed}</p>
                 </div>
               ))}
             </div>
           </Card>
 
-          <Card title="Test Data" className="mt-4">
+          <Card title="Testdata" className="mt-4">
             <textarea
-              placeholder='{"order_data": "..."}'
+              placeholder='{"emne": "..."}'
               className="w-full h-32 input resize-none font-mono text-xs"
             />
-            <p className="caption mt-2">JSON variables to inject into {"{{placeholders}}"}</p>
+            <p className="caption mt-2">JSON-variabler til indsætning i {"{{pladsholdere}}"}</p>
+          </Card>
+
+          <Card title="Installerede Færdigheder" className="mt-4">
+            <div className="space-y-2">
+              {[
+                { name: 'perplexity', desc: 'Websøgning via Sonar Pro' },
+                { name: 'youtube-watcher', desc: 'Video-transskriptioner' },
+              ].map((s, i) => (
+                <div key={i} className="flex items-center justify-between py-2 border-b border-apple-gray-50 last:border-0 text-sm">
+                  <span className="font-medium font-mono">{s.name}</span>
+                  <span className="caption">{s.desc}</span>
+                </div>
+              ))}
+            </div>
           </Card>
         </div>
       </div>

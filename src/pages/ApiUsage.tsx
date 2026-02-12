@@ -10,61 +10,69 @@ export default function ApiUsage() {
 
   return (
     <div>
-      <h1 className="page-title mb-1">API Usage</h1>
-      <p className="caption mb-6">Token consumption and cost tracking</p>
+      <h1 className="page-title mb-1">API Forbrug</h1>
+      <p className="caption mb-6">Tokenforbrug og omkostningssporing</p>
 
       <div className="grid grid-cols-4 gap-4 mb-8">
         {[
-          { label: 'Total Tokens', value: (totalTokens / 1000).toFixed(0) + 'K', trend: apiUsageData.map(d => d.tokens) },
-          { label: 'Total Requests', value: totalRequests.toLocaleString(), trend: apiUsageData.map(d => d.requests) },
-          { label: 'Total Cost', value: `$${totalCost.toFixed(2)}`, trend: apiUsageData.map(d => d.cost) },
-          { label: 'Errors', value: totalErrors.toString(), trend: apiUsageData.map(d => d.errors) },
+          { label: 'Samlet Tokens', value: (totalTokens / 1000).toFixed(0) + 'K', trend: apiUsageData.map(d => d.tokens) },
+          { label: 'Samlet Forespørgsler', value: totalRequests.toLocaleString(), trend: apiUsageData.map(d => d.requests) },
+          { label: 'Samlet Omkostning', value: `$${totalCost.toFixed(2)}`, trend: apiUsageData.map(d => d.cost) },
+          { label: 'Fejl', value: totalErrors.toString(), trend: apiUsageData.map(d => d.errors) },
         ].map((s, i) => (
           <Card key={i}>
             <p className="caption">{s.label}</p>
             <div className="flex items-end justify-between mt-1">
               <p className="text-2xl font-bold">{s.value}</p>
-              <MiniLineChart data={s.trend} color={s.label === 'Errors' ? '#FF3B30' : '#007AFF'} />
+              <MiniLineChart data={s.trend} color={s.label === 'Fejl' ? '#FF3B30' : '#007AFF'} />
             </div>
           </Card>
         ))}
       </div>
 
       <div className="grid grid-cols-2 gap-4 mb-6">
-        <Card title="Requests Over Time">
+        <Card title="Forespørgsler Over Tid">
           <BarChart data={apiUsageData.map(d => ({ label: d.date, value: d.requests, color: '#007AFF' }))} height={200} />
         </Card>
-        <Card title="Cost Over Time">
-          <BarChart data={apiUsageData.map(d => ({ label: d.date, value: Math.round(d.cost * 100) / 100, color: '#34C759' }))} height={200} />
+        <Card title="Tokens Over Tid">
+          <BarChart data={apiUsageData.map(d => ({ label: d.date, value: d.tokens, color: '#34C759' }))} height={200} />
         </Card>
       </div>
 
-      <Card title="Breakdown by Client">
+      <Card title="Modeller i Brug">
         <div className="space-y-3">
           {[
-            { client: 'Acme Corp', tokens: '412K', requests: 3420, cost: 128.40, pct: 40 },
-            { client: 'Global Foods', tokens: '289K', requests: 2100, cost: 89.30, pct: 28 },
-            { client: 'TechStart Inc', tokens: '178K', requests: 1340, cost: 56.20, pct: 18 },
-            { client: 'StyleHouse', tokens: '67K', requests: 520, cost: 28.50, pct: 9 },
-            { client: 'Nordic Health', tokens: '42K', requests: 340, cost: 14.80, pct: 5 },
-          ].map((c, i) => (
-            <div key={i} className="flex items-center gap-4 py-2 border-b border-apple-gray-50 last:border-0">
-              <span className="text-sm font-medium w-32">{c.client}</span>
-              <div className="flex-1 bg-apple-gray-100 rounded-full h-2 overflow-hidden">
-                <div className="bg-apple-blue h-full rounded-full transition-all" style={{ width: `${c.pct}%` }} />
+            { model: 'claude-opus-4-6', role: 'Primær model', status: 'Aktiv' },
+            { model: 'claude-sonnet-4-5', role: 'Fallback 1', status: 'Klar' },
+            { model: 'claude-opus-4-5', role: 'Fallback 2', status: 'Klar' },
+            { model: 'claude-opus-4-1', role: 'Fallback 3', status: 'Klar' },
+            { model: 'claude-haiku-4-5', role: 'Fallback 4', status: 'Klar (⚠️ under anbefalet)' },
+          ].map((m, i) => (
+            <div key={i} className="flex items-center justify-between py-2 border-b border-apple-gray-50 last:border-0">
+              <div>
+                <p className="text-sm font-medium font-mono">{m.model}</p>
+                <p className="caption">{m.role}</p>
               </div>
-              <span className="text-sm w-16 text-right">{c.tokens}</span>
-              <span className="text-sm w-16 text-right">{c.requests}</span>
-              <span className="text-sm w-20 text-right font-medium">${c.cost}</span>
+              <span className="text-sm text-apple-gray-500">{m.status}</span>
             </div>
           ))}
         </div>
       </Card>
 
-      <Card title="Budget Alert" className="mt-4">
-        <div className="flex items-center gap-3 text-sm">
-          <span className="text-[#FF9500] text-lg">⚠️</span>
-          <p>Monthly budget: <span className="font-bold">$500.00</span> — Used: <span className="font-bold">${totalCost.toFixed(2)}</span> ({(totalCost / 500 * 100).toFixed(1)}%). On track to exceed by ~15% at current rate.</p>
+      <Card title="Autentificeringsprofiler" className="mt-4">
+        <div className="space-y-2">
+          {[
+            { name: 'anthropic:default', type: 'API-nøgle', desc: 'Primær autentificering' },
+            { name: 'anthropic:flow-agent', type: 'Token', desc: 'Flow agent profil' },
+          ].map((p, i) => (
+            <div key={i} className="flex items-center justify-between py-2 border-b border-apple-gray-50 last:border-0 text-sm">
+              <div>
+                <p className="font-medium font-mono">{p.name}</p>
+                <p className="caption">{p.desc}</p>
+              </div>
+              <span className="px-2 py-0.5 bg-apple-gray-100 text-apple-gray-500 rounded text-xs">{p.type}</span>
+            </div>
+          ))}
         </div>
       </Card>
     </div>

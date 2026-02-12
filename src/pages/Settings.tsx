@@ -1,55 +1,74 @@
 import { useState } from 'react'
 import Card from '../components/Card'
-import StatusBadge from '../components/StatusBadge'
+import { systemInfo, availableModels, channels } from '../data/mock'
 
 export default function Settings() {
-  const [activeTab, setActiveTab] = useState<'security' | 'rbac' | 'credentials'>('security')
+  const [activeTab, setActiveTab] = useState<'system' | 'modeller' | 'sikkerhed'>('system')
 
   return (
     <div>
-      <h1 className="page-title mb-1">Settings</h1>
-      <p className="caption mb-6">Security, access control, and configuration</p>
+      <h1 className="page-title mb-1">Indstillinger</h1>
+      <p className="caption mb-6">Systemkonfiguration, modeller og sikkerhed</p>
 
       <div className="flex gap-1 mb-6">
-        {(['security', 'rbac', 'credentials'] as const).map(tab => (
+        {(['system', 'modeller', 'sikkerhed'] as const).map(tab => (
           <button key={tab} onClick={() => setActiveTab(tab)}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === tab ? 'bg-apple-blue text-white' : 'bg-white text-apple-gray-500 hover:bg-apple-gray-100'}`}>
-            {tab === 'rbac' ? 'RBAC' : tab.charAt(0).toUpperCase() + tab.slice(1)}
+            {tab === 'system' ? 'System' : tab === 'modeller' ? 'Modeller' : 'Sikkerhed'}
           </button>
         ))}
       </div>
 
-      {activeTab === 'security' && (
+      {activeTab === 'system' && (
         <div className="space-y-4">
-          <Card title="Skills Allowlist">
-            <div className="space-y-2">
-              {['web_search', 'database', 'email', 'slack', 'knowledge_base', 'ticket_system', 'charts', 'image_gen', 'cms', 'metrics_api', 'pagerduty'].map(skill => (
-                <div key={skill} className="flex items-center justify-between py-2 border-b border-apple-gray-50 last:border-0">
-                  <code className="text-sm">{skill}</code>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" defaultChecked className="sr-only peer" />
-                    <div className="w-9 h-5 bg-apple-gray-200 peer-focus:ring-2 peer-focus:ring-apple-blue/30 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-apple-blue"></div>
-                  </label>
+          <Card title="Systeminformation">
+            <div className="space-y-2 text-sm">
+              {[
+                ['Vært', `${systemInfo.host} (${systemInfo.hostType})`],
+                ['OS', `${systemInfo.os} — ${systemInfo.kernel}`],
+                ['CPU', systemInfo.cpu],
+                ['RAM', `${systemInfo.ramTotal} total, ${systemInfo.ramUsed} brugt, ${systemInfo.ramAvailable} tilgængelig`],
+                ['Disk', `${systemInfo.diskTotal} total, ${systemInfo.diskUsed} brugt (${systemInfo.diskPercent}%)`],
+                ['Node.js', systemInfo.nodeVersion],
+                ['Oppetid', systemInfo.uptime],
+                ['OpenClaw Version', systemInfo.openclawVersion],
+                ['Gateway', systemInfo.gatewayMode],
+              ].map(([label, value], i) => (
+                <div key={i} className="flex justify-between py-2 border-b border-apple-gray-50 last:border-0">
+                  <span className="caption">{label}</span>
+                  <span className="font-medium">{value}</span>
                 </div>
               ))}
             </div>
           </Card>
 
-          <Card title="Audit Log" subtitle="Recent security events">
+          <Card title="Kanalkonfiguration">
             <div className="space-y-2">
-              {[
-                { action: 'Agent created: Monitor Agent', user: 'admin@flow.dk', time: '2 hours ago' },
-                { action: 'API key rotated for Acme Corp', user: 'admin@flow.dk', time: '5 hours ago' },
-                { action: 'Permission changed: TechStart Inc → operator', user: 'admin@flow.dk', time: '1 day ago' },
-                { action: 'Skill disabled: image_gen (temporary)', user: 'martin@flow.dk', time: '2 days ago' },
-                { action: 'New client added: Nordic Health', user: 'admin@flow.dk', time: '3 days ago' },
-              ].map((log, i) => (
+              {channels.map((ch, i) => (
                 <div key={i} className="flex items-center justify-between py-2 border-b border-apple-gray-50 last:border-0 text-sm">
-                  <span>{log.action}</span>
-                  <div className="flex items-center gap-4">
-                    <span className="caption">{log.user}</span>
-                    <span className="caption">{log.time}</span>
+                  <div>
+                    <p className="font-medium">{ch.name}</p>
+                    <p className="caption">{ch.detail}</p>
                   </div>
+                  <span className={`text-xs font-medium px-2 py-0.5 rounded ${
+                    ch.status === 'ok' ? 'bg-green-50 text-green-600' :
+                    ch.status === 'warning' ? 'bg-orange-50 text-orange-600' :
+                    ch.status === 'setup' ? 'bg-gray-100 text-gray-500' :
+                    'bg-gray-50 text-gray-400'
+                  }`}>
+                    {ch.status === 'ok' ? 'OK' : ch.status === 'warning' ? 'ADVARSEL' : ch.status === 'setup' ? 'OPSÆTNING' : 'FRA'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          <Card title="Workspace Filer">
+            <div className="space-y-1">
+              {['AGENTS.md', 'BOOT.md', 'BOOTSTRAP.md', 'HEARTBEAT.md', 'IDENTITY.md', 'MEMORY.md', 'SOUL.md', 'TOOLS.md', 'USER.md'].map(f => (
+                <div key={f} className="flex items-center gap-2 py-1.5 text-sm">
+                  <span className="text-apple-gray-400">📄</span>
+                  <span className="font-mono">{f}</span>
                 </div>
               ))}
             </div>
@@ -57,59 +76,106 @@ export default function Settings() {
         </div>
       )}
 
-      {activeTab === 'rbac' && (
+      {activeTab === 'modeller' && (
         <div className="space-y-4">
-          <Card title="Roles & Permissions">
-            <div className="space-y-4">
-              {[
-                { role: 'Admin', permissions: ['Full access', 'Manage users', 'Manage agents', 'View billing', 'Configure security'], users: 1, status: 'active' as const },
-                { role: 'Operator', permissions: ['Run agents', 'View journal', 'Manage documents', 'View API usage'], users: 2, status: 'active' as const },
-                { role: 'Viewer', permissions: ['View dashboard', 'View journal', 'View documents'], users: 2, status: 'active' as const },
-              ].map((r, i) => (
-                <div key={i} className="p-4 bg-apple-gray-50 rounded-lg">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <h4 className="font-semibold">{r.role}</h4>
-                      <StatusBadge status={r.status} />
-                    </div>
-                    <span className="caption">{r.users} users</span>
-                  </div>
-                  <div className="flex flex-wrap gap-1">
-                    {r.permissions.map(p => (
-                      <span key={p} className="px-2 py-0.5 bg-white text-apple-gray-500 rounded text-xs">{p}</span>
-                    ))}
-                  </div>
+          <Card title="Primær Model">
+            <div className="p-4 bg-blue-50 rounded-lg">
+              <p className="font-semibold text-apple-blue">{systemInfo.primaryModel}</p>
+              <p className="caption mt-1">Standardmodel for alle agenter</p>
+            </div>
+          </Card>
+
+          <Card title="Tilgængelige Modeller" subtitle={`${availableModels.length} modeller konfigureret`}>
+            <div className="space-y-2">
+              {availableModels.map((m, i) => (
+                <div key={i} className="flex items-center justify-between py-2 border-b border-apple-gray-50 last:border-0 text-sm">
+                  <span className="font-mono font-medium">{m}</span>
+                  <span className={`text-xs px-2 py-0.5 rounded ${
+                    m === 'claude-opus-4-6' ? 'bg-blue-50 text-blue-600' :
+                    m.includes('haiku') ? 'bg-orange-50 text-orange-600' :
+                    'bg-gray-50 text-gray-500'
+                  }`}>
+                    {m === 'claude-opus-4-6' ? 'Primær' : m.includes('haiku') ? '⚠️ Under anbefalet' : 'Tilgængelig'}
+                  </span>
                 </div>
               ))}
+            </div>
+          </Card>
+
+          <Card title="Samtidige Begrænsninger">
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="p-4 bg-apple-gray-50 rounded-lg">
+                <p className="caption">Maks Samtidige Agenter</p>
+                <p className="text-2xl font-bold mt-1">{systemInfo.maxAgents}</p>
+              </div>
+              <div className="p-4 bg-apple-gray-50 rounded-lg">
+                <p className="caption">Maks Samtidige Sub-agenter</p>
+                <p className="text-2xl font-bold mt-1">{systemInfo.maxSubagents}</p>
+              </div>
             </div>
           </Card>
         </div>
       )}
 
-      {activeTab === 'credentials' && (
-        <Card title="Stored Credentials">
-          <div className="space-y-2">
-            {[
-              { name: 'OpenRouter API Key', type: 'API Key', lastRotated: '2026-02-01', masked: 'sk-or-v1-****...5210' },
-              { name: 'Supabase Service Key', type: 'Service Key', lastRotated: '2026-01-15', masked: 'eyJhbG****...Xk2w' },
-              { name: 'Slack Bot Token', type: 'OAuth Token', lastRotated: '2026-01-20', masked: 'xoxb-****...9f3a' },
-              { name: 'PagerDuty API', type: 'API Key', lastRotated: '2025-12-01', masked: 'pd-****...7c2e' },
-              { name: 'GitHub PAT', type: 'Personal Access Token', lastRotated: '2026-02-10', masked: 'ghp_****...0MyU' },
-            ].map((cred, i) => (
-              <div key={i} className="flex items-center justify-between py-3 border-b border-apple-gray-50 last:border-0">
-                <div>
-                  <p className="text-sm font-medium">{cred.name}</p>
-                  <p className="caption">{cred.type}</p>
+      {activeTab === 'sikkerhed' && (
+        <div className="space-y-4">
+          <Card title="Sikkerhedsadvarsler">
+            <div className="space-y-3">
+              {[
+                { title: 'Modeller under anbefalet niveau', desc: 'claude-haiku modeller er konfigureret men under de anbefalede niveauer for produktion.', severity: 'warning' },
+                { title: 'Credentials-mappe tilgængelig', desc: 'Credentials-mappen har tilladelser mode 755. Anbefalet: chmod 700 for at begrænse adgang.', severity: 'warning' },
+              ].map((w, i) => (
+                <div key={i} className="p-4 bg-orange-50 rounded-lg">
+                  <p className="font-medium text-orange-700">{w.title}</p>
+                  <p className="text-sm text-orange-600 mt-1">{w.desc}</p>
                 </div>
-                <div className="flex items-center gap-4">
-                  <code className="text-xs bg-apple-gray-50 px-2 py-1 rounded font-mono">{cred.masked}</code>
-                  <span className="caption">Rotated {cred.lastRotated}</span>
-                  <button className="text-xs text-apple-blue hover:underline">Rotate</button>
+              ))}
+            </div>
+          </Card>
+
+          <Card title="Autentificeringsprofiler">
+            <div className="space-y-2">
+              {[
+                { name: 'anthropic:default', type: 'api_key', desc: 'Standard API-nøgle autentificering' },
+                { name: 'anthropic:flow-agent', type: 'token', desc: 'Token-baseret autentificering for flow-agent' },
+              ].map((p, i) => (
+                <div key={i} className="flex items-center justify-between py-3 border-b border-apple-gray-50 last:border-0">
+                  <div>
+                    <p className="text-sm font-medium font-mono">{p.name}</p>
+                    <p className="caption">{p.desc}</p>
+                  </div>
+                  <span className="px-2 py-0.5 bg-apple-gray-100 text-apple-gray-500 rounded text-xs">{p.type}</span>
                 </div>
-              </div>
-            ))}
-          </div>
-        </Card>
+              ))}
+            </div>
+          </Card>
+
+          <Card title="Websøgning">
+            <div className="p-4 bg-apple-gray-50 rounded-lg text-sm">
+              <p className="font-medium">Perplexity Sonar Pro Search</p>
+              <p className="caption mt-1">Via OpenRouter — aktiveret og konfigureret</p>
+            </div>
+          </Card>
+
+          <Card title="Projekter">
+            <div className="space-y-2">
+              {[
+                { name: 'Mission Kontrol', status: 'Aktiv', desc: 'Operations-dashboard webapp' },
+                { name: 'OrderFlow AI / FLOW', status: 'På pause', desc: 'AI-drevet ordrebehandling' },
+              ].map((p, i) => (
+                <div key={i} className="flex items-center justify-between py-2 border-b border-apple-gray-50 last:border-0 text-sm">
+                  <div>
+                    <p className="font-medium">{p.name}</p>
+                    <p className="caption">{p.desc}</p>
+                  </div>
+                  <span className={`text-xs font-medium px-2 py-0.5 rounded ${p.status === 'Aktiv' ? 'bg-green-50 text-green-600' : 'bg-orange-50 text-orange-600'}`}>
+                    {p.status}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
       )}
     </div>
   )
