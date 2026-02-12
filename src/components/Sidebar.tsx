@@ -8,6 +8,7 @@ interface SidebarProps {
 const nav = [
   { id: 'dashboard', label: 'Oversigt', icon: '⬡' },
   { id: 'journal', label: 'Journal', icon: '◔' },
+  { id: 'tasks', label: 'Opgaver', icon: '▦' },
   { id: 'documents', label: 'Dokumenter', icon: '◱' },
   { id: 'agents', label: 'Agenter', icon: '⬢' },
   { id: 'intelligence', label: 'Intelligens', icon: '◉' },

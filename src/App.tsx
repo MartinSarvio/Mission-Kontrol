@@ -5,6 +5,7 @@ import Journal from './pages/Journal'
 import Documents from './pages/Documents'
 import Agents from './pages/Agents'
 import Intelligence from './pages/Intelligence'
+import Tasks from './pages/Tasks'
 import WeeklyRecap from './pages/WeeklyRecap'
 import Clients from './pages/Clients'
 import CronJobs from './pages/CronJobs'
@@ -17,6 +18,7 @@ import Settings from './pages/Settings'
 const pages: Record<string, () => JSX.Element> = {
   dashboard: Dashboard,
   journal: Journal,
+  tasks: Tasks,
   documents: Documents,
   agents: Agents,
   intelligence: Intelligence,
