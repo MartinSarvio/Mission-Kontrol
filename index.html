@@ -6,28 +6,42 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Mission Kontrol</title>
     <style>
-      /* Force dark mode on all form elements — highest specificity override */
-      html, body { color-scheme: dark !important; }
-      input, textarea, select, button, [class*="btn-"] {
-        color-scheme: dark !important;
+      /* Force dark mode globally */
+      *, *::before, *::after { color-scheme: dark !important; }
+      
+      /* ALL buttons default to blue */
+      button {
+        background: rgba(0,122,255,0.2) !important;
+        border: 1px solid rgba(0,122,255,0.3) !important;
         color: #fff !important;
       }
-      .btn-secondary, [class*="btn-secondary"] {
-        background: rgba(255,255,255,0.08) !important;
-        border: 1px solid rgba(255,255,255,0.1) !important;
-        color: #fff !important;
+      button:hover {
+        background: rgba(0,122,255,0.3) !important;
       }
-      .btn-primary, [class*="btn-primary"] {
+      
+      /* Primary buttons stay solid blue */
+      .btn-primary, button[class*="bg-apple-blue"] {
         background: #007AFF !important;
+        border: 1px solid #007AFF !important;
         color: #fff !important;
       }
+      
+      /* Active sidebar */
       .sidebar-item.active {
         background: rgba(0,122,255,0.15) !important;
         color: #fff !important;
       }
-      input, textarea {
+      
+      /* Inputs & textareas */
+      input, textarea, select {
         background: rgba(255,255,255,0.06) !important;
         border: 1px solid rgba(255,255,255,0.1) !important;
+        color: #fff !important;
+      }
+      input:focus, textarea:focus, select:focus {
+        border-color: rgba(0,122,255,0.4) !important;
+        box-shadow: 0 0 0 3px rgba(0,122,255,0.12) !important;
+        outline: none !important;
       }
     </style>
   </head>
