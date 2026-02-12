@@ -7,9 +7,9 @@
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', Helvetica, Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    background: linear-gradient(135deg, #f5f5f7 0%, #e8e8ed 50%, #f0f0f5 100%);
+    background: linear-gradient(135deg, #0a0a0f 0%, #12121a 50%, #0e0e16 100%);
     background-attachment: fixed;
-    color: #1d1d1f;
+    color: #ffffff;
   }
 }
 
@@ -18,17 +18,17 @@
   .glass-sidebar {
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    background: rgba(28, 28, 30, 0.85);
-    border-right: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.03);
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
   }
   .sidebar-item {
     @apply flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 cursor-pointer;
   }
   .sidebar-item:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.08);
   }
   .sidebar-item.active {
-    background: rgba(0, 122, 255, 0.25);
+    background: rgba(0, 122, 255, 0.15);
     color: white;
     backdrop-filter: blur(8px);
   }
@@ -37,14 +37,14 @@
   .card {
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    background: rgba(255, 255, 255, 0.6);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04), 0 0.5px 1px rgba(0, 0, 0, 0.03);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2), 0 0.5px 1px rgba(0, 0, 0, 0.15);
     @apply rounded-2xl p-5 transition-all duration-200;
   }
   .card:hover {
-    background: rgba(255, 255, 255, 0.7);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
+    background: rgba(255, 255, 255, 0.07);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.2);
     transform: scale(1.003);
   }
 
@@ -62,24 +62,28 @@
   .table-header {
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    background: rgba(245, 245, 247, 0.6);
-    @apply sticky top-0 text-xs font-semibold text-apple-gray-400 uppercase tracking-wider;
+    background: rgba(255, 255, 255, 0.06);
+    @apply sticky top-0 text-xs font-semibold uppercase tracking-wider;
+    color: rgba(255, 255, 255, 0.4);
   }
 
   /* Typography */
   .page-title {
-    @apply text-[32px] font-bold tracking-tight text-apple-text;
+    @apply text-[32px] font-bold tracking-tight;
+    color: #ffffff;
     letter-spacing: -0.02em;
   }
   .page-subtitle {
-    @apply text-[24px] font-semibold tracking-tight text-apple-text;
+    @apply text-[24px] font-semibold tracking-tight;
+    color: #ffffff;
   }
   .section-title {
-    @apply text-base font-semibold text-apple-text;
+    @apply text-base font-semibold;
+    color: #ffffff;
   }
   .caption {
     @apply text-[13px];
-    color: #86868b;
+    color: rgba(255, 255, 255, 0.4);
   }
 
   /* Glass Buttons */
@@ -97,12 +101,12 @@
     @apply px-4 py-2 text-sm font-medium rounded-xl transition-all duration-150;
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    background: rgba(255, 255, 255, 0.5);
-    border: 1px solid rgba(0, 0, 0, 0.06);
-    color: #1d1d1f;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #ffffff;
   }
   .btn-secondary:hover {
-    background: rgba(255, 255, 255, 0.7);
+    background: rgba(255, 255, 255, 0.12);
     transform: scale(1.01);
   }
 
@@ -111,37 +115,51 @@
     @apply px-3 py-2 text-sm rounded-xl transition-all duration-150;
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
-    background: rgba(255, 255, 255, 0.5);
-    border: 1px solid rgba(0, 0, 0, 0.06);
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+  }
+  .input::placeholder {
+    color: rgba(255, 255, 255, 0.3);
   }
   .input:focus {
     @apply outline-none;
-    background: rgba(255, 255, 255, 0.7);
+    background: rgba(255, 255, 255, 0.1);
     border-color: rgba(0, 122, 255, 0.4);
     box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.12);
+  }
+
+  /* Select styling */
+  select.input {
+    color: #ffffff;
+    background-color: rgba(255, 255, 255, 0.06);
+  }
+  select.input option {
+    background: #1c1c1e;
+    color: #ffffff;
   }
 
   /* Glass Side Panel */
   .glass-panel {
     backdrop-filter: blur(30px);
     -webkit-backdrop-filter: blur(30px);
-    background: rgba(255, 255, 255, 0.85);
-    box-shadow: -4px 0 40px rgba(0, 0, 0, 0.08);
+    background: rgba(20, 20, 25, 0.9);
+    box-shadow: -4px 0 40px rgba(0, 0, 0, 0.4);
   }
 
   /* Glass Overlay */
   .glass-overlay {
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
-    background: rgba(0, 0, 0, 0.2);
+    background: rgba(0, 0, 0, 0.5);
   }
 
   /* Glass Column */
   .glass-column {
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    background: rgba(245, 245, 247, 0.5);
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
     @apply rounded-2xl;
   }
 
@@ -149,14 +167,14 @@
   .glass-task-card {
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    background: rgba(255, 255, 255, 0.65);
-    border: 1px solid rgba(255, 255, 255, 0.35);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
     @apply rounded-2xl p-4 transition-all duration-200 cursor-pointer;
   }
   .glass-task-card:hover {
-    background: rgba(255, 255, 255, 0.8);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+    background: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
     transform: scale(1.01);
   }
 
@@ -173,31 +191,31 @@
   .glass-toggle-group {
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
-    background: rgba(0, 0, 0, 0.04);
-    border: 1px solid rgba(0, 0, 0, 0.04);
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     @apply rounded-xl p-0.5;
   }
   .glass-toggle-active {
     backdrop-filter: blur(8px);
-    background: rgba(255, 255, 255, 0.7);
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+    background: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
   }
 
   /* Glass row for table */
   .glass-row {
-    border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     transition: all 0.15s ease;
   }
   .glass-row:hover {
-    background: rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.04);
   }
 }
 
-/* Custom scrollbar */
+/* Custom scrollbar - dark */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.12); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.2); }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
 
 @keyframes slide-in {
   from { transform: translateX(100%); }

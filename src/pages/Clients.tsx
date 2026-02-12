@@ -30,7 +30,7 @@ export default function Clients() {
           onRowClick={setSelected}
           columns={[
             { key: 'name', header: 'Klient', render: c => <span className="font-medium">{c.name}</span> },
-            { key: 'company', header: 'Virksomhed', render: c => <span style={{ color: '#636366' }}>{c.company}</span> },
+            { key: 'company', header: 'Virksomhed', render: c => <span style={{ color: 'rgba(255,255,255,0.7)' }}>{c.company}</span> },
             { key: 'status', header: 'Status', render: c => <StatusBadge status={c.status} /> },
             { key: 'tasks', header: 'Aktive Opgaver', render: c => c.activeTasks },
             { key: 'spend', header: 'Samlet Forbrug', render: c => c.totalSpend > 0 ? `$${c.totalSpend.toFixed(2)}` : 'API-nøgle' },
@@ -50,7 +50,7 @@ export default function Clients() {
               <div><p className="caption">Rolle</p><p className="font-medium capitalize">{selected.role}</p></div>
               <div><p className="caption">Aktive Opgaver</p><p className="font-medium">{selected.activeTasks}</p></div>
               <div><p className="caption">Dokumenter</p><p className="font-medium">{selected.documents}</p></div>
-              <div><p className="caption">Forbindelse</p><p className="font-mono text-xs px-2 py-1 rounded-lg" style={{ background: 'rgba(0,0,0,0.04)' }}>{selected.apiKey}</p></div>
+              <div><p className="caption">Forbindelse</p><p className="font-mono text-xs px-2 py-1 rounded-lg" style={{ background: 'rgba(255,255,255,0.06)' }}>{selected.apiKey}</p></div>
               <div><p className="caption">Samlet Forbrug</p><p className="font-medium">{selected.totalSpend > 0 ? `$${selected.totalSpend.toFixed(2)}` : 'Via API-nøgle'}</p></div>
             </div>
           </div>

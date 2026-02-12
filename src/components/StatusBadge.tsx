@@ -23,8 +23,8 @@ const glassBg: Record<string, string> = {
 
 export default function StatusBadge({ status }: { status: Status | Severity | string }) {
   return (
-    <span className={`badge ${statusTextColors[status] || 'text-gray-500'}`} style={{ background: glassBg[status] || 'rgba(142,142,147,0.1)' }}>
-      <span className={`badge-dot ${statusColors[status] || 'bg-gray-400'}`} />
+    <span className={`badge ${statusTextColors[status] || 'text-white/50'}`} style={{ background: glassBg[status] || 'rgba(142,142,147,0.1)' }}>
+      <span className={`badge-dot ${statusColors[status] || 'bg-white/30'}`} />
       <span className="capitalize">{status}</span>
     </span>
   )

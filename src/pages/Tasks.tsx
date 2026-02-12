@@ -43,10 +43,10 @@ interface LiveEvent {
 }
 
 const priorityConfig = {
-  critical: { label: 'Kritisk', color: 'text-red-700', bg: 'rgba(255,59,48,0.1)', dot: 'bg-red-500' },
-  high: { label: 'Høj', color: 'text-orange-700', bg: 'rgba(255,149,0,0.1)', dot: 'bg-orange-500' },
-  normal: { label: 'Normal', color: 'text-blue-600', bg: 'rgba(0,122,255,0.1)', dot: 'bg-blue-500' },
-  low: { label: 'Lav', color: 'text-gray-500', bg: 'rgba(142,142,147,0.1)', dot: 'bg-gray-400' },
+  critical: { label: 'Kritisk', color: 'text-red-400', bg: 'rgba(255,59,48,0.1)', dot: 'bg-red-500' },
+  high: { label: 'Høj', color: 'text-orange-400', bg: 'rgba(255,149,0,0.1)', dot: 'bg-orange-500' },
+  normal: { label: 'Normal', color: 'text-blue-400', bg: 'rgba(0,122,255,0.1)', dot: 'bg-blue-500' },
+  low: { label: 'Lav', color: 'text-white/50', bg: 'rgba(142,142,147,0.1)', dot: 'bg-white/30' },
 }
 
 const eventTypeConfig: Record<string, { icon: string; label: string }> = {
@@ -460,20 +460,20 @@ export default function Tasks() {
         <div className="flex items-start justify-between mb-2">
           <div className="flex items-center gap-2 flex-1 min-w-0">
             <span className={`w-2 h-2 rounded-full flex-shrink-0 ${task.status === 'active' ? 'bg-blue-500 animate-pulse' : task.result === 'success' ? 'bg-green-500' : task.result === 'error' ? 'bg-red-500' : pc.dot}`} />
-            <h4 className="text-sm font-semibold text-gray-900 truncate">{task.title}</h4>
+            <h4 className="text-sm font-semibold text-white truncate">{task.title}</h4>
           </div>
           <span className={`badge text-[10px] flex-shrink-0 ml-2 ${pc.color}`} style={{ background: pc.bg }}>{pc.label}</span>
         </div>
         <div className="flex items-center gap-2 mb-2">
-          <span className="text-[11px]" style={{ color: '#86868b' }}>{task.client}</span>
-          <span style={{ color: '#d2d2d7' }}>·</span>
-          <span className="text-[11px]" style={{ color: '#86868b' }}>{task.agent}</span>
+          <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.4)' }}>{task.client}</span>
+          <span style={{ color: 'rgba(255,255,255,0.2)' }}>·</span>
+          <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.4)' }}>{task.agent}</span>
         </div>
         {task.status === 'active' && task.progress !== undefined && (
           <div className="mb-2">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-[11px] text-blue-600 font-medium">{task.currentStep}</span>
-              <span className="text-[11px] font-semibold text-blue-600">{task.progress}%</span>
+              <span className="text-[11px] text-blue-400 font-medium">{task.currentStep}</span>
+              <span className="text-[11px] font-semibold text-blue-400">{task.progress}%</span>
             </div>
             <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(0,122,255,0.1)' }}>
               <div className="h-full bg-blue-500 rounded-full transition-all duration-500" style={{ width: `${task.progress}%` }} />
@@ -481,28 +481,28 @@ export default function Tasks() {
           </div>
         )}
         {task.status === 'completed' && task.result && (
-          <div className={`mb-2 text-[11px] font-medium flex items-center gap-1 ${task.result === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+          <div className={`mb-2 text-[11px] font-medium flex items-center gap-1 ${task.result === 'success' ? 'text-green-400' : 'text-red-400'}`}>
             <Icon name={task.result === 'success' ? 'check' : 'xmark'} size={12} />
             {task.result === 'success' ? 'Gennemført' : 'Fejlet'}
           </div>
         )}
-        <p className="text-[11px] mb-3 line-clamp-1" style={{ color: '#86868b' }}>{task.lastActivity}</p>
+        <p className="text-[11px] mb-3 line-clamp-1" style={{ color: 'rgba(255,255,255,0.4)' }}>{task.lastActivity}</p>
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1 text-[10px]" style={{ color: '#86868b' }}>
+          <div className="flex items-center gap-1 text-[10px]" style={{ color: 'rgba(255,255,255,0.4)' }}>
             <Icon name="timer" size={12} />
             <span>{task.estimatedMinutes}m</span>
-            <span style={{ color: '#d2d2d7' }}>·</span>
+            <span style={{ color: 'rgba(255,255,255,0.2)' }}>·</span>
             <span>{timeAgo(task.created)}</span>
           </div>
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             {task.status === 'active' && (
-              <button onClick={e => { e.stopPropagation(); handleAction(task.id, 'pause') }} className="w-6 h-6 flex items-center justify-center rounded-lg text-gray-500" style={{ background: 'rgba(0,0,0,0.04)' }} title="Pause"><Icon name="pause" size={12} /></button>
+              <button onClick={e => { e.stopPropagation(); handleAction(task.id, 'pause') }} className="w-6 h-6 flex items-center justify-center rounded-lg text-white/50" style={{ background: 'rgba(255,255,255,0.06)' }} title="Pause"><Icon name="pause" size={12} /></button>
             )}
-            <button onClick={e => { e.stopPropagation(); handleAction(task.id, 'restart') }} className="w-6 h-6 flex items-center justify-center rounded-lg text-gray-500" style={{ background: 'rgba(0,0,0,0.04)' }} title="Genstart"><Icon name="restart" size={12} /></button>
+            <button onClick={e => { e.stopPropagation(); handleAction(task.id, 'restart') }} className="w-6 h-6 flex items-center justify-center rounded-lg text-white/50" style={{ background: 'rgba(255,255,255,0.06)' }} title="Genstart"><Icon name="restart" size={12} /></button>
             {task.status !== 'completed' && (
-              <button onClick={e => { e.stopPropagation(); handleAction(task.id, 'cancel') }} className="w-6 h-6 flex items-center justify-center rounded-lg text-red-500" style={{ background: 'rgba(255,59,48,0.06)' }} title="Annuller"><Icon name="xmark" size={12} /></button>
+              <button onClick={e => { e.stopPropagation(); handleAction(task.id, 'cancel') }} className="w-6 h-6 flex items-center justify-center rounded-lg text-red-400" style={{ background: 'rgba(255,59,48,0.06)' }} title="Annuller"><Icon name="xmark" size={12} /></button>
             )}
-            <button onClick={e => { e.stopPropagation(); setSelectedTask(task) }} className="w-6 h-6 flex items-center justify-center rounded-lg text-gray-500" style={{ background: 'rgba(0,0,0,0.04)' }} title="Detaljer"><Icon name="chevron-right" size={12} /></button>
+            <button onClick={e => { e.stopPropagation(); setSelectedTask(task) }} className="w-6 h-6 flex items-center justify-center rounded-lg text-white/50" style={{ background: 'rgba(255,255,255,0.06)' }} title="Detaljer"><Icon name="chevron-right" size={12} /></button>
           </div>
         </div>
       </div>
@@ -513,13 +513,13 @@ export default function Tasks() {
     <div className="flex-1 min-w-[300px]" onDragOver={e => e.preventDefault()} onDrop={() => handleDrop(status)}>
       <div className="flex items-center gap-2 mb-4 px-1">
         <span className={`w-2.5 h-2.5 rounded-full ${color}`} />
-        <h3 className="text-sm font-semibold" style={{ color: '#1d1d1f' }}>{title}</h3>
-        <span className="text-xs px-2 py-0.5 rounded-full" style={{ color: '#86868b', background: 'rgba(0,0,0,0.04)' }}>{count}</span>
+        <h3 className="text-sm font-semibold" style={{ color: '#ffffff' }}>{title}</h3>
+        <span className="text-xs px-2 py-0.5 rounded-full" style={{ color: 'rgba(255,255,255,0.4)', background: 'rgba(255,255,255,0.06)' }}>{count}</span>
       </div>
       <div className="space-y-3 min-h-[200px] p-2 glass-column">
         {columnTasks.map(task => <TaskCard key={task.id} task={task} />)}
         {columnTasks.length === 0 && (
-          <div className="text-center py-8 text-sm" style={{ color: '#aeaeb2' }}>Ingen opgaver</div>
+          <div className="text-center py-8 text-sm" style={{ color: 'rgba(255,255,255,0.3)' }}>Ingen opgaver</div>
         )}
       </div>
     </div>
@@ -543,7 +543,7 @@ export default function Tasks() {
         <h1 className="page-title">Opgaver</h1>
         <div className="glass-toggle-group flex items-center">
           {(['kanban', 'livefeed', 'historik'] as const).map(m => (
-            <button key={m} onClick={() => setViewMode(m)} className={`px-4 py-1.5 text-sm font-medium rounded-xl transition-all ${viewMode === m ? 'glass-toggle-active text-gray-900' : 'text-gray-500'}`}>
+            <button key={m} onClick={() => setViewMode(m)} className={`px-4 py-1.5 text-sm font-medium rounded-xl transition-all ${viewMode === m ? 'glass-toggle-active text-white' : 'text-white/50'}`}>
               {m === 'kanban' ? 'Kanban' : m === 'livefeed' ? 'Live Feed' : 'Historik'}
             </button>
           ))}
@@ -567,10 +567,10 @@ export default function Tasks() {
               {types.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
             <div className="relative">
-              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400"><Icon name="magnifying-glass" size={14} /></span>
+              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-white/40"><Icon name="magnifying-glass" size={14} /></span>
               <input type="text" placeholder="Søg efter titel..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="input text-xs py-1.5 w-48 pl-8" />
             </div>
-            <label className="flex items-center gap-2 text-xs cursor-pointer" style={{ color: '#86868b' }}>
+            <label className="flex items-center gap-2 text-xs cursor-pointer" style={{ color: 'rgba(255,255,255,0.4)' }}>
               <input type="checkbox" checked={onlyMine} onChange={e => setOnlyMine(e.target.checked)} className="rounded" />
               Kun mine opgaver
             </label>
@@ -600,19 +600,19 @@ export default function Tasks() {
               const evType = eventTypeConfig[event.type]
               return (
                 <div key={event.id} onClick={() => { const t = tasks.find(t => t.id === event.taskId); if (t) setSelectedTask(t) }} className="card flex items-start gap-4 cursor-pointer">
-                  <span className="mt-0.5"><Icon name={evType.icon} size={18} className={event.type === 'error' ? 'text-red-500' : event.type === 'task_done' ? 'text-green-500' : 'text-gray-500'} /></span>
+                  <span className="mt-0.5"><Icon name={evType.icon} size={18} className={event.type === 'error' ? 'text-red-400' : event.type === 'task_done' ? 'text-green-400' : 'text-white/50'} /></span>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5">
-                      <span className="text-xs font-semibold" style={{ color: '#86868b' }}>{evType.label}</span>
-                      <span style={{ color: '#d2d2d7' }}>·</span>
-                      <span className="text-xs" style={{ color: '#86868b' }}>{event.agent}</span>
-                      <span style={{ color: '#d2d2d7' }}>·</span>
-                      <span className="text-xs" style={{ color: '#86868b' }}>{event.client}</span>
+                      <span className="text-xs font-semibold" style={{ color: 'rgba(255,255,255,0.4)' }}>{evType.label}</span>
+                      <span style={{ color: 'rgba(255,255,255,0.2)' }}>·</span>
+                      <span className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{event.agent}</span>
+                      <span style={{ color: 'rgba(255,255,255,0.2)' }}>·</span>
+                      <span className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{event.client}</span>
                     </div>
-                    <p className="text-sm font-medium" style={{ color: '#1d1d1f' }}>{event.taskTitle}</p>
-                    <p className="text-xs mt-0.5" style={{ color: '#636366' }}>{event.message}</p>
+                    <p className="text-sm font-medium" style={{ color: '#ffffff' }}>{event.taskTitle}</p>
+                    <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.7)' }}>{event.message}</p>
                   </div>
-                  <span className="text-[11px] whitespace-nowrap" style={{ color: '#86868b' }}>{formatDate(event.timestamp)}</span>
+                  <span className="text-[11px] whitespace-nowrap" style={{ color: 'rgba(255,255,255,0.4)' }}>{formatDate(event.timestamp)}</span>
                 </div>
               )
             })}
@@ -632,7 +632,7 @@ export default function Tasks() {
             ].map((s, i) => (
               <div key={i} className="card">
                 <div className="flex items-center gap-2 mb-1">
-                  <Icon name={s.icon} size={16} className="text-gray-400" />
+                  <Icon name={s.icon} size={16} className="text-white/40" />
                   <p className="caption">{s.label}</p>
                 </div>
                 <p className="text-2xl font-bold">{s.value}</p>
@@ -643,7 +643,7 @@ export default function Tasks() {
           {/* Filters */}
           <div className="flex items-center gap-3 mb-5 flex-wrap">
             <div className="relative flex-1 max-w-xs">
-              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400"><Icon name="magnifying-glass" size={14} /></span>
+              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-white/40"><Icon name="magnifying-glass" size={14} /></span>
               <input type="text" placeholder="Søg i opgaver..." value={histSearch} onChange={e => setHistSearch(e.target.value)} className="input text-xs py-1.5 w-full pl-8" />
             </div>
             <select value={histClient} onChange={e => setHistClient(e.target.value)} className="input text-xs py-1.5">
@@ -666,7 +666,7 @@ export default function Tasks() {
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+                  <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
                     <SortHeader label="Opgave" sortKey="title" />
                     <SortHeader label="Klient" sortKey="client" />
                     <SortHeader label="Agent" sortKey="agent" />
@@ -680,19 +680,19 @@ export default function Tasks() {
                 <tbody>
                   {histTasks.map(task => (
                     <tr key={task.id} onClick={() => setSelectedTask(task)} className="glass-row cursor-pointer">
-                      <td className="px-4 py-3 text-sm font-medium" style={{ color: '#1d1d1f' }}>{task.title}</td>
-                      <td className="px-4 py-3 text-sm" style={{ color: '#636366' }}>{task.client}</td>
-                      <td className="px-4 py-3 text-sm" style={{ color: '#636366' }}>{task.agent}</td>
+                      <td className="px-4 py-3 text-sm font-medium" style={{ color: '#ffffff' }}>{task.title}</td>
+                      <td className="px-4 py-3 text-sm" style={{ color: 'rgba(255,255,255,0.7)' }}>{task.client}</td>
+                      <td className="px-4 py-3 text-sm" style={{ color: 'rgba(255,255,255,0.7)' }}>{task.agent}</td>
                       <td className="px-4 py-3">
                         <span className={`badge text-[10px] ${priorityConfig[task.priority].color}`} style={{ background: priorityConfig[task.priority].bg }}>{priorityConfig[task.priority].label}</span>
                       </td>
-                      <td className="px-4 py-3 text-sm" style={{ color: '#86868b' }}>{formatDate(task.created)}</td>
-                      <td className="px-4 py-3 text-sm" style={{ color: '#86868b' }}>{task.finished ? formatDate(task.finished) : '-'}</td>
-                      <td className="px-4 py-3 text-sm" style={{ color: '#86868b' }}>
+                      <td className="px-4 py-3 text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>{formatDate(task.created)}</td>
+                      <td className="px-4 py-3 text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>{task.finished ? formatDate(task.finished) : '-'}</td>
+                      <td className="px-4 py-3 text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>
                         {task.started && task.finished ? formatDuration(durationMinutes(task.started, task.finished)) : '-'}
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`badge text-[10px] ${task.result === 'success' ? 'text-green-700' : 'text-red-700'}`} style={{ background: task.result === 'success' ? 'rgba(52,199,89,0.1)' : 'rgba(255,59,48,0.1)' }}>
+                        <span className={`badge text-[10px] ${task.result === 'success' ? 'text-green-400' : 'text-red-400'}`} style={{ background: task.result === 'success' ? 'rgba(52,199,89,0.1)' : 'rgba(255,59,48,0.1)' }}>
                           <Icon name={task.result === 'success' ? 'check' : 'xmark'} size={10} />
                           {task.result === 'success' ? 'Succes' : 'Fejl'}
                         </span>
@@ -713,46 +713,46 @@ export default function Tasks() {
           <div className="fixed right-0 top-0 h-full w-[480px] glass-panel z-50 overflow-y-auto animate-slide-in">
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold" style={{ color: '#1d1d1f' }}>{selectedTask.title}</h2>
-                <button onClick={() => setSelectedTask(null)} className="w-8 h-8 flex items-center justify-center rounded-full" style={{ background: 'rgba(0,0,0,0.04)', color: '#86868b' }}>
+                <h2 className="text-xl font-bold" style={{ color: '#ffffff' }}>{selectedTask.title}</h2>
+                <button onClick={() => setSelectedTask(null)} className="w-8 h-8 flex items-center justify-center rounded-full" style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.4)' }}>
                   <Icon name="xmark" size={14} />
                 </button>
               </div>
 
               <div className="grid grid-cols-2 gap-4 mb-6">
                 <div>
-                  <p className="text-[11px] uppercase tracking-wider mb-1" style={{ color: '#86868b' }}>Status</p>
-                  <span className={`badge ${selectedTask.status === 'active' ? 'text-blue-700' : selectedTask.status === 'completed' ? (selectedTask.result === 'success' ? 'text-green-700' : 'text-red-700') : 'text-yellow-700'}`} style={{ background: selectedTask.status === 'active' ? 'rgba(0,122,255,0.1)' : selectedTask.status === 'completed' ? (selectedTask.result === 'success' ? 'rgba(52,199,89,0.1)' : 'rgba(255,59,48,0.1)') : 'rgba(255,149,0,0.1)' }}>
+                  <p className="text-[11px] uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.4)' }}>Status</p>
+                  <span className={`badge ${selectedTask.status === 'active' ? 'text-blue-400' : selectedTask.status === 'completed' ? (selectedTask.result === 'success' ? 'text-green-400' : 'text-red-400') : 'text-yellow-700'}`} style={{ background: selectedTask.status === 'active' ? 'rgba(0,122,255,0.1)' : selectedTask.status === 'completed' ? (selectedTask.result === 'success' ? 'rgba(52,199,89,0.1)' : 'rgba(255,59,48,0.1)') : 'rgba(255,149,0,0.1)' }}>
                     {selectedTask.status === 'queued' ? 'I kø' : selectedTask.status === 'active' ? 'Aktiv' : 'Afsluttet'}
                   </span>
                 </div>
                 <div>
-                  <p className="text-[11px] uppercase tracking-wider mb-1" style={{ color: '#86868b' }}>Prioritet</p>
+                  <p className="text-[11px] uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.4)' }}>Prioritet</p>
                   <span className={`badge ${priorityConfig[selectedTask.priority].color}`} style={{ background: priorityConfig[selectedTask.priority].bg }}>{priorityConfig[selectedTask.priority].label}</span>
                 </div>
                 <div>
-                  <p className="text-[11px] uppercase tracking-wider mb-1" style={{ color: '#86868b' }}>Agent</p>
+                  <p className="text-[11px] uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.4)' }}>Agent</p>
                   <p className="text-sm font-medium">{selectedTask.agent}</p>
                 </div>
                 <div>
-                  <p className="text-[11px] uppercase tracking-wider mb-1" style={{ color: '#86868b' }}>Klient</p>
+                  <p className="text-[11px] uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.4)' }}>Klient</p>
                   <p className="text-sm font-medium">{selectedTask.client}</p>
                 </div>
                 <div>
-                  <p className="text-[11px] uppercase tracking-wider mb-1" style={{ color: '#86868b' }}>Type</p>
+                  <p className="text-[11px] uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.4)' }}>Type</p>
                   <p className="text-sm font-medium">{selectedTask.type}</p>
                 </div>
                 <div>
-                  <p className="text-[11px] uppercase tracking-wider mb-1" style={{ color: '#86868b' }}>Estimeret</p>
+                  <p className="text-[11px] uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.4)' }}>Estimeret</p>
                   <p className="text-sm font-medium">{selectedTask.estimatedMinutes} min</p>
                 </div>
                 <div>
-                  <p className="text-[11px] uppercase tracking-wider mb-1" style={{ color: '#86868b' }}>Oprettet</p>
+                  <p className="text-[11px] uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.4)' }}>Oprettet</p>
                   <p className="text-sm">{formatDate(selectedTask.created)}</p>
                 </div>
                 {selectedTask.started && (
                   <div>
-                    <p className="text-[11px] uppercase tracking-wider mb-1" style={{ color: '#86868b' }}>Startet</p>
+                    <p className="text-[11px] uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.4)' }}>Startet</p>
                     <p className="text-sm">{formatDate(selectedTask.started)}</p>
                   </div>
                 )}
@@ -761,8 +761,8 @@ export default function Tasks() {
               {selectedTask.status === 'active' && selectedTask.progress !== undefined && (
                 <div className="mb-6">
                   <div className="flex justify-between mb-1">
-                    <span className="text-sm font-medium text-blue-600">{selectedTask.currentStep}</span>
-                    <span className="text-sm font-bold text-blue-600">{selectedTask.progress}%</span>
+                    <span className="text-sm font-medium text-blue-400">{selectedTask.currentStep}</span>
+                    <span className="text-sm font-bold text-blue-400">{selectedTask.progress}%</span>
                   </div>
                   <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: 'rgba(0,122,255,0.1)' }}>
                     <div className="h-full bg-blue-500 rounded-full transition-all" style={{ width: `${selectedTask.progress}%` }} />
@@ -771,23 +771,23 @@ export default function Tasks() {
               )}
 
               <div className="mb-6">
-                <h3 className="text-sm font-semibold mb-3" style={{ color: '#1d1d1f' }}>Trin</h3>
+                <h3 className="text-sm font-semibold mb-3" style={{ color: '#ffffff' }}>Trin</h3>
                 <div className="space-y-2">
                   {selectedTask.steps.map((step, i) => (
-                    <div key={i} className="flex items-center gap-3 py-2 px-3 rounded-xl" style={{ background: 'rgba(245,245,247,0.5)' }}>
+                    <div key={i} className="flex items-center gap-3 py-2 px-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.06)' }}>
                       <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                        step.status === 'done' ? 'text-green-600' :
-                        step.status === 'running' ? 'text-blue-600 animate-pulse' :
-                        step.status === 'error' ? 'text-red-600' : 'text-gray-400'
+                        step.status === 'done' ? 'text-green-400' :
+                        step.status === 'running' ? 'text-blue-400 animate-pulse' :
+                        step.status === 'error' ? 'text-red-400' : 'text-white/40'
                       }`} style={{ background: step.status === 'done' ? 'rgba(52,199,89,0.1)' : step.status === 'running' ? 'rgba(0,122,255,0.1)' : step.status === 'error' ? 'rgba(255,59,48,0.1)' : 'rgba(142,142,147,0.1)' }}>
                         {step.status === 'done' ? <Icon name="check" size={10} /> : step.status === 'running' ? <Icon name="play" size={10} /> : step.status === 'error' ? '!' : (i + 1)}
                       </span>
                       <div className="flex-1">
-                        <p className="text-sm font-medium" style={{ color: '#1d1d1f' }}>{step.name}</p>
-                        {step.tool && <p className="text-[11px]" style={{ color: '#86868b' }}>Værktøj: {step.tool}</p>}
+                        <p className="text-sm font-medium" style={{ color: '#ffffff' }}>{step.name}</p>
+                        {step.tool && <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.4)' }}>Værktøj: {step.tool}</p>}
                       </div>
                       {step.finishedAt && step.startedAt && (
-                        <span className="text-[10px]" style={{ color: '#86868b' }}>
+                        <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.4)' }}>
                           {Math.round((new Date(step.finishedAt).getTime() - new Date(step.startedAt).getTime()) / 60000)}m
                         </span>
                       )}
@@ -802,7 +802,7 @@ export default function Tasks() {
                 )}
                 <button onClick={() => { handleAction(selectedTask.id, 'restart'); setSelectedTask(null) }} className="btn-secondary text-xs flex items-center gap-1.5"><Icon name="restart" size={12} /> Genstart</button>
                 {selectedTask.status !== 'completed' && (
-                  <button onClick={() => { handleAction(selectedTask.id, 'cancel'); setSelectedTask(null) }} className="btn-secondary text-xs text-red-500 flex items-center gap-1.5"><Icon name="xmark" size={12} /> Annuller</button>
+                  <button onClick={() => { handleAction(selectedTask.id, 'cancel'); setSelectedTask(null) }} className="btn-secondary text-xs text-red-400 flex items-center gap-1.5"><Icon name="xmark" size={12} /> Annuller</button>
                 )}
                 {selectedTask.journalRef && (
                   <button className="btn-primary text-xs flex items-center gap-1.5"><Icon name="doc-text" size={12} /> Gå til journal</button>

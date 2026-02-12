@@ -61,14 +61,14 @@ export default function Index() {
 
         {!search && (
           <div className="text-center py-16">
-            <Icon name="magnifying-glass" size={40} className="text-apple-gray-300 mx-auto mb-4" />
-            <p style={{ color: '#86868b' }}>Begynd at skrive for at søge på tværs af agenter, klienter, dokumenter, journalindlæg og planlagte jobs</p>
+            <Icon name="magnifying-glass" size={40} className="text-white/30 mx-auto mb-4" />
+            <p style={{ color: 'rgba(255,255,255,0.4)' }}>Begynd at skrive for at søge på tværs af agenter, klienter, dokumenter, journalindlæg og planlagte jobs</p>
           </div>
         )}
 
         {search && results.length === 0 && (
           <div className="text-center py-16">
-            <p style={{ color: '#86868b' }}>Ingen resultater fundet for &quot;{search}&quot;</p>
+            <p style={{ color: 'rgba(255,255,255,0.4)' }}>Ingen resultater fundet for &quot;{search}&quot;</p>
           </div>
         )}
 
@@ -77,7 +77,7 @@ export default function Index() {
             <Card key={i} className="cursor-pointer">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <span className="px-2 py-0.5 rounded-lg text-[11px] font-medium" style={{ background: 'rgba(0,0,0,0.04)', color: '#86868b' }}>{r.type}</span>
+                  <span className="px-2 py-0.5 rounded-lg text-[11px] font-medium" style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.4)' }}>{r.type}</span>
                   <div>
                     <p className="text-sm font-medium">{r.title}</p>
                     <p className="caption">{r.subtitle}</p>

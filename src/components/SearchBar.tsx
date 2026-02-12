@@ -9,7 +9,7 @@ interface SearchBarProps {
 export default function SearchBar({ value, onChange, placeholder = 'Søg...' }: SearchBarProps) {
   return (
     <div className="relative">
-      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-apple-gray-300">
+      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30">
         <Icon name="magnifying-glass" size={16} />
       </span>
       <input

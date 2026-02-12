@@ -10,7 +10,7 @@ export function BarChart({ data, height = 160, showValues = true }: BarChartProp
     <div className="flex items-end gap-2" style={{ height }}>
       {data.map((d, i) => (
         <div key={i} className="flex-1 flex flex-col items-center gap-1">
-          {showValues && <span className="text-[11px] text-apple-gray-400 font-medium">{d.value.toLocaleString()}</span>}
+          {showValues && <span className="text-[11px] text-white/40 font-medium">{d.value.toLocaleString()}</span>}
           <div
             className="w-full rounded-t-md transition-all duration-200"
             style={{
@@ -19,7 +19,7 @@ export function BarChart({ data, height = 160, showValues = true }: BarChartProp
               minHeight: 4,
             }}
           />
-          <span className="text-[11px] text-apple-gray-400 truncate max-w-full">{d.label}</span>
+          <span className="text-[11px] text-white/40 truncate max-w-full">{d.label}</span>
         </div>
       ))}
     </div>
@@ -83,14 +83,14 @@ export function DonutChart({ segments, size = 120 }: DonutChartProps) {
     <div className="flex items-center gap-4">
       <svg width={size} height={size}>
         {arcs}
-        <circle cx={cx} cy={cy} r={r * 0.55} fill="white" />
+        <circle cx={cx} cy={cy} r={r * 0.55} fill="#0a0a0f" />
       </svg>
       <div className="flex flex-col gap-1.5">
         {segments.map((seg, i) => (
           <div key={i} className="flex items-center gap-2 text-xs">
             <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: seg.color }} />
-            <span className="text-apple-gray-500">{seg.label}</span>
-            <span className="font-medium text-apple-text">{seg.value}</span>
+            <span className="text-white/50">{seg.label}</span>
+            <span className="font-medium text-white">{seg.value}</span>
           </div>
         ))}
       </div>

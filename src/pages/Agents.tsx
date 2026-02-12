@@ -9,7 +9,7 @@ import { ApiSession } from '../api/openclaw'
 
 function DemoBadge() {
   return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium text-orange-600" style={{ background: 'rgba(255,149,0,0.1)' }}>
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium text-orange-400" style={{ background: 'rgba(255,149,0,0.1)' }}>
       Demo data
     </span>
   )
@@ -32,7 +32,7 @@ function SessionCard({ session, onClick }: { session: ApiSession; onClick: () =>
       <div onClick={onClick} className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <div className={`${isMain ? 'w-12 h-12' : 'w-10 h-10'} rounded-full flex items-center justify-center text-lg font-${isMain ? 'bold' : 'medium'}`}
-            style={isMain ? { background: 'linear-gradient(135deg, #007AFF, #AF52DE)', color: 'white' } : { background: 'rgba(0,0,0,0.04)', color: '#636366' }}>
+            style={isMain ? { background: 'linear-gradient(135deg, #007AFF, #AF52DE)', color: 'white' } : { background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.7)' }}>
             {(session.label || 'H').charAt(0).toUpperCase()}
           </div>
           <div>
@@ -97,7 +97,7 @@ export default function Agents() {
             <div className="space-y-5 text-sm">
               <div className="flex items-center gap-2">
                 <StatusBadge status={Date.now() - selectedSession.updatedAt < 120000 ? 'running' : 'completed'} />
-                <span style={{ color: '#636366' }}>{selectedSession.model}</span>
+                <span style={{ color: 'rgba(255,255,255,0.7)' }}>{selectedSession.model}</span>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div><p className="caption">Session Key</p><p className="font-medium font-mono text-xs break-all">{selectedSession.key}</p></div>
@@ -157,7 +157,7 @@ export default function Agents() {
           <Card key={a.id} className="cursor-pointer">
             <div onClick={() => setSelectedMock(a)} className="flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-full flex items-center justify-center text-lg font-medium" style={{ background: 'rgba(0,0,0,0.04)', color: '#636366' }}>{a.name.charAt(0).toUpperCase()}</div>
+                <div className="w-10 h-10 rounded-full flex items-center justify-center text-lg font-medium" style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.7)' }}>{a.name.charAt(0).toUpperCase()}</div>
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="font-semibold">{a.name}</span>
@@ -180,23 +180,23 @@ export default function Agents() {
           <div className="space-y-5 text-sm">
             <div className="flex items-center gap-2">
               <StatusBadge status={selectedMock.status} />
-              <span style={{ color: '#636366' }}>{selectedMock.model}</span>
+              <span style={{ color: 'rgba(255,255,255,0.7)' }}>{selectedMock.model}</span>
             </div>
             <div>
               <p className="caption mb-1">Systeminstruktioner</p>
-              <p className="p-3 rounded-xl" style={{ background: 'rgba(245,245,247,0.5)' }}>{selectedMock.instructions}</p>
+              <p className="p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.06)' }}>{selectedMock.instructions}</p>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="caption mb-1">Værktøjer</p>
-                <div className="flex flex-wrap gap-1">{selectedMock.tools.map(t => <span key={t} className="px-2 py-0.5 rounded-lg text-xs text-blue-600" style={{ background: 'rgba(0,122,255,0.08)' }}>{t}</span>)}</div>
+                <div className="flex flex-wrap gap-1">{selectedMock.tools.map(t => <span key={t} className="px-2 py-0.5 rounded-lg text-xs text-blue-400" style={{ background: 'rgba(0,122,255,0.08)' }}>{t}</span>)}</div>
               </div>
               <div>
                 <p className="caption mb-1">Færdigheder</p>
                 <div className="flex flex-wrap gap-1">
                   {selectedMock.skills.length > 0
-                    ? selectedMock.skills.map(s => <span key={s} className="px-2 py-0.5 rounded-lg text-xs text-green-600" style={{ background: 'rgba(52,199,89,0.08)' }}>{s}</span>)
-                    : <span style={{ color: '#86868b' }}>Ingen</span>
+                    ? selectedMock.skills.map(s => <span key={s} className="px-2 py-0.5 rounded-lg text-xs text-green-400" style={{ background: 'rgba(52,199,89,0.08)' }}>{s}</span>)
+                    : <span style={{ color: 'rgba(255,255,255,0.4)' }}>Ingen</span>
                   }
                 </div>
               </div>

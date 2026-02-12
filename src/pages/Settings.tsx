@@ -38,11 +38,11 @@ function ApiConnectionSection() {
         <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: isConnected ? 'rgba(52,199,89,0.08)' : 'rgba(255,59,48,0.08)' }}>
           <span className={`w-3 h-3 rounded-full ${isConnected ? 'bg-[#34C759]' : 'bg-[#FF3B30]'}`} />
           <div>
-            <p className={`text-sm font-medium ${isConnected ? 'text-green-700' : 'text-red-700'}`}>
+            <p className={`text-sm font-medium ${isConnected ? 'text-green-400' : 'text-red-400'}`}>
               {isConnected ? 'Forbundet' : 'Ikke forbundet'}
             </p>
             {lastUpdated && isConnected && (
-              <p className="text-xs text-green-600">Sidst opdateret: {lastUpdated.toLocaleTimeString('da-DK')}</p>
+              <p className="text-xs text-green-400">Sidst opdateret: {lastUpdated.toLocaleTimeString('da-DK')}</p>
             )}
           </div>
         </div>
@@ -54,8 +54,7 @@ function ApiConnectionSection() {
             value={url}
             onChange={e => setUrl(e.target.value)}
             placeholder="http://127.0.0.1:63362"
-            className="w-full px-3 py-2 rounded-xl text-sm border"
-            style={{ background: 'rgba(245,245,247,0.5)', borderColor: 'rgba(0,0,0,0.08)' }}
+            className="input w-full"
           />
         </div>
 
@@ -66,8 +65,7 @@ function ApiConnectionSection() {
             value={token}
             onChange={e => setToken(e.target.value)}
             placeholder="Gateway auth token"
-            className="w-full px-3 py-2 rounded-xl text-sm border"
-            style={{ background: 'rgba(245,245,247,0.5)', borderColor: 'rgba(0,0,0,0.08)' }}
+            className="input w-full"
           />
         </div>
 
@@ -79,7 +77,7 @@ function ApiConnectionSection() {
         </div>
 
         {testResult && (
-          <div className={`p-3 rounded-xl text-sm ${testResult.ok ? 'text-green-700' : 'text-red-700'}`}
+          <div className={`p-3 rounded-xl text-sm ${testResult.ok ? 'text-green-400' : 'text-red-400'}`}
             style={{ background: testResult.ok ? 'rgba(52,199,89,0.08)' : 'rgba(255,59,48,0.08)' }}>
             {testResult.ok ? '✅ Forbindelse OK!' : `❌ Fejl: ${testResult.error}`}
           </div>
@@ -181,10 +179,10 @@ export default function Settings() {
                     <p className="caption">{ch.detail}</p>
                   </div>
                   <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${
-                    ch.status === 'ok' ? 'text-green-600' :
-                    ch.status === 'warning' ? 'text-orange-600' :
-                    ch.status === 'setup' ? 'text-gray-500' : 'text-gray-400'
-                  }`} style={{ background: ch.status === 'ok' ? 'rgba(52,199,89,0.1)' : ch.status === 'warning' ? 'rgba(255,149,0,0.1)' : 'rgba(0,0,0,0.04)' }}>
+                    ch.status === 'ok' ? 'text-green-400' :
+                    ch.status === 'warning' ? 'text-orange-400' :
+                    ch.status === 'setup' ? 'text-white/50' : 'text-white/40'
+                  }`} style={{ background: ch.status === 'ok' ? 'rgba(52,199,89,0.1)' : ch.status === 'warning' ? 'rgba(255,149,0,0.1)' : 'rgba(255,255,255,0.06)' }}>
                     {ch.status === 'ok' ? 'OK' : ch.status === 'warning' ? 'ADVARSEL' : ch.status === 'setup' ? 'OPSÆTNING' : 'FRA'}
                   </span>
                 </div>
@@ -196,7 +194,7 @@ export default function Settings() {
             <div className="space-y-1">
               {['AGENTS.md', 'BOOT.md', 'BOOTSTRAP.md', 'HEARTBEAT.md', 'IDENTITY.md', 'MEMORY.md', 'SOUL.md', 'TOOLS.md', 'USER.md'].map(f => (
                 <div key={f} className="flex items-center gap-2 py-1.5 text-sm">
-                  <Icon name="doc" size={14} className="text-apple-gray-400" />
+                  <Icon name="doc" size={14} className="text-white/40" />
                   <span className="font-mono">{f}</span>
                 </div>
               ))}
@@ -220,8 +218,8 @@ export default function Settings() {
                 <div key={i} className="flex items-center justify-between py-2 glass-row text-sm">
                   <span className="font-mono font-medium">{m}</span>
                   <span className={`text-xs px-2.5 py-1 rounded-full ${
-                    m === 'claude-opus-4-6' ? 'text-blue-600' : m.includes('haiku') ? 'text-orange-600' : 'text-gray-500'
-                  }`} style={{ background: m === 'claude-opus-4-6' ? 'rgba(0,122,255,0.1)' : m.includes('haiku') ? 'rgba(255,149,0,0.1)' : 'rgba(0,0,0,0.04)' }}>
+                    m === 'claude-opus-4-6' ? 'text-blue-400' : m.includes('haiku') ? 'text-orange-400' : 'text-white/50'
+                  }`} style={{ background: m === 'claude-opus-4-6' ? 'rgba(0,122,255,0.1)' : m.includes('haiku') ? 'rgba(255,149,0,0.1)' : 'rgba(255,255,255,0.06)' }}>
                     {m === 'claude-opus-4-6' ? 'Primær' : m.includes('haiku') ? 'Under anbefalet' : 'Tilgængelig'}
                   </span>
                 </div>
@@ -231,11 +229,11 @@ export default function Settings() {
 
           <Card title="Samtidige Begrænsninger">
             <div className="grid grid-cols-2 gap-4 text-sm">
-              <div className="p-4 rounded-xl" style={{ background: 'rgba(245,245,247,0.5)' }}>
+              <div className="p-4 rounded-xl" style={{ background: 'rgba(255,255,255,0.06)' }}>
                 <p className="caption">Maks Samtidige Agenter</p>
                 <p className="text-2xl font-bold mt-1">{systemInfo.maxAgents}</p>
               </div>
-              <div className="p-4 rounded-xl" style={{ background: 'rgba(245,245,247,0.5)' }}>
+              <div className="p-4 rounded-xl" style={{ background: 'rgba(255,255,255,0.06)' }}>
                 <p className="caption">Maks Samtidige Sub-agenter</p>
                 <p className="text-2xl font-bold mt-1">{systemInfo.maxSubagents}</p>
               </div>
@@ -255,8 +253,8 @@ export default function Settings() {
                 <div key={i} className="p-4 rounded-xl flex items-start gap-3" style={{ background: 'rgba(255,149,0,0.06)' }}>
                   <Icon name="exclamation" size={16} className="text-orange-500 mt-0.5" />
                   <div>
-                    <p className="font-medium text-orange-700">{w.title}</p>
-                    <p className="text-sm text-orange-600 mt-1">{w.desc}</p>
+                    <p className="font-medium text-orange-400">{w.title}</p>
+                    <p className="text-sm text-orange-400 mt-1">{w.desc}</p>
                   </div>
                 </div>
               ))}
@@ -274,14 +272,14 @@ export default function Settings() {
                     <p className="text-sm font-medium font-mono">{p.name}</p>
                     <p className="caption">{p.desc}</p>
                   </div>
-                  <span className="px-2.5 py-1 rounded-full text-xs" style={{ background: 'rgba(0,0,0,0.04)', color: '#86868b' }}>{p.type}</span>
+                  <span className="px-2.5 py-1 rounded-full text-xs" style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.4)' }}>{p.type}</span>
                 </div>
               ))}
             </div>
           </Card>
 
           <Card title="Websøgning">
-            <div className="p-4 rounded-xl text-sm" style={{ background: 'rgba(245,245,247,0.5)' }}>
+            <div className="p-4 rounded-xl text-sm" style={{ background: 'rgba(255,255,255,0.06)' }}>
               <p className="font-medium">Perplexity Sonar Pro Search</p>
               <p className="caption mt-1">Via OpenRouter — aktiveret og konfigureret</p>
             </div>
@@ -298,7 +296,7 @@ export default function Settings() {
                     <p className="font-medium">{p.name}</p>
                     <p className="caption">{p.desc}</p>
                   </div>
-                  <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${p.status === 'Aktiv' ? 'text-green-600' : 'text-orange-600'}`}
+                  <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${p.status === 'Aktiv' ? 'text-green-400' : 'text-orange-400'}`}
                     style={{ background: p.status === 'Aktiv' ? 'rgba(52,199,89,0.1)' : 'rgba(255,149,0,0.1)' }}>
                     {p.status}
                   </span>

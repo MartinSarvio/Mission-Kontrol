@@ -5,7 +5,7 @@ import { useLiveData } from '../api/LiveDataContext'
 
 function DemoBadge() {
   return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium text-orange-600" style={{ background: 'rgba(255,149,0,0.1)' }}>
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium text-orange-400" style={{ background: 'rgba(255,149,0,0.1)' }}>
       Demo data
     </span>
   )
@@ -30,8 +30,8 @@ export default function CronJobs() {
       {cronJobs.length === 0 ? (
         <Card>
           <div className="text-center py-16">
-            <Icon name="clock" size={40} className="text-apple-gray-300 mx-auto mb-4" />
-            <p className="text-lg font-medium mb-2" style={{ color: '#636366' }}>Ingen planlagte jobs endnu</p>
+            <Icon name="clock" size={40} className="text-white/30 mx-auto mb-4" />
+            <p className="text-lg font-medium mb-2" style={{ color: 'rgba(255,255,255,0.7)' }}>Ingen planlagte jobs endnu</p>
             <p className="caption max-w-md mx-auto">
               Planlagte jobs giver dig mulighed for at automatisere gentagne opgaver som rapporter, sundhedstjek, backups og mere.
               Klik &quot;Opret Job&quot; for at komme i gang.
@@ -53,8 +53,8 @@ export default function CronJobs() {
                 <div className="flex items-center gap-6 text-sm">
                   {job.lastRun && <div className="text-right"><p className="font-medium">{job.lastRun}</p><p className="caption">sidst kørt</p></div>}
                   {job.nextRun && <div className="text-right"><p className="font-medium">{job.nextRun}</p><p className="caption">næste kørsel</p></div>}
-                  <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${job.enabled !== false ? 'text-green-600' : 'text-gray-500'}`}
-                    style={{ background: job.enabled !== false ? 'rgba(52,199,89,0.1)' : 'rgba(0,0,0,0.04)' }}>
+                  <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${job.enabled !== false ? 'text-green-400' : 'text-white/50'}`}
+                    style={{ background: job.enabled !== false ? 'rgba(52,199,89,0.1)' : 'rgba(255,255,255,0.06)' }}>
                     {job.enabled !== false ? 'Aktiv' : 'Deaktiveret'}
                   </span>
                 </div>

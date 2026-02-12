@@ -47,23 +47,23 @@ export default function Journal() {
                   <span className="caption">{entry.agent}</span>
                   <span className="caption">{entry.timestamp}</span>
                   <span className={`transition-transform ${expanded === entry.id ? 'rotate-180' : ''}`}>
-                    <Icon name="chevron-down" size={16} className="text-apple-gray-300" />
+                    <Icon name="chevron-down" size={16} className="text-white/30" />
                   </span>
                 </div>
               </div>
-              <p className="text-sm mt-2" style={{ color: '#636366' }}>{entry.output}</p>
+              <p className="text-sm mt-2" style={{ color: 'rgba(255,255,255,0.7)' }}>{entry.output}</p>
             </div>
 
             {expanded === entry.id && (
-              <div className="mt-4 pt-4 space-y-3 text-sm" style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}>
+              <div className="mt-4 pt-4 space-y-3 text-sm" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="caption mb-1">Prompt / Input</p>
-                    <p className="p-3 rounded-xl text-sm" style={{ background: 'rgba(245,245,247,0.5)', color: '#636366' }}>{entry.prompt}</p>
+                    <p className="p-3 rounded-xl text-sm" style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.7)' }}>{entry.prompt}</p>
                   </div>
                   <div>
                     <p className="caption mb-1">Output</p>
-                    <p className="p-3 rounded-xl text-sm" style={{ background: 'rgba(245,245,247,0.5)', color: '#636366' }}>{entry.output}</p>
+                    <p className="p-3 rounded-xl text-sm" style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.7)' }}>{entry.output}</p>
                   </div>
                 </div>
                 <div className="flex gap-6">
@@ -84,7 +84,7 @@ export default function Journal() {
                 )}
                 <div className="flex gap-2">
                   {entry.tags.map(t => (
-                    <span key={t} className="px-2 py-0.5 rounded-lg text-xs" style={{ background: 'rgba(0,0,0,0.04)', color: '#86868b' }}>{t}</span>
+                    <span key={t} className="px-2 py-0.5 rounded-lg text-xs" style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.4)' }}>{t}</span>
                   ))}
                 </div>
               </div>

@@ -53,7 +53,7 @@ export default function ApiUsage() {
                 <p className="text-sm font-medium font-mono">{m.model}</p>
                 <p className="caption">{m.role}</p>
               </div>
-              <span className="text-sm" style={{ color: '#636366' }}>{m.status}</span>
+              <span className="text-sm" style={{ color: 'rgba(255,255,255,0.7)' }}>{m.status}</span>
             </div>
           ))}
         </div>
@@ -70,7 +70,7 @@ export default function ApiUsage() {
                 <p className="font-medium font-mono">{p.name}</p>
                 <p className="caption">{p.desc}</p>
               </div>
-              <span className="px-2.5 py-1 rounded-full text-xs" style={{ background: 'rgba(0,0,0,0.04)', color: '#86868b' }}>{p.type}</span>
+              <span className="px-2.5 py-1 rounded-full text-xs" style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.4)' }}>{p.type}</span>
             </div>
           ))}
         </div>

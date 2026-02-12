@@ -32,26 +32,26 @@ export default function Documents() {
           columns={[
             { key: 'name', header: 'Navn', render: d => (
               <div className="flex items-center gap-2">
-                <Icon name="doc" size={14} className="text-apple-gray-400" />
+                <Icon name="doc" size={14} className="text-white/40" />
                 <span className="font-medium">{d.name}</span>
-                {d.doNotUse && <span className="px-1.5 py-0.5 text-red-600 text-[10px] rounded-full font-medium" style={{ background: 'rgba(255,59,48,0.1)' }}>BRUG IKKE</span>}
+                {d.doNotUse && <span className="px-1.5 py-0.5 text-red-400 text-[10px] rounded-full font-medium" style={{ background: 'rgba(255,59,48,0.1)' }}>BRUG IKKE</span>}
               </div>
             )},
-            { key: 'type', header: 'Type', render: d => <span style={{ color: '#636366' }}>{d.type}</span> },
-            { key: 'size', header: 'Størrelse', render: d => <span style={{ color: '#636366' }}>{d.size}</span> },
+            { key: 'type', header: 'Type', render: d => <span style={{ color: 'rgba(255,255,255,0.7)' }}>{d.type}</span> },
+            { key: 'size', header: 'Størrelse', render: d => <span style={{ color: 'rgba(255,255,255,0.7)' }}>{d.size}</span> },
             { key: 'version', header: 'Version', render: d => <span>v{d.version}</span> },
             { key: 'used', header: 'Brugt i', render: d => <span>{d.usedInRuns} kørsler</span> },
             { key: 'modified', header: 'Ændret', render: d => <span className="caption">{d.lastModified}</span> },
             { key: 'tags', header: 'Tags', render: d => (
-              <div className="flex gap-1">{d.tags.map(t => <span key={t} className="px-1.5 py-0.5 rounded-lg text-[11px]" style={{ background: 'rgba(0,0,0,0.04)', color: '#86868b' }}>{t}</span>)}</div>
+              <div className="flex gap-1">{d.tags.map(t => <span key={t} className="px-1.5 py-0.5 rounded-lg text-[11px]" style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.4)' }}>{t}</span>)}</div>
             )},
           ]}
         />
       </Card>
 
-      <div className="mt-6 border-2 border-dashed rounded-2xl p-12 text-center transition-colors" style={{ borderColor: 'rgba(0,0,0,0.1)' }}>
-        <Icon name="upload" size={24} className="text-apple-gray-300 mx-auto mb-2" />
-        <p className="text-sm" style={{ color: '#86868b' }}>Træk og slip filer her eller klik Upload</p>
+      <div className="mt-6 border-2 border-dashed rounded-2xl p-12 text-center transition-colors" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
+        <Icon name="upload" size={24} className="text-white/30 mx-auto mb-2" />
+        <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>Træk og slip filer her eller klik Upload</p>
         <p className="caption mt-1">PDF, Markdown, CSV, Excel, SQL</p>
       </div>
 
@@ -68,7 +68,7 @@ export default function Documents() {
             </div>
             <div>
               <p className="caption mb-1">Tags</p>
-              <div className="flex gap-1">{selected.tags.map(t => <span key={t} className="px-2 py-0.5 rounded-lg text-xs" style={{ background: 'rgba(0,0,0,0.04)', color: '#86868b' }}>{t}</span>)}</div>
+              <div className="flex gap-1">{selected.tags.map(t => <span key={t} className="px-2 py-0.5 rounded-lg text-xs" style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.4)' }}>{t}</span>)}</div>
             </div>
             <div className="flex gap-2 pt-2">
               <button className="btn-primary">Download</button>

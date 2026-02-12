@@ -14,7 +14,7 @@ export default function WeeklyRecap() {
           { label: 'Fuldført', value: m.tasksCompleted.toString(), color: 'text-[#34C759]' },
           { label: 'I Gang', value: m.tasksInProgress.toString(), color: 'text-apple-blue' },
           { label: 'Blokeret', value: m.tasksBlocked.toString(), color: 'text-[#FF3B30]' },
-          { label: 'Samlet Omkostning', value: `$${m.totalCost.toFixed(2)}`, color: 'text-apple-text' },
+          { label: 'Samlet Omkostning', value: `$${m.totalCost.toFixed(2)}`, color: 'text-white' },
         ].map((s, i) => (
           <Card key={i}>
             <p className="caption">{s.label}</p>
@@ -27,7 +27,7 @@ export default function WeeklyRecap() {
         <Card title="Kvalitetsscore">
           <div className="flex items-center gap-4">
             <div className="text-5xl font-bold text-apple-blue">{m.qualityScore}%</div>
-            <div className="text-sm" style={{ color: '#636366' }}>
+            <div className="text-sm" style={{ color: 'rgba(255,255,255,0.7)' }}>
               <p>Baseret på evalueringer, fejlfrekvens og svartider.</p>
               <p className="mt-1 text-[#34C759] font-medium">Ny instans — baseline etableres</p>
             </div>
@@ -67,7 +67,7 @@ export default function WeeklyRecap() {
           {m.suggestions.map((s, i) => (
             <div key={i} className="flex gap-3 py-2 text-sm glass-row">
               <span className="text-apple-blue font-bold">{i + 1}</span>
-              <p style={{ color: '#636366' }}>{s}</p>
+              <p style={{ color: 'rgba(255,255,255,0.7)' }}>{s}</p>
             </div>
           ))}
         </div>

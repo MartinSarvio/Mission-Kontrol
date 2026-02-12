@@ -32,7 +32,7 @@ export default function Workshop() {
           </Card>
 
           <Card title="Output" className="mt-4">
-            <div className="rounded-xl p-4 min-h-[120px] text-sm font-mono" style={{ background: 'rgba(245,245,247,0.5)', color: '#86868b' }}>
+            <div className="rounded-xl p-4 min-h-[120px] text-sm font-mono" style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.4)' }}>
               Kør en prompt for at se output her...
             </div>
             <div className="flex gap-3 mt-3">
@@ -50,7 +50,7 @@ export default function Workshop() {
                   key={t.id}
                   onClick={() => { setSelectedTemplate(t.id); setPrompt(t.prompt) }}
                   className={`p-3 rounded-xl cursor-pointer transition-all ${selectedTemplate === t.id ? '' : ''}`}
-                  style={{ background: selectedTemplate === t.id ? 'rgba(0,122,255,0.06)' : 'rgba(245,245,247,0.5)', border: selectedTemplate === t.id ? '1px solid rgba(0,122,255,0.15)' : '1px solid transparent' }}
+                  style={{ background: selectedTemplate === t.id ? 'rgba(0,122,255,0.06)' : 'rgba(255,255,255,0.06)', border: selectedTemplate === t.id ? '1px solid rgba(0,122,255,0.15)' : '1px solid transparent' }}
                 >
                   <p className="text-sm font-medium">{t.name}</p>
                   <p className="caption mt-1">{t.runs} kørsler · Sidst brugt {t.lastUsed}</p>

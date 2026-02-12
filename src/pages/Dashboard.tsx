@@ -55,7 +55,7 @@ function deriveChannelsFromConfig(config: Record<string, any>): Array<{ name: st
 
 function DemoBadge() {
   return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium text-orange-600" style={{ background: 'rgba(255,149,0,0.1)' }}>
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium text-orange-400" style={{ background: 'rgba(255,149,0,0.1)' }}>
       Demo data
     </span>
   )
@@ -188,7 +188,7 @@ export default function Dashboard() {
                 </div>
                 <div className="flex items-center gap-4">
                   <span className="caption">{timeAgo}</span>
-                  <span className="text-xs font-mono px-2 py-0.5 rounded-lg" style={{ background: 'rgba(0,0,0,0.04)' }}>{s.model}</span>
+                  <span className="text-xs font-mono px-2 py-0.5 rounded-lg" style={{ background: 'rgba(255,255,255,0.06)' }}>{s.model}</span>
                   {s.contextTokens && <span className="caption">{Math.round(s.contextTokens / 1000)}k ctx</span>}
                   <StatusBadge status={isActive ? 'running' : 'completed'} />
                 </div>
@@ -201,7 +201,7 @@ export default function Dashboard() {
                 <p className="caption">{a.purpose}</p>
               </div>
               <div className="flex items-center gap-4">
-                <span className="text-xs font-mono px-2 py-0.5 rounded-lg" style={{ background: 'rgba(0,0,0,0.04)' }}>{a.model}</span>
+                <span className="text-xs font-mono px-2 py-0.5 rounded-lg" style={{ background: 'rgba(255,255,255,0.06)' }}>{a.model}</span>
                 <StatusBadge status={a.status} />
               </div>
             </div>
