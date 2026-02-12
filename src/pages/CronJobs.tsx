@@ -52,10 +52,10 @@ export default function CronJobs() {
       </p>
 
       <div className="flex flex-wrap gap-3 mb-6">
-        <button className="btn-primary" style={{ minHeight: '44px' }}>
+        <button style={{ minHeight: '44px', background: '#007AFF', color: '#fff', padding: '8px 16px', borderRadius: '12px', fontSize: '14px', fontWeight: 500, border: 'none', cursor: 'pointer' }}>
           Opret Job
         </button>
-        <button className="btn-secondary" style={{ minHeight: '44px' }}>
+        <button style={{ minHeight: '44px', background: 'rgba(0,122,255,0.1)', color: '#007AFF', padding: '8px 16px', borderRadius: '12px', fontSize: '14px', fontWeight: 500, border: '1px solid rgba(0,122,255,0.2)', cursor: 'pointer' }}>
           Alarmregler
         </button>
       </div>

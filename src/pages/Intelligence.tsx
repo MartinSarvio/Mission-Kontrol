@@ -307,13 +307,13 @@ Sørg for at:
                 onClick={() => setShowNewAnalysis(false)}
                 style={{ 
                   minHeight: '44px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                  color: 'rgba(255, 255, 255, 0.6)',
+                  backgroundColor: 'rgba(0,122,255,0.1)',
+                  color: '#007AFF',
                   borderRadius: '12px',
                   padding: '10px 20px',
                   fontSize: '14px',
                   fontWeight: '600',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  border: '1px solid rgba(0,122,255,0.2)',
                   cursor: 'pointer'
                 }}>
                 Annuller

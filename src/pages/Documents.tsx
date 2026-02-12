@@ -86,7 +86,7 @@ export default function Documents() {
 
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-6">
         <div className="flex-1"><SearchBar value={search} onChange={setSearch} placeholder="Søg i dokumenter..." /></div>
-        <button className="btn-primary flex items-center justify-center gap-1.5" style={{ minHeight: '44px' }} disabled>
+        <button className="flex items-center justify-center gap-1.5" style={{ minHeight: '44px', background: '#007AFF', color: '#fff', padding: '8px 16px', borderRadius: '12px', fontSize: '14px', fontWeight: 500, border: 'none', cursor: 'pointer', opacity: 0.5 }} disabled>
           <Icon name="upload" size={14} /> Upload Dokument
         </button>
       </div>
@@ -136,8 +136,8 @@ export default function Documents() {
               <div><p className="caption">Sti</p><p className="font-medium font-mono text-xs">{selected.path}</p></div>
             </div>
             <div className="flex flex-col sm:flex-row gap-2 pt-2">
-              <button className="btn-primary" style={{ minHeight: '44px' }} disabled>Download</button>
-              <button className="btn-secondary" style={{ minHeight: '44px' }} disabled>Se Indhold</button>
+              <button style={{ minHeight: '44px', background: '#007AFF', color: '#fff', padding: '8px 16px', borderRadius: '12px', fontSize: '14px', fontWeight: 500, border: 'none', opacity: 0.5 }} disabled>Download</button>
+              <button style={{ minHeight: '44px', background: 'rgba(0,122,255,0.1)', color: '#007AFF', padding: '8px 16px', borderRadius: '12px', fontSize: '14px', fontWeight: 500, border: '1px solid rgba(0,122,255,0.2)', opacity: 0.5 }} disabled>Se Indhold</button>
             </div>
           </div>
         )}

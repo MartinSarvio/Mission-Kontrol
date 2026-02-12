@@ -102,9 +102,8 @@ export default function Workshop() {
               <button 
                 onClick={handleRun}
                 disabled={isRunning || !prompt.trim()}
-                className="btn-primary" 
                 style={{ 
-                  minHeight: '44px',
+                  minHeight: '44px', background: '#007AFF', color: '#fff', padding: '8px 16px', borderRadius: '12px', fontSize: '14px', fontWeight: 500, border: 'none',
                   opacity: (isRunning || !prompt.trim()) ? 0.5 : 1,
                   cursor: (isRunning || !prompt.trim()) ? 'not-allowed' : 'pointer'
                 }}
@@ -126,8 +125,7 @@ export default function Workshop() {
 
               <button 
                 onClick={() => setPrompt('')}
-                className="btn-secondary" 
-                style={{ minHeight: '44px' }}
+                style={{ minHeight: '44px', background: 'rgba(0,122,255,0.1)', color: '#007AFF', padding: '8px 16px', borderRadius: '12px', fontSize: '14px', fontWeight: 500, border: '1px solid rgba(0,122,255,0.2)', cursor: 'pointer' }}
                 disabled={isRunning}
               >
                 Nulstil

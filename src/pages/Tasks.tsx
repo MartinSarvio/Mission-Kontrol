@@ -408,7 +408,7 @@ export default function Tasks() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-1 gap-3">
         <h1 className="text-xl sm:text-2xl font-bold text-white">Opgaver</h1>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-          <button onClick={() => setShowCreateModal(true)} className="btn-primary text-sm flex items-center justify-center gap-2 min-h-[44px]">
+          <button onClick={() => setShowCreateModal(true)} className="text-sm flex items-center justify-center gap-2" style={{ minHeight: '44px', background: '#007AFF', color: '#fff', padding: '8px 16px', borderRadius: '12px', fontSize: '14px', fontWeight: 500, border: 'none', cursor: 'pointer' }}>
             <Icon name="plus" size={14} /> Opret Opgave
           </button>
           <div className="overflow-x-auto">
@@ -581,11 +581,11 @@ export default function Tasks() {
               </div>
               <div className="flex gap-3 pt-4">
                 <button onClick={() => setShowCreateModal(false)} disabled={isCreating}
-                  className="btn-secondary flex-1">
+                  className="flex-1" style={{ minHeight: '44px', background: 'rgba(0,122,255,0.1)', color: '#007AFF', padding: '8px 16px', borderRadius: '12px', fontSize: '14px', fontWeight: 500, border: '1px solid rgba(0,122,255,0.2)', cursor: 'pointer' }}>
                   Annuller
                 </button>
                 <button onClick={handleCreateTask} disabled={isCreating || !createForm.name || !createForm.task}
-                  className="btn-primary flex-1">
+                  className="flex-1" style={{ minHeight: '44px', background: '#007AFF', color: '#fff', padding: '8px 16px', borderRadius: '12px', fontSize: '14px', fontWeight: 500, border: 'none', cursor: 'pointer', opacity: (isCreating || !createForm.name || !createForm.task) ? 0.5 : 1 }}>
                   {isCreating ? 'Opretter...' : 'Opret Opgave'}
                 </button>
               </div>
