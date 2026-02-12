@@ -1,2 +1,6 @@
 node_modules
 dist
+
+# Tauri
+src-tauri/target
+src-tauri/gen
