@@ -48,12 +48,11 @@ export default function Intelligence() {
         return
       }
 
-      // Filter sessions med research-relaterede labels
-      const researchKeywords = ['research', 'intel', 'search', 'analysis', 'søgning', 'analyse']
+      // Vis alle sub-agent sessions (de er research/analyse resultater)
+      // Filtrer main session fra — vis kun subagents
       const candidates = sessions.filter(s => {
-        const label = (s.label || '').toLowerCase()
-        const display = (s.displayName || '').toLowerCase()
-        return researchKeywords.some(k => label.includes(k) || display.includes(k))
+        const key = (s.key || '').toLowerCase()
+        return key.includes('subagent')
       })
 
       const loaded: ResearchSession[] = []
