@@ -123,11 +123,12 @@ export default function Tasks() {
   const [sessionDetails, setSessionDetails] = useState<Record<string, SessionMessage[]>>({})
   const [tick, setTick] = useState(0)
 
-  // Live tick for animations
+  // Live tick — hurtigere når der er aktive sessions, langsommere ellers
   useEffect(() => {
-    const interval = setInterval(() => setTick(t => t + 1), 3000)
+    const hasActive = sessions.some(s => Date.now() - s.updatedAt < 120000 && s.key.includes('subagent'))
+    const interval = setInterval(() => setTick(t => t + 1), hasActive ? 2000 : 8000)
     return () => clearInterval(interval)
-  }, [])
+  }, [sessions])
 
   // Fetch detailed history for active sub-agents
   useEffect(() => {
@@ -422,7 +423,7 @@ export default function Tasks() {
         </div>
       </div>
       <p className="text-sm mb-5" style={{ color: 'rgba(255,255,255,0.5)' }}>
-        {tasks.length} sessions · {active.length} aktive · opdateres hvert 3. sekund
+        {tasks.length} sessions · {active.length} aktive · live opdatering
         {isLoading && <span className="ml-2 text-blue-400">synkroniserer...</span>}
       </p>
 
