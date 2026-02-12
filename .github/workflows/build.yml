@@ -9,6 +9,7 @@ jobs:
   build-macos:
     runs-on: macos-latest
     strategy:
+      fail-fast: false
       matrix:
         target: [aarch64-apple-darwin, x86_64-apple-darwin]
     steps:
@@ -40,19 +41,10 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
+          tauriScript: npx tauri
           tagName: ${{ github.ref_name }}
           releaseName: "Mission Kontrol ${{ github.ref_name }}"
-          releaseBody: "See the assets for download links."
+          releaseBody: "Download .dmg for macOS."
           releaseDraft: false
           prerelease: false
           args: --target ${{ matrix.target }}
-
-  create-universal:
-    needs: build-macos
-    runs-on: macos-latest
-    steps:
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-
-      - name: Release info
-        run: echo "Universal build artifacts uploaded by tauri-action per-arch jobs"
