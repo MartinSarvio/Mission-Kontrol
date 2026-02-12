@@ -78,7 +78,7 @@ export default function Sidebar({ active, onNavigate, isOpen, onClose }: Sidebar
       </div>
 
       <div className="px-5 pb-4">
-        <div className="flex items-center gap-2 px-3 py-2 glass-heartbeat">
+        <div className="flex items-center gap-2 px-3 py-2" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '12px' }}>
           <span className={`w-2.5 h-2.5 rounded-full bg-[#34C759] transition-opacity duration-700 ${pulse ? 'opacity-100' : 'opacity-30'}`} />
           <div className="flex-1">
             <p className="text-[11px] text-white/60 font-medium">Hjerterytme</p>
@@ -92,7 +92,8 @@ export default function Sidebar({ active, onNavigate, isOpen, onClose }: Sidebar
           <div
             key={item.id}
             onClick={() => onNavigate(item.id)}
-            className={`sidebar-item ${active === item.id ? 'active' : ''}`}
+            className="sidebar-item"
+            style={active === item.id ? { background: '#007AFF', color: '#fff', borderRadius: '8px' } : {}}
           >
             <Icon name={item.icon} size={20} className={active === item.id ? 'text-white' : 'text-white/50'} />
             <span>{item.label}</span>
