@@ -143,7 +143,18 @@ export async function fetchConfig(): Promise<Record<string, any>> {
   const data = await invokeToolRaw('gateway', { action: 'config.get' }) as any
   const text = data.result?.content?.[0]?.text
   if (text) {
-    try { return JSON.parse(text) } catch { /* fall through */ }
+    try {
+      const parsed = JSON.parse(text)
+      // config.get returns { ok, result: { path, exists, raw: "..." } }
+      // We need to parse the raw JSON string inside result
+      if (parsed.result?.raw) {
+        const raw = parsed.result.raw
+        return typeof raw === 'string' ? JSON.parse(raw) : raw
+      }
+      // If it's already the config object (has channels/agents etc)
+      if (parsed.channels || parsed.agents) return parsed
+      return parsed
+    } catch { /* fall through */ }
   }
   if (data.result?.details) return data.result.details
   throw new Error('Ugyldigt config svar')

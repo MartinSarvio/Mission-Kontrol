@@ -50,21 +50,21 @@ function deriveChannelsFromConfig(config: Record<string, any>): Array<{ name: st
   for (const [key, chConf] of Object.entries(channelConfigs) as [string, any][]) {
     const name = channelNames[key] || key
     const enabled = chConf.enabled !== false
+    // Check for credentials - botToken may be redacted as __OPENCLAW_REDACTED__
     const hasToken = !!(chConf.token || chConf.botToken)
-    const hasCreds = hasToken || chConf.cliPath || chConf.dmPolicy
+    const hasCreds = hasToken || chConf.cliPath || chConf.dmPolicy || chConf.allowFrom
 
     if (!enabled) {
       channels.push({ name, status: 'off', detail: 'Deaktiveret', enabled: false })
-    } else if (key === 'telegram' && hasToken) {
-      channels.push({ name, status: 'ok', detail: `dmPolicy: ${chConf.dmPolicy || 'default'}`, enabled: true })
-    } else if (key === 'whatsapp' && chConf.dmPolicy) {
-      channels.push({ name, status: 'warning', detail: 'Linket men ingen aktiv session', enabled: true })
-    } else if (key === 'imessage' && chConf.cliPath) {
-      channels.push({ name, status: 'warning', detail: 'Konfigureret men imsg ikke klar', enabled: true })
-    } else if (enabled && !hasCreds) {
+    } else if (hasCreds) {
+      // Has some credentials/config = likely working
+      const details: string[] = []
+      if (chConf.dmPolicy) details.push(`dmPolicy: ${chConf.dmPolicy}`)
+      if (chConf.groupPolicy) details.push(`groups: ${chConf.groupPolicy}`)
+      if (chConf.streamMode) details.push(chConf.streamMode)
+      channels.push({ name, status: 'ok', detail: details.join(' · ') || 'Aktiv', enabled: true })
+    } else {
       channels.push({ name, status: 'setup', detail: 'Ikke konfigureret', enabled: true })
-    } else if (enabled && hasCreds) {
-      channels.push({ name, status: 'ok', detail: 'Aktiv', enabled: true })
     }
   }
   return channels
