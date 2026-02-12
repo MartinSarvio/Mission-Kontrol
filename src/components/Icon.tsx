@@ -178,6 +178,21 @@ const icons: Record<string, (size: number) => JSX.Element> = {
       <polyline points="20 6 9 17 4 12" />
     </svg>
   ),
+  rocket: (s) => (
+    <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4.5 16.5c-1.5 1.93-2.06 3.5-2.06 3.5s1.57-.56 3.5-2.06" /><path d="M14.95 4.05C11.66 1.96 7.54 2.02 4.78 4.78 2.02 7.54 1.96 11.66 4.05 14.95" /><path d="M9.05 19.95c3.29 2.09 7.41 2.03 10.17-.73 2.76-2.76 2.82-6.88.73-10.17" /><path d="M14.5 9.5l-5 5" /><circle cx="15" cy="9" r="1" fill="currentColor" />
+    </svg>
+  ),
+  'checkmark-circle': (s) => (
+    <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" /><polyline points="16 9 10.5 15 8 12.5" />
+    </svg>
+  ),
+  'arrow-left': (s) => (
+    <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" />
+    </svg>
+  ),
   'control-panel': (s) => (
     <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <rect x="2" y="3" width="20" height="18" rx="2" /><line x1="2" y1="9" x2="22" y2="9" /><circle cx="8" cy="15" r="2" /><circle cx="16" cy="15" r="2" />
