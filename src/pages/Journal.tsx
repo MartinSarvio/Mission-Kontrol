@@ -31,12 +31,12 @@ export default function Journal() {
       fetchAllSessionHistory(100)
         .then(history => {
           const mapped = history.map((msg: any, idx: number) => ({
-            id: `${msg.sessionKey}-${msg.timestamp || idx}`,
+            id: `${msg.session}-${msg.timestamp || idx}`,
             timestamp: msg.timestamp ? new Date(msg.timestamp).toLocaleString('da-DK') : 'Ukendt tid',
-            sessionKey: msg.sessionKey || 'unknown',
-            sessionLabel: msg.sessionLabel || msg.sessionKey || 'Unavngiven session',
+            sessionKey: msg.session || 'unknown',
+            sessionLabel: msg.session || 'Unavngiven session',
             role: msg.role || 'system',
-            content: msg.content || msg.text || '',
+            content: msg.text || msg.content || '',
             model: msg.model,
             tokens: msg.tokens,
           }))
