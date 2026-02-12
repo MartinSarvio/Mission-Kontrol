@@ -230,6 +230,13 @@
     background: rgba(255, 255, 255, 0.04);
   }
 
+/* Sidebar: always visible on desktop */
+@media (min-width: 1024px) {
+  aside.glass-sidebar {
+    transform: translateX(0) !important;
+  }
+}
+
 /* Custom scrollbar - dark */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }

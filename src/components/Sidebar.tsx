@@ -44,25 +44,32 @@ export default function Sidebar({ active, onNavigate, isOpen, onClose }: Sidebar
     return () => clearInterval(interval)
   }, [])
 
+  // On desktop (lg+), sidebar is always visible. On mobile, controlled by isOpen.
+  // We use fixed positioning on all screens, with transform to slide on mobile.
   return (
     <aside
-      className={`
-        fixed top-0 left-0 h-full w-60 glass-sidebar text-white/70 flex flex-col z-50
-        transform transition-transform duration-200 ease-in-out
-        ${isOpen ? 'translate-x-0' : '-translate-x-full'}
-        lg:translate-x-0 lg:static lg:z-auto
-      `}
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        height: '100vh',
+        width: 240,
+        zIndex: 50,
+        transform: isOpen ? 'translateX(0)' : 'translateX(-100%)',
+        transition: 'transform 200ms ease-in-out',
+      }}
+      className="glass-sidebar text-white/70 flex flex-col lg:!transform-none"
     >
       <div className="px-5 py-6">
         <div className="flex items-center justify-between">
           <h1 className="text-lg font-bold text-white tracking-tight flex items-center gap-2.5">
             <Icon name="control-panel" size={20} className="text-white/80" /> Mission Kontrol
           </h1>
-          {/* Close button on mobile */}
+          {/* Close button - mobile only */}
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg active:bg-white/10 lg:hidden flex items-center justify-center"
-            style={{ minWidth: 44, minHeight: 44 }}
+            className="lg:hidden"
+            style={{ padding: 8 }}
           >
             <Icon name="xmark" size={18} className="text-white/50" />
           </button>
@@ -86,7 +93,6 @@ export default function Sidebar({ active, onNavigate, isOpen, onClose }: Sidebar
             key={item.id}
             onClick={() => onNavigate(item.id)}
             className={`sidebar-item ${active === item.id ? 'active' : ''}`}
-            style={{ minHeight: 44 }}
           >
             <Icon name={item.icon} size={20} className={active === item.id ? 'text-white' : 'text-white/50'} />
             <span>{item.label}</span>

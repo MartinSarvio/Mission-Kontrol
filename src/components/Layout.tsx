@@ -17,15 +17,17 @@ export default function Layout({ children, activePage, onNavigate }: LayoutProps
   }
 
   return (
-    <div className="flex min-h-screen" style={{ background: '#0a0a0f' }}>
+    <div style={{ background: '#0a0a0f', minHeight: '100vh' }}>
       {/* Mobile overlay backdrop */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          className="fixed inset-0 z-40 lg:hidden"
+          style={{ background: 'rgba(0,0,0,0.6)' }}
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
+      {/* Sidebar - fixed on all screens, visible on desktop, toggle on mobile */}
       <Sidebar
         active={activePage}
         onNavigate={handleNavigate}
@@ -33,13 +35,13 @@ export default function Layout({ children, activePage, onNavigate }: LayoutProps
         onClose={() => setSidebarOpen(false)}
       />
 
-      <main className="flex-1 lg:ml-60 min-h-screen" style={{ background: 'linear-gradient(135deg, #0a0a0f 0%, #12121a 50%, #0e0e16 100%)' }}>
-        {/* Mobile header with hamburger */}
-        <header className="lg:hidden flex items-center h-14 px-4 border-b border-white/10 sticky top-0 z-30" style={{ backgroundColor: '#0a0a0f' }}>
+      {/* Main content - offset by sidebar width on desktop only */}
+      <div className="lg:pl-60" style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #0a0a0f 0%, #12121a 50%, #0e0e16 100%)' }}>
+        {/* Mobile header */}
+        <header className="lg:hidden sticky top-0 z-30 flex items-center h-14 px-4 border-b border-white/10" style={{ background: '#0a0a0f' }}>
           <button
             onClick={() => setSidebarOpen(true)}
             className="p-2 -ml-2 rounded-lg active:bg-white/10"
-            style={{ minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >
             <Icon name="menu" size={22} className="text-white/80" />
           </button>
@@ -49,10 +51,10 @@ export default function Layout({ children, activePage, onNavigate }: LayoutProps
           </span>
         </header>
 
-        <div className="p-4 lg:p-8">
+        <main className="p-4 sm:p-6 lg:p-8 w-full">
           {children}
-        </div>
-      </main>
+        </main>
+      </div>
     </div>
   )
 }
