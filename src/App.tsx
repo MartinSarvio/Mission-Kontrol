@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { LiveDataProvider } from './api/LiveDataContext'
 import Layout from './components/Layout'
 import Dashboard from './pages/Dashboard'
 import Journal from './pages/Journal'
@@ -37,8 +38,10 @@ export default function App() {
   const Page = pages[page] || Dashboard
 
   return (
-    <Layout activePage={page} onNavigate={setPage}>
-      <Page />
-    </Layout>
+    <LiveDataProvider pollInterval={page === 'dashboard' ? 10000 : 30000}>
+      <Layout activePage={page} onNavigate={setPage}>
+        <Page />
+      </Layout>
+    </LiveDataProvider>
   )
 }

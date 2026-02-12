@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import Icon from './Icon'
+import { useLiveData } from '../api/LiveDataContext'
 
 interface SidebarProps {
   active: string
@@ -24,6 +25,7 @@ const nav = [
 ]
 
 export default function Sidebar({ active, onNavigate }: SidebarProps) {
+  const { isConnected, lastUpdated, isLoading } = useLiveData()
   const [pulse, setPulse] = useState(true)
   const [lastBeat, setLastBeat] = useState(new Date().toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' }))
 
@@ -70,7 +72,16 @@ export default function Sidebar({ active, onNavigate }: SidebarProps) {
           </div>
         ))}
       </nav>
-      <div className="px-5 py-4 border-t border-white/10">
+      <div className="px-5 py-4 border-t border-white/10 space-y-2">
+        <div className="flex items-center gap-2">
+          <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-[#34C759]' : 'bg-[#FF3B30]'} ${isLoading ? 'animate-pulse' : ''}`} />
+          <span className="text-[11px] text-white/50">
+            {isConnected ? 'Live' : 'Offline'}
+            {lastUpdated && isConnected && (
+              <span className="text-white/30"> · {lastUpdated.toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+            )}
+          </span>
+        </div>
         <p className="text-[11px] text-white/30">v2026.2.9 — Bygget med OpenClaw</p>
       </div>
     </aside>
