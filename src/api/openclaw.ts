@@ -138,15 +138,21 @@ export interface AgentApi {
 }
 
 export async function listAgents(): Promise<AgentApi[]> {
-  const data = await invokeToolRaw('agents_list', {}) as any
+  // Use CLI command via exec tool
+  const data = await invokeToolRaw('exec', { command: 'openclaw agents list --json' }) as any
   const text = data.result?.content?.[0]?.text
   if (text) {
     try {
+      // Parse JSON output from CLI
       const parsed = JSON.parse(text)
+      if (Array.isArray(parsed)) return parsed
       return parsed.agents || []
-    } catch { /* fall through */ }
+    } catch (e) {
+      // Fallback: return empty array if parsing fails
+      console.error('Failed to parse agents list:', e)
+      return []
+    }
   }
-  if (data.result?.details?.agents) return data.result.details.agents
   return []
 }
 
@@ -159,15 +165,20 @@ export async function createAgent(config: {
   channels?: string[]
   workspace?: string
 }): Promise<any> {
-  // Create as a real agent, not just a session
-  return invokeToolRaw('agents_create', {
-    name: config.name,
-    model: config.model || 'claude-sonnet-4-5',
-    workspace: config.workspace,
-    skills: config.skills,
-    channels: config.channels,
-    initialTask: config.task,
-  })
+  // Create a real agent using CLI command
+  const cmd = `openclaw agents add --name "${config.name}" --model "${config.model || 'claude-sonnet-4-5'}"`
+  const result = await invokeToolRaw('exec', { command: cmd }) as any
+  
+  // If initialTask is provided, spawn a session for this agent with the task
+  if (config.task && result) {
+    return invokeToolRaw('sessions_spawn', {
+      task: config.task,
+      model: config.model,
+      label: config.label || config.name,
+    })
+  }
+  
+  return result
 }
 
 export async function testConnection(): Promise<{ ok: boolean; error?: string }> {
