@@ -55,15 +55,7 @@ export default function CronJobs() {
         <button className="btn-primary" style={{ minHeight: '44px' }}>
           Opret Job
         </button>
-        <button 
-          className="px-4 py-2 text-sm font-medium rounded-xl" 
-          style={{ 
-            background: "rgba(255,255,255,0.08)", 
-            border: "1px solid rgba(255,255,255,0.1)", 
-            color: "#fff", 
-            minHeight: '44px' 
-          }}
-        >
+        <button className="btn-secondary" style={{ minHeight: '44px' }}>
           Alarmregler
         </button>
       </div>

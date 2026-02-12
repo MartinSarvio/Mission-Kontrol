@@ -61,7 +61,7 @@ export default function Sidebar({ active, onNavigate, isOpen, onClose }: Sidebar
           {/* Close button on mobile */}
           <button
             onClick={onClose}
-            className="lg:hidden p-1.5 rounded-lg active:bg-white/10"
+            className="p-1.5 rounded-lg active:bg-white/10 lg:hidden"
             style={{ minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >
             <Icon name="xmark" size={18} className="text-white/50" />
@@ -80,7 +80,7 @@ export default function Sidebar({ active, onNavigate, isOpen, onClose }: Sidebar
         </div>
       </div>
 
-      <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto">
+      <nav className="flex-1 px-2 space-y-0.5 overflow-y-auto">
         {nav.map(item => (
           <div
             key={item.id}

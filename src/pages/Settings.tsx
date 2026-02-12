@@ -90,8 +90,7 @@ function ApiConnectionSection() {
 
         <div className="flex flex-col sm:flex-row gap-3">
           <button onClick={handleSave} className="btn-primary" style={{ minHeight: '44px' }}>Gem</button>
-          <button onClick={handleTest} disabled={testing} className="px-4 py-2 text-sm font-medium rounded-xl transition-all duration-150"
-            style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)', color: '#ffffff', backdropFilter: 'blur(12px)', minHeight: '44px' }}>
+          <button onClick={handleTest} disabled={testing} className="btn-secondary" style={{ minHeight: '44px' }}>
             {testing ? 'Tester...' : 'Test Forbindelse'}
           </button>
         </div>

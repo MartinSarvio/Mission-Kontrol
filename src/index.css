@@ -44,13 +44,13 @@
   .card {
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(255, 255, 255, 0.08);
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2), 0 0.5px 1px rgba(0, 0, 0, 0.15);
     @apply rounded-2xl p-5 transition-all duration-200;
   }
   .card:hover {
-    background: rgba(255, 255, 255, 0.07);
+    background: rgba(255, 255, 255, 0.05);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.2);
     transform: scale(1.003);
   }
@@ -108,12 +108,12 @@
     @apply px-4 py-2 text-sm font-medium rounded-xl transition-all duration-150;
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    background: rgba(255, 255, 255, 0.08) !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    color: #ffffff !important;
+    background: rgba(0, 122, 255, 0.1) !important;
+    border: 1px solid rgba(0, 122, 255, 0.2) !important;
+    color: #007AFF !important;
   }
   .btn-secondary:hover {
-    background: rgba(255, 255, 255, 0.12);
+    background: rgba(0, 122, 255, 0.15);
     transform: scale(1.01);
   }
 

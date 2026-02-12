@@ -49,7 +49,7 @@ export default function Layout({ children, activePage, onNavigate }: LayoutProps
           </span>
         </header>
 
-        <div className="p-4 lg:p-8 max-w-[1400px]">
+        <div className="p-4 lg:p-8">
           {children}
         </div>
       </main>

@@ -378,9 +378,9 @@ export default function Tasks() {
     <button onClick={() => setViewMode(id)}
       className="px-4 py-2 text-sm font-medium rounded-lg transition-all whitespace-nowrap"
       style={{
-        background: viewMode === id ? 'rgba(0,122,255,0.2)' : 'transparent',
+        background: viewMode === id ? '#007AFF' : 'transparent',
         color: viewMode === id ? '#fff' : 'rgba(255,255,255,0.5)',
-        border: viewMode === id ? '1px solid rgba(0,122,255,0.3)' : '1px solid transparent',
+        border: viewMode === id ? 'none' : '1px solid transparent',
         minHeight: '44px'
       }}>
       {label}
@@ -581,8 +581,7 @@ export default function Tasks() {
               </div>
               <div className="flex gap-3 pt-4">
                 <button onClick={() => setShowCreateModal(false)} disabled={isCreating}
-                  className="flex-1 px-4 py-2 text-sm font-medium rounded-xl"
-                  style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff' }}>
+                  className="btn-secondary flex-1">
                   Annuller
                 </button>
                 <button onClick={handleCreateTask} disabled={isCreating || !createForm.name || !createForm.task}

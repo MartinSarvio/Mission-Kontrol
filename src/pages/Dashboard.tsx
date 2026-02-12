@@ -44,25 +44,26 @@ function deriveChannelsFromConfig(config: Record<string, any>): Array<{ name: st
     signal: 'Signal', googlechat: 'Google Chat',
   }
   const channels: Array<{ name: string; status: 'ok' | 'warning' | 'setup' | 'off'; detail: string; enabled: boolean }> = []
-  const plugins = config.plugins?.entries || {}
   const channelConfigs = config.channels || {}
 
-  for (const [key, pluginConf] of Object.entries(plugins) as [string, any][]) {
+  // Loop through the channels object directly
+  for (const [key, chConf] of Object.entries(channelConfigs) as [string, any][]) {
     const name = channelNames[key] || key
-    const enabled = pluginConf.enabled !== false
-    const chConf = channelConfigs[key] || {}
+    const enabled = chConf.enabled !== false
+    const hasToken = !!(chConf.token || chConf.botToken)
+    const hasCreds = hasToken || chConf.cliPath || chConf.dmPolicy
 
     if (!enabled) {
       channels.push({ name, status: 'off', detail: 'Deaktiveret', enabled: false })
-    } else if (key === 'telegram' && chConf.botToken) {
+    } else if (key === 'telegram' && hasToken) {
       channels.push({ name, status: 'ok', detail: `dmPolicy: ${chConf.dmPolicy || 'default'}`, enabled: true })
     } else if (key === 'whatsapp' && chConf.dmPolicy) {
       channels.push({ name, status: 'warning', detail: 'Linket men ingen aktiv session', enabled: true })
     } else if (key === 'imessage' && chConf.cliPath) {
       channels.push({ name, status: 'warning', detail: 'Konfigureret men imsg ikke klar', enabled: true })
-    } else if (enabled && !chConf.botToken && !chConf.token && !chConf.cliPath) {
+    } else if (enabled && !hasCreds) {
       channels.push({ name, status: 'setup', detail: 'Ikke konfigureret', enabled: true })
-    } else {
+    } else if (enabled && hasCreds) {
       channels.push({ name, status: 'ok', detail: 'Aktiv', enabled: true })
     }
   }
@@ -229,8 +230,8 @@ export default function Dashboard() {
                   return (
                     <div key={s.key} className="flex items-center justify-between py-2 glass-row">
                       <div>
-                        <p className="text-sm font-medium">{s.label || (s.key === 'agent:main:main' ? 'Hovedagent' : s.key)}</p>
-                        <p className="caption">{s.key} · {s.lastChannel}</p>
+                        <p className="text-sm font-medium">{s.displayName || s.label || (s.key === 'agent:main:main' ? 'Hovedagent' : s.key)}</p>
+                        <p className="caption">{s.key} · {s.channel || 'ingen kanal'}</p>
                       </div>
                       <div className="flex items-center gap-4">
                         <span className="caption">{timeAgo}</span>

@@ -137,7 +137,7 @@ export default function Documents() {
             </div>
             <div className="flex flex-col sm:flex-row gap-2 pt-2">
               <button className="btn-primary" style={{ minHeight: '44px' }} disabled>Download</button>
-              <button className="px-4 py-2 text-sm font-medium rounded-xl" style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", minHeight: '44px' }} disabled>Se Indhold</button>
+              <button className="btn-secondary" style={{ minHeight: '44px' }} disabled>Se Indhold</button>
             </div>
           </div>
         )}
