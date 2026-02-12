@@ -15,6 +15,9 @@ interface RecommendedSkill {
   description: string
   reason: string
   category: string
+  owner: string
+  url: string
+  version: string
 }
 
 const INSTALLED_SKILLS: Skill[] = [
@@ -42,15 +45,13 @@ const INSTALLED_SKILLS: Skill[] = [
   { name: 'model-usage', description: 'Overvåg model-forbrug, tokens og omkostninger.', location: 'system', path: '/usr/local/lib/node_modules/openclaw/skills/model-usage', category: 'System' },
 ]
 
+// Only verified skills from ClawHub with known owners
 const RECOMMENDED_SKILLS: RecommendedSkill[] = [
-  { name: 'obsidian', description: 'Obsidian vault integration — noter, links, grafer. Perfekt til vidensstyring.', reason: 'Organiser projektnoter og dokumentation', category: 'Produktivitet' },
-  { name: 'google-calendar', description: 'Google Kalender integration — opret, læs og administrer events.', reason: 'Planlæg møder og deadlines', category: 'Produktivitet' },
-  { name: 'gmail', description: 'Gmail integration — læs, send og organiser emails.', reason: 'Automatiser email-kommunikation', category: 'Kommunikation' },
-  { name: 'figma', description: 'Figma design integration — hent designs, eksporter assets.', reason: 'Relevant for OrderFlow UI design', category: 'Design' },
-  { name: 'supabase', description: 'Supabase database og auth integration.', reason: 'Direkte integration med FLOW backend', category: 'Udvikling' },
-  { name: 'vercel', description: 'Vercel deployment management — deploy, rollback, logs.', reason: 'Styr Mission Kontrol og FLOW deployments', category: 'Udvikling' },
-  { name: 'sentry', description: 'Sentry error tracking integration.', reason: 'Overvåg fejl i produktion', category: 'Overvågning' },
-  { name: 'analytics', description: 'Web analytics integration — besøgende, sidevisninger, konverteringer.', reason: 'Følg Mission Kontrol og FLOW trafik', category: 'Data' },
+  { name: 'supabase', description: 'Forbind til Supabase for database-operationer, vector search og storage. Kør SQL queries, similarity search med pgvector, og administrer tabeller.', reason: 'Direkte integration med FLOW backend', category: 'Udvikling', owner: 'stopmoclay', url: 'https://clawhub.com/stopmoclay/supabase', version: '1.0.0' },
+  { name: 'vercel', description: 'Deploy applikationer og administrer projekter. Kommandoer til deployments, projekter, domæner, environment variables og live docs.', reason: 'Styr Mission Kontrol og FLOW deployments', category: 'Udvikling', owner: 'TheSethRose', url: 'https://clawhub.com/TheSethRose/vercel', version: '1.0.1' },
+  { name: 'github', description: 'Interager med GitHub via gh CLI. Issues, PRs, CI runs og avancerede API queries.', reason: 'Repo management for alle dine projekter', category: 'Udvikling', owner: 'steipete', url: 'https://clawhub.com/steipete/github', version: '1.0.0' },
+  { name: 'wolt-orders', description: 'Find restauranter med avancerede filtre, bestil mad, track status i realtid, automatisk delay-detektion.', reason: 'Relevant for restaurations-branchen (FLOW)', category: 'Restaurant', owner: 'Dviros', url: 'https://clawhub.com/Dviros/wolt-orders', version: '1.0.0' },
+  { name: 'restaurants', description: 'Restaurant discovery og management skill.', reason: 'Direkte relevant for OrderFlow AI', category: 'Restaurant', owner: 'clawhub', url: 'https://clawhub.com/restaurants', version: '1.0.0' },
 ]
 
 const categoryColors: Record<string, { text: string; bg: string }> = {
@@ -68,6 +69,7 @@ const categoryColors: Record<string, { text: string; bg: string }> = {
   'Visuel': { text: 'text-violet-400', bg: 'rgba(139,92,246,0.1)' },
   'Design': { text: 'text-rose-400', bg: 'rgba(251,113,133,0.1)' },
   'Overvågning': { text: 'text-amber-400', bg: 'rgba(245,158,11,0.1)' },
+  'Restaurant': { text: 'text-orange-400', bg: 'rgba(255,149,0,0.1)' },
 }
 
 export default function Skills() {
@@ -202,19 +204,32 @@ export default function Skills() {
                   <div className="flex items-center gap-2">
                     <Icon name="sparkle" size={16} className="text-yellow-400" />
                     <h4 className="text-sm font-semibold text-white">{s.name}</h4>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.35)' }}>v{s.version}</span>
                   </div>
                   <CategoryBadge category={s.category} />
                 </div>
                 <p className="text-xs mb-2" style={{ color: 'rgba(255,255,255,0.5)' }}>{s.description}</p>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.3)' }}>af <span className="text-white/50">{s.owner}</span></span>
+                  <span style={{ color: 'rgba(255,255,255,0.15)' }}>·</span>
+                  <span className="text-[10px]" style={{ color: 'rgba(52,199,89,0.7)' }}>Verificeret på ClawHub</span>
+                </div>
                 <p className="text-[11px] mb-3" style={{ color: 'rgba(0,122,255,0.7)' }}>
                   <Icon name="info-circle" size={11} className="inline mr-1" />
                   {s.reason}
                 </p>
-                <button onClick={() => setInstalling(s.name)}
-                  className="text-xs px-3 py-1.5 rounded-lg font-medium transition-all"
-                  style={{ background: 'rgba(0,122,255,0.15)', border: '1px solid rgba(0,122,255,0.3)', color: '#007AFF' }}>
-                  {installing === s.name ? 'Installerer...' : 'Installer via ClawHub'}
-                </button>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => setInstalling(s.name)}
+                    className="text-xs px-3 py-1.5 rounded-lg font-medium transition-all"
+                    style={{ background: 'rgba(0,122,255,0.15)', border: '1px solid rgba(0,122,255,0.3)', color: '#007AFF' }}>
+                    {installing === s.name ? 'Installerer...' : 'Installer'}
+                  </button>
+                  <a href={s.url} target="_blank" rel="noopener noreferrer"
+                    className="text-xs px-3 py-1.5 rounded-lg font-medium transition-all inline-flex items-center gap-1"
+                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)', textDecoration: 'none' }}>
+                    <Icon name="doc" size={11} /> Se på ClawHub
+                  </a>
+                </div>
               </div>
             ))}
           </div>
