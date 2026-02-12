@@ -54,7 +54,8 @@ function ApiConnectionSection() {
             value={url}
             onChange={e => setUrl(e.target.value)}
             placeholder="http://127.0.0.1:63362"
-            className="input w-full"
+            className="w-full px-3 py-2 text-sm rounded-xl transition-all duration-150"
+            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: '#ffffff', colorScheme: 'dark' }}
           />
         </div>
 
@@ -65,13 +66,15 @@ function ApiConnectionSection() {
             value={token}
             onChange={e => setToken(e.target.value)}
             placeholder="Gateway auth token"
-            className="input w-full"
+            className="w-full px-3 py-2 text-sm rounded-xl transition-all duration-150"
+            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: '#ffffff', colorScheme: 'dark' }}
           />
         </div>
 
         <div className="flex gap-3">
           <button onClick={handleSave} className="btn-primary">Gem</button>
-          <button onClick={handleTest} disabled={testing} className="btn-secondary">
+          <button onClick={handleTest} disabled={testing} className="px-4 py-2 text-sm font-medium rounded-xl transition-all duration-150"
+            style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)', color: '#ffffff', backdropFilter: 'blur(12px)' }}>
             {testing ? 'Tester...' : 'Test Forbindelse'}
           </button>
         </div>
