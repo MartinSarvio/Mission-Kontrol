@@ -73,7 +73,7 @@ function sessionToTask(s: ApiSession): Task {
 
 export default function Tasks() {
   const { sessions, isLoading, isConnected } = useLiveData()
-  const [viewMode, setViewMode] = useState<'kanban' | 'livefeed' | 'historik'>('kanban')
+  const [viewMode, setViewMode] = useState<'kanban' | 'livefeed' | 'historik' | 'visuel'>('kanban')
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [filterKind, setFilterKind] = useState('')
@@ -257,7 +257,7 @@ export default function Tasks() {
             Opret Opgave
           </button>
           <div className="flex items-center gap-1 p-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.04)' }}>
-            {(['kanban', 'livefeed', 'historik'] as const).map(m => (
+            {(['kanban', 'livefeed', 'historik', 'visuel'] as const).map(m => (
               <button key={m} onClick={() => setViewMode(m)} 
                 className="px-4 py-1.5 text-sm font-medium rounded-lg transition-all"
                 style={{ 
@@ -265,7 +265,7 @@ export default function Tasks() {
                   color: viewMode === m ? '#fff' : 'rgba(255,255,255,0.5)',
                   border: viewMode === m ? '1px solid rgba(0,122,255,0.3)' : '1px solid transparent'
                 }}>
-                {m === 'kanban' ? 'Kanban' : m === 'livefeed' ? 'Live Feed' : 'Historik'}
+                {m === 'kanban' ? 'Kanban' : m === 'livefeed' ? 'Live Feed' : m === 'historik' ? 'Historik' : 'Visuel'}
               </button>
             ))}
           </div>
@@ -328,6 +328,170 @@ export default function Tasks() {
                 Ingen afsluttede opgaver endnu
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {viewMode === 'visuel' && (
+        <div className="space-y-5">
+          {/* Team Overblik */}
+          <div className="card">
+            <div className="flex items-center gap-2 mb-4">
+              <Icon name="people" size={16} className="text-blue-400" />
+              <h3 className="text-sm font-semibold text-white">Team Overblik</h3>
+              <span className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{active.length} aktiv{active.length !== 1 ? 'e' : ''}</span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {active.map(task => {
+                const isMain = task.kind === 'main'
+                return (
+                  <div key={task.id} className="p-4 rounded-xl cursor-pointer transition-all" 
+                    onClick={() => setSelectedTask(task)}
+                    style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.03)')}>
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="relative">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isMain ? 'bg-blue-500/20' : 'bg-purple-500/20'}`}>
+                          <Icon name={isMain ? 'person-circle' : 'robot'} size={20} className={isMain ? 'text-blue-400' : 'text-purple-400'} />
+                        </div>
+                        <span className={`absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full border-2 ${isMain ? 'bg-blue-500 animate-pulse border-[#0a0a0f]' : 'bg-purple-500 border-[#0a0a0f]'}`} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-sm font-semibold text-white truncate">{task.title}</h4>
+                        <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{task.model.split('/').pop()}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <KindBadge kind={task.kind} />
+                      <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.3)' }}>·</span>
+                      <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.4)' }}>{task.channel}</span>
+                    </div>
+                    {task.contextTokens && (
+                      <div className="text-[11px]" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                        <Icon name="zap" size={12} className="inline mr-1 text-blue-400" />
+                        {(task.contextTokens / 1000).toFixed(1)}K tokens
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+              {active.length === 0 && (
+                <div className="col-span-full text-center py-8 text-sm" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                  Ingen aktive agenter
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Tidslinje / Process View */}
+          <div className="card">
+            <div className="flex items-center gap-2 mb-4">
+              <Icon name="chart-bar" size={16} className="text-blue-400" />
+              <h3 className="text-sm font-semibold text-white">Process Tidslinje</h3>
+              <span className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>Aktive sessioner</span>
+            </div>
+            <div className="space-y-3">
+              {active.map(task => {
+                const progress = task.contextTokens && task.totalTokens 
+                  ? Math.min(Math.round((task.contextTokens / task.totalTokens) * 100), 100) 
+                  : 0
+                const duration = Math.floor((Date.now() - task.updated.getTime()) / 60000)
+                
+                return (
+                  <div key={task.id} className="p-4 rounded-xl" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <span className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-sm font-semibold text-white truncate">{task.title}</h4>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.4)' }}>{task.model.split('/').pop()}</span>
+                            <span style={{ color: 'rgba(255,255,255,0.2)' }}>·</span>
+                            <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.4)' }}>{task.channel}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right flex-shrink-0 ml-3">
+                        <div className="text-[11px] font-medium text-blue-400">Aktiv</div>
+                        <div className="text-[10px]" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                          {duration < 1 ? 'lige nu' : `${duration}m`}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Progress bar */}
+                    {task.contextTokens && task.totalTokens && (
+                      <div>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.4)' }}>Token forbrug</span>
+                          <span className="text-[11px] font-semibold text-blue-400">{progress}%</span>
+                        </div>
+                        <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: 'rgba(0,122,255,0.08)' }}>
+                          <div className="h-full bg-gradient-to-r from-blue-500 to-blue-400 rounded-full transition-all duration-500" 
+                            style={{ width: `${progress}%` }} />
+                        </div>
+                        <div className="flex items-center justify-between mt-1">
+                          <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                            {(task.contextTokens / 1000).toFixed(1)}K / {(task.totalTokens / 1000).toFixed(0)}K
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+              {active.length === 0 && (
+                <div className="text-center py-8 text-sm" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                  Ingen aktive sessioner
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Aktivitets Timeline */}
+          <div className="card">
+            <div className="flex items-center gap-2 mb-4">
+              <Icon name="clock" size={16} className="text-blue-400" />
+              <h3 className="text-sm font-semibold text-white">Aktivitets Timeline</h3>
+              <span className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>Seneste hændelser</span>
+            </div>
+            <div className="space-y-3">
+              {tasks.slice(0, 10).map((task, idx) => {
+                const isFirst = idx === 0
+                const event = task.status === 'active' 
+                  ? task.kind === 'main' ? 'Modtog besked via Telegram' : `Sub-agent '${task.label || task.title}' spawnet`
+                  : task.kind === 'subagent' ? `Sub-agent '${task.label || task.title}' afsluttet` : 'Session opdateret'
+                
+                return (
+                  <div key={task.id} className="flex gap-3">
+                    <div className="flex flex-col items-center">
+                      <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${isFirst ? 'bg-blue-500 animate-pulse' : task.status === 'active' ? 'bg-blue-400' : 'bg-green-500'}`} />
+                      {idx < tasks.length - 1 && (
+                        <div className="w-0.5 h-full mt-1" style={{ background: 'rgba(255,255,255,0.08)' }} />
+                      )}
+                    </div>
+                    <div className="flex-1 pb-4">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-sm text-white">{event}</span>
+                        {task.kind !== 'main' && <KindBadge kind={task.kind} />}
+                      </div>
+                      <div className="flex items-center gap-2 text-[11px]" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                        <Icon name="timer" size={11} />
+                        <span>{timeAgo(task.updated)}</span>
+                        <span>·</span>
+                        <span>{task.model.split('/').pop()}</span>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+              {tasks.length === 0 && (
+                <div className="text-center py-8 text-sm" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                  Ingen aktivitet endnu
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
