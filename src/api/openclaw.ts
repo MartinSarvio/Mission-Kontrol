@@ -3,10 +3,15 @@
 const STORAGE_KEY_URL = 'openclaw-gateway-url'
 const STORAGE_KEY_TOKEN = 'openclaw-gateway-token'
 
-const DEFAULT_URL = 'http://127.0.0.1:63362'
+function getDefaultUrl(): string {
+  if (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app')) {
+    return '/api/gateway'
+  }
+  return 'http://127.0.0.1:63362'
+}
 
 export function getGatewayUrl(): string {
-  return localStorage.getItem(STORAGE_KEY_URL) || DEFAULT_URL
+  return localStorage.getItem(STORAGE_KEY_URL) || getDefaultUrl()
 }
 
 export function getGatewayToken(): string {

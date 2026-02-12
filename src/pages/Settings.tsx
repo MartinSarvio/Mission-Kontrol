@@ -24,8 +24,9 @@ interface SystemInfo {
 
 function ApiConnectionSection() {
   const { isConnected, lastUpdated } = useLiveData()
-  const [url, setUrl] = useState(getGatewayUrl)
-  const [token, setToken] = useState(getGatewayToken)
+  const [url, setUrl] = useState(() => getGatewayUrl())
+  const [token, setToken] = useState(() => getGatewayToken())
+  const [saved, setSaved] = useState(false)
   const [testing, setTesting] = useState(false)
   const [testResult, setTestResult] = useState<{ ok: boolean; error?: string } | null>(null)
 
@@ -33,6 +34,8 @@ function ApiConnectionSection() {
     setGatewayUrl(url)
     setGatewayToken(token)
     setTestResult(null)
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2000)
     window.dispatchEvent(new Event('openclaw-settings-changed'))
   }
 
@@ -89,7 +92,7 @@ function ApiConnectionSection() {
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3">
-          <button onClick={handleSave} className="btn-primary" style={{ minHeight: '44px' }}>Gem</button>
+          <button onClick={handleSave} className="btn-primary" style={{ minHeight: '44px' }}>{saved ? '✓ Gemt!' : 'Gem'}</button>
           <button onClick={handleTest} disabled={testing} className="btn-secondary" style={{ minHeight: '44px' }}>
             {testing ? 'Tester...' : 'Test Forbindelse'}
           </button>
