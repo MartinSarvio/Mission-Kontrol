@@ -117,6 +117,19 @@ export async function fetchConfig(): Promise<Record<string, any>> {
   throw new Error('Ugyldigt config svar')
 }
 
+export async function createAgent(config: {
+  name: string
+  task: string
+  model?: string
+  label?: string
+}): Promise<any> {
+  return invokeToolRaw('sessions_spawn', {
+    task: config.task,
+    model: config.model,
+    label: config.label || config.name,
+  })
+}
+
 export async function testConnection(): Promise<{ ok: boolean; error?: string }> {
   try {
     await fetchStatus()
