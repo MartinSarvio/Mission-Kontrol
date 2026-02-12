@@ -231,3 +231,90 @@ export async function searchSkills(query: string): Promise<any> {
     command: `clawhub search ${query}` 
   })
 }
+
+// --- Live data functions (no mock) ---
+
+export async function fetchWorkspaceFiles(): Promise<{ name: string; size: string; modified: string; type: string }[]> {
+  const data = await invokeToolRaw('exec', {
+    command: `find /data/.openclaw/workspace -maxdepth 2 -type f \\( -name "*.md" -o -name "*.ts" -o -name "*.tsx" -o -name "*.json" -o -name "*.js" -o -name "*.mjs" \\) -printf '%p|%s|%T@|%f\\n' 2>/dev/null | sort -t'|' -k3 -rn | head -50`
+  }) as any
+  const text = data.result?.content?.[0]?.text || ''
+  return text.split('\n').filter(Boolean).map((line: string) => {
+    const [path, size, mtime, name] = line.split('|')
+    const sizeNum = parseInt(size || '0')
+    const sizeStr = sizeNum > 1024 ? `${(sizeNum / 1024).toFixed(1)} KB` : `${sizeNum} B`
+    const date = new Date(parseFloat(mtime || '0') * 1000)
+    const dateStr = date.toLocaleDateString('da-DK', { day: 'numeric', month: 'short', year: 'numeric' })
+    const ext = (name || '').split('.').pop()?.toUpperCase() || 'FIL'
+    return { name: name || path, path, size: sizeStr, modified: dateStr, type: ext }
+  })
+}
+
+export async function fetchSystemInfo(): Promise<Record<string, string>> {
+  const data = await invokeToolRaw('exec', {
+    command: `echo "host=$(hostname)|os=$(cat /etc/os-release 2>/dev/null | grep PRETTY_NAME | cut -d'"' -f2)|kernel=$(uname -r) ($(uname -m))|cpu=$(lscpu 2>/dev/null | grep 'Model name' | cut -d: -f2 | xargs)|ram_total=$(free -h | awk '/Mem:/{print $2}')|ram_used=$(free -h | awk '/Mem:/{print $3}')|ram_avail=$(free -h | awk '/Mem:/{print $7}')|disk_total=$(df -h / | awk 'NR==2{print $2}')|disk_used=$(df -h / | awk 'NR==2{print $3}')|disk_pct=$(df / | awk 'NR==2{print $5}')|node=$(node -v 2>/dev/null)|uptime=$(uptime -p 2>/dev/null || uptime)"`
+  }) as any
+  const text = data.result?.content?.[0]?.text || ''
+  const info: Record<string, string> = {}
+  text.split('|').forEach((pair: string) => {
+    const [k, ...v] = pair.split('=')
+    if (k) info[k.trim()] = v.join('=').trim()
+  })
+  return info
+}
+
+export async function runPrompt(prompt: string, model?: string): Promise<{ sessionKey: string; result: string }> {
+  const data = await invokeToolRaw('sessions_spawn', {
+    task: prompt,
+    model: model || 'sonnet',
+    label: 'workshop-run',
+  }) as any
+  return {
+    sessionKey: data.result?.details?.childSessionKey || data.result?.content?.[0]?.text || '',
+    result: data.result?.content?.[0]?.text || JSON.stringify(data.result?.details || {})
+  }
+}
+
+export async function fetchCronRuns(jobId: string): Promise<any[]> {
+  const data = await invokeToolRaw('cron', { action: 'runs', jobId }) as any
+  const text = data.result?.content?.[0]?.text
+  if (text) {
+    try { const p = JSON.parse(text); return p.runs || p || [] } catch { /* */ }
+  }
+  return []
+}
+
+export async function searchWorkspace(query: string): Promise<{ file: string; line: number; text: string }[]> {
+  const data = await invokeToolRaw('exec', {
+    command: `grep -rn --include="*.md" --include="*.ts" --include="*.tsx" --include="*.json" -i "${query.replace(/"/g, '\\"')}" /data/.openclaw/workspace/ 2>/dev/null | head -30`
+  }) as any
+  const text = data.result?.content?.[0]?.text || ''
+  return text.split('\n').filter(Boolean).map((line: string) => {
+    const match = line.match(/^(.+?):(\d+):(.*)$/)
+    if (!match) return { file: '', line: 0, text: line }
+    return { file: match[1].replace('/data/.openclaw/workspace/', ''), line: parseInt(match[2]), text: match[3].trim() }
+  }).filter((r: any) => r.file)
+}
+
+export async function fetchAllSessionHistory(limit = 20): Promise<{ session: string; role: string; text: string; timestamp?: number }[]> {
+  // Get all sessions, then fetch recent messages from each
+  const sessionsData = await fetchSessions()
+  const entries: { session: string; role: string; text: string; timestamp?: number }[] = []
+  const sessions = sessionsData.sessions?.slice(0, 10) || []
+  
+  for (const s of sessions) {
+    try {
+      const msgs = await fetchSessionHistory(s.key, 3)
+      for (const m of msgs) {
+        entries.push({
+          session: s.displayName || s.label || s.key,
+          role: m.role,
+          text: (m.text || m.content || '').slice(0, 300),
+          timestamp: m.timestamp
+        })
+      }
+    } catch { /* skip */ }
+  }
+  
+  return entries.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0)).slice(0, limit)
+}
