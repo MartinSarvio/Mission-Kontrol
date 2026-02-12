@@ -5,6 +5,31 @@
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎛️</text></svg>" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Mission Kontrol</title>
+    <style>
+      /* Force dark mode on all form elements — highest specificity override */
+      html, body { color-scheme: dark !important; }
+      input, textarea, select, button, [class*="btn-"] {
+        color-scheme: dark !important;
+        color: #fff !important;
+      }
+      .btn-secondary, [class*="btn-secondary"] {
+        background: rgba(255,255,255,0.08) !important;
+        border: 1px solid rgba(255,255,255,0.1) !important;
+        color: #fff !important;
+      }
+      .btn-primary, [class*="btn-primary"] {
+        background: #007AFF !important;
+        color: #fff !important;
+      }
+      .sidebar-item.active {
+        background: rgba(0,122,255,0.15) !important;
+        color: #fff !important;
+      }
+      input, textarea {
+        background: rgba(255,255,255,0.06) !important;
+        border: 1px solid rgba(255,255,255,0.1) !important;
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>
