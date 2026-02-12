@@ -5,6 +5,8 @@ import { useLiveData } from '../api/LiveDataContext'
 interface SidebarProps {
   active: string
   onNavigate: (page: string) => void
+  isOpen: boolean
+  onClose: () => void
 }
 
 const nav = [
@@ -25,7 +27,7 @@ const nav = [
   { id: 'settings', label: 'Indstillinger', icon: 'gear' },
 ]
 
-export default function Sidebar({ active, onNavigate }: SidebarProps) {
+export default function Sidebar({ active, onNavigate, isOpen, onClose }: SidebarProps) {
   const { isConnected, lastUpdated, isLoading } = useLiveData()
   const [pulse, setPulse] = useState(true)
   const [lastBeat, setLastBeat] = useState(new Date().toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' }))
@@ -43,11 +45,28 @@ export default function Sidebar({ active, onNavigate }: SidebarProps) {
   }, [])
 
   return (
-    <aside className="w-60 h-screen glass-sidebar text-white/70 flex flex-col fixed left-0 top-0 z-40">
+    <aside
+      className={`
+        fixed top-0 left-0 h-full w-60 glass-sidebar text-white/70 flex flex-col z-50
+        transform transition-transform duration-200 ease-in-out
+        ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+        lg:translate-x-0 lg:static lg:z-auto
+      `}
+    >
       <div className="px-5 py-6">
-        <h1 className="text-lg font-bold text-white tracking-tight flex items-center gap-2.5">
-          <Icon name="control-panel" size={20} className="text-white/80" /> Mission Kontrol
-        </h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-lg font-bold text-white tracking-tight flex items-center gap-2.5">
+            <Icon name="control-panel" size={20} className="text-white/80" /> Mission Kontrol
+          </h1>
+          {/* Close button on mobile */}
+          <button
+            onClick={onClose}
+            className="lg:hidden p-1.5 rounded-lg active:bg-white/10"
+            style={{ minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
+            <Icon name="xmark" size={18} className="text-white/50" />
+          </button>
+        </div>
         <p className="text-[11px] text-white/40 mt-1">OpenClaw Operationscenter</p>
       </div>
 
@@ -67,6 +86,7 @@ export default function Sidebar({ active, onNavigate }: SidebarProps) {
             key={item.id}
             onClick={() => onNavigate(item.id)}
             className={`sidebar-item ${active === item.id ? 'active' : ''}`}
+            style={{ minHeight: 44 }}
           >
             <Icon name={item.icon} size={20} className={active === item.id ? 'text-white' : 'text-white/50'} />
             <span>{item.label}</span>

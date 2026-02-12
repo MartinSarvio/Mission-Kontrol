@@ -10,10 +10,10 @@ export default function ApiUsage() {
 
   return (
     <div>
-      <h1 className="page-title mb-1">API Forbrug</h1>
+      <h1 className="text-xl sm:text-2xl font-bold mb-1">API Forbrug</h1>
       <p className="caption mb-6">Tokenforbrug og omkostningssporing</p>
 
-      <div className="grid grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
         {[
           { label: 'Samlet Tokens', value: (totalTokens / 1000).toFixed(0) + 'K', trend: apiUsageData.map(d => d.tokens) },
           { label: 'Samlet Forespørgsler', value: totalRequests.toLocaleString(), trend: apiUsageData.map(d => d.requests) },
@@ -30,7 +30,7 @@ export default function ApiUsage() {
         ))}
       </div>
 
-      <div className="grid grid-cols-2 gap-4 mb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
         <Card title="Forespørgsler Over Tid">
           <BarChart data={apiUsageData.map(d => ({ label: d.date, value: d.requests, color: '#007AFF' }))} height={200} />
         </Card>
@@ -48,12 +48,12 @@ export default function ApiUsage() {
             { model: 'claude-opus-4-1', role: 'Fallback 3', status: 'Klar' },
             { model: 'claude-haiku-4-5', role: 'Fallback 4', status: 'Klar (under anbefalet)' },
           ].map((m, i) => (
-            <div key={i} className="flex items-center justify-between py-2 glass-row">
+            <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 py-2 glass-row">
               <div>
-                <p className="text-sm font-medium font-mono">{m.model}</p>
+                <p className="text-sm font-medium font-mono break-all">{m.model}</p>
                 <p className="caption">{m.role}</p>
               </div>
-              <span className="text-sm" style={{ color: 'rgba(255,255,255,0.7)' }}>{m.status}</span>
+              <span className="text-sm whitespace-nowrap" style={{ color: 'rgba(255,255,255,0.7)' }}>{m.status}</span>
             </div>
           ))}
         </div>
@@ -65,12 +65,12 @@ export default function ApiUsage() {
             { name: 'anthropic:default', type: 'API-nøgle', desc: 'Primær autentificering' },
             { name: 'anthropic:flow-agent', type: 'Token', desc: 'Flow agent profil' },
           ].map((p, i) => (
-            <div key={i} className="flex items-center justify-between py-2 glass-row text-sm">
+            <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 py-2 glass-row text-sm">
               <div>
-                <p className="font-medium font-mono">{p.name}</p>
+                <p className="font-medium font-mono break-all">{p.name}</p>
                 <p className="caption">{p.desc}</p>
               </div>
-              <span className="px-2.5 py-1 rounded-full text-xs" style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.4)' }}>{p.type}</span>
+              <span className="px-2.5 py-1 rounded-full text-xs whitespace-nowrap" style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.4)' }}>{p.type}</span>
             </div>
           ))}
         </div>

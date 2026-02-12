@@ -167,13 +167,13 @@ function AgentDetail({ agent, onCreateTeamAgent }: { agent: AgentEntry; onCreate
   return (
     <div className="animate-fadeIn">
       {/* Header */}
-      <div className="flex items-start gap-5 mb-6">
-        <div className="flex-shrink-0 w-20 h-20 rounded-2xl flex items-center justify-center" style={{ background: agent.iconBg, boxShadow: agent.category === 'main' ? '0 4px 24px rgba(0,122,255,0.3)' : '0 2px 12px rgba(0,0,0,0.3)' }}>
+      <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-5 mb-6">
+        <div className="flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-2xl flex items-center justify-center" style={{ background: agent.iconBg, boxShadow: agent.category === 'main' ? '0 4px 24px rgba(0,122,255,0.3)' : '0 2px 12px rgba(0,0,0,0.3)' }}>
           <Icon name={agent.icon} size={36} className="text-white" />
         </div>
-        <div className="flex-1">
+        <div className="flex-1 text-center sm:text-left">
           <StatusBadge status={agent.status} />
-          <h2 className="text-4xl font-bold text-white mt-1 leading-tight">{agent.name}</h2>
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mt-1 leading-tight">{agent.name}</h2>
           <p className="text-sm italic mt-1" style={{ color: 'rgba(255,255,255,0.5)' }}>&quot;{agent.role}&quot;</p>
         </div>
       </div>
@@ -226,7 +226,7 @@ function AgentDetail({ agent, onCreateTeamAgent }: { agent: AgentEntry; onCreate
 
       {/* Session info */}
       {agent.session && (
-        <div className="grid grid-cols-2 gap-4 text-sm mb-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm mb-5">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.35)' }}>Kanal</p>
             <p className="font-medium text-white">{agent.session.lastChannel}</p>
@@ -282,7 +282,7 @@ function AgentDetail({ agent, onCreateTeamAgent }: { agent: AgentEntry; onCreate
         <button
           onClick={() => onCreateTeamAgent(agent)}
           className="w-full py-3 rounded-xl font-semibold text-white text-sm transition-all mt-2"
-          style={{ background: 'linear-gradient(135deg, #007AFF, #AF52DE)' }}
+          style={{ background: 'linear-gradient(135deg, #007AFF, #AF52DE)', minHeight: '44px' }}
           onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,122,255,0.4)' }}
           onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none' }}
         >
@@ -382,12 +382,13 @@ function CreateAgentModal({ open, onClose, onCreated, prefill }: { open: boolean
         </div>
         <div>
           <label className="text-xs font-semibold uppercase tracking-wider block mb-1.5" style={{ color: 'rgba(255,255,255,0.5)' }}>Prioritet</label>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             {PRIORITY_OPTIONS.map(p => (
               <button key={p} onClick={() => setPriority(p)} className="px-4 py-1.5 rounded-lg text-xs font-medium transition-all" style={{
                 background: priority === p ? (p === 'Kritisk' ? 'rgba(255,69,58,0.2)' : p === 'Høj' ? 'rgba(255,159,10,0.2)' : 'rgba(0,122,255,0.2)') : 'rgba(255,255,255,0.06)',
                 border: priority === p ? `1px solid ${p === 'Kritisk' ? 'rgba(255,69,58,0.4)' : p === 'Høj' ? 'rgba(255,159,10,0.4)' : 'rgba(0,122,255,0.4)'}` : '1px solid rgba(255,255,255,0.08)',
                 color: priority === p ? (p === 'Kritisk' ? '#FF453A' : p === 'Høj' ? '#FF9F0A' : '#007AFF') : 'rgba(255,255,255,0.5)',
+                minHeight: '44px',
               }}>{p}</button>
             ))}
           </div>
@@ -404,7 +405,7 @@ function CreateAgentModal({ open, onClose, onCreated, prefill }: { open: boolean
         </div>
         {error && <p className="text-sm text-red-400">{error}</p>}
         <button onClick={handleSubmit} disabled={creating} className="w-full py-3 rounded-xl font-semibold text-white transition-all"
-          style={{ background: creating ? 'rgba(0,122,255,0.3)' : 'linear-gradient(135deg, #007AFF, #AF52DE)', opacity: creating ? 0.6 : 1 }}>
+          style={{ background: creating ? 'rgba(0,122,255,0.3)' : 'linear-gradient(135deg, #007AFF, #AF52DE)', opacity: creating ? 0.6 : 1, minHeight: '44px' }}>
           {creating ? 'Opretter...' : 'Opret Agent'}
         </button>
       </div>
@@ -491,39 +492,44 @@ export default function Agents() {
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 mb-4">
         <div>
-          <h1 className="page-title mb-1">Agenter</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-white mb-1">Agenter</h1>
           <p className="caption">{allAgents.length} agenter · {allAgents.filter(a => a.status === 'online' || a.status === 'working').length} aktive</p>
         </div>
         <button onClick={() => { setPrefillAgent(null); setShowCreate(true) }}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-white text-sm transition-all"
-          style={{ background: 'linear-gradient(135deg, #007AFF, #AF52DE)' }}
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-white text-sm transition-all w-full sm:w-auto justify-center"
+          style={{ background: 'linear-gradient(135deg, #007AFF, #AF52DE)', minHeight: '44px', minWidth: '44px' }}
           onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,122,255,0.4)' }}
           onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none' }}>
-          <Icon name="user-plus" size={16} />Opret Agent
+          <Icon name="user-plus" size={16} />
+          <span className="hidden sm:inline">Opret Agent</span>
+          <span className="sm:hidden">Opret</span>
         </button>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-4 p-1 rounded-xl w-fit" style={{ background: 'rgba(255,255,255,0.04)' }}>
-        {tabs.map(t => (
-          <button key={t.key} onClick={() => setTab(t.key)}
-            className="px-4 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all"
-            style={{
-              background: tab === t.key ? 'rgba(0,122,255,0.2)' : 'transparent',
-              color: tab === t.key ? '#5AC8FA' : 'rgba(255,255,255,0.4)',
-              border: tab === t.key ? '1px solid rgba(0,122,255,0.3)' : '1px solid transparent',
-            }}>
-            {t.label}
-          </button>
-        ))}
+      <div className="overflow-x-auto mb-4">
+        <div className="flex gap-1 p-1 rounded-xl w-fit min-w-full sm:min-w-0" style={{ background: 'rgba(255,255,255,0.04)' }}>
+          {tabs.map(t => (
+            <button key={t.key} onClick={() => setTab(t.key)}
+              className="px-4 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all whitespace-nowrap"
+              style={{
+                background: tab === t.key ? 'rgba(0,122,255,0.2)' : 'transparent',
+                color: tab === t.key ? '#5AC8FA' : 'rgba(255,255,255,0.4)',
+                border: tab === t.key ? '1px solid rgba(0,122,255,0.3)' : '1px solid transparent',
+                minHeight: '44px',
+              }}>
+              {t.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Two-column layout */}
-      <div className="flex gap-4 flex-1 min-h-0">
+      <div className="flex flex-col lg:flex-row gap-4 flex-1 min-h-0">
         {/* Left Panel — Roster */}
-        <div className="w-[300px] flex-shrink-0 rounded-2xl p-4 overflow-y-auto" style={{
+        <div className="w-full lg:w-[300px] flex-shrink-0 rounded-2xl p-4 overflow-y-auto max-h-[400px] lg:max-h-none" style={{
           background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)',
           backdropFilter: 'blur(40px)', WebkitBackdropFilter: 'blur(40px)',
         }}>

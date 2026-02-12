@@ -6,10 +6,10 @@ export default function WeeklyRecap() {
   const m = weeklyMetrics
   return (
     <div>
-      <h1 className="page-title mb-1">Ugerapport</h1>
+      <h1 className="text-xl sm:text-2xl font-bold mb-1">Ugerapport</h1>
       <p className="caption mb-6">Uge 6.–12. februar 2026</p>
 
-      <div className="grid grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         {[
           { label: 'Fuldført', value: m.tasksCompleted.toString(), color: 'text-[#34C759]' },
           { label: 'I Gang', value: m.tasksInProgress.toString(), color: 'text-apple-blue' },
@@ -23,9 +23,9 @@ export default function WeeklyRecap() {
         ))}
       </div>
 
-      <div className="grid grid-cols-2 gap-4 mb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
         <Card title="Kvalitetsscore">
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
             <div className="text-5xl font-bold text-apple-blue">{m.qualityScore}%</div>
             <div className="text-sm" style={{ color: 'rgba(255,255,255,0.7)' }}>
               <p>Baseret på evalueringer, fejlfrekvens og svartider.</p>
@@ -48,7 +48,7 @@ export default function WeeklyRecap() {
       <Card title="Top Hændelser" className="mb-6">
         <div className="space-y-3">
           {m.incidents.slice(0, 5).map(inc => (
-            <div key={inc.id} className="flex items-center justify-between py-2 glass-row">
+            <div key={inc.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-2 glass-row">
               <div className="flex items-center gap-3">
                 <StatusBadge status={inc.severity} />
                 <div>

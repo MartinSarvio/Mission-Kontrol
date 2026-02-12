@@ -264,7 +264,7 @@ export default function Tasks() {
 
   /* ── Column ─────────── */
   const Column = ({ title, count, color, tasks: items }: { title: string; count: number; color: string; tasks: Task[] }) => (
-    <div className="flex-1 min-w-[300px]">
+    <div className="flex-1 min-w-[280px] sm:min-w-[300px]">
       <div className="flex items-center gap-2 mb-4 px-1">
         <span className={`w-2.5 h-2.5 rounded-full ${color}`} />
         <h3 className="text-sm font-semibold text-white">{title}</h3>
@@ -376,11 +376,12 @@ export default function Tasks() {
   /* ── Tab Button ─────────── */
   const TabBtn = ({ id, label }: { id: typeof viewMode; label: string }) => (
     <button onClick={() => setViewMode(id)}
-      className="px-4 py-1.5 text-sm font-medium rounded-lg transition-all"
+      className="px-4 py-2 text-sm font-medium rounded-lg transition-all whitespace-nowrap"
       style={{
         background: viewMode === id ? 'rgba(0,122,255,0.2)' : 'transparent',
         color: viewMode === id ? '#fff' : 'rgba(255,255,255,0.5)',
-        border: viewMode === id ? '1px solid rgba(0,122,255,0.3)' : '1px solid transparent'
+        border: viewMode === id ? '1px solid rgba(0,122,255,0.3)' : '1px solid transparent',
+        minHeight: '44px'
       }}>
       {label}
     </button>
@@ -390,8 +391,8 @@ export default function Tasks() {
   if (!isConnected) {
     return (
       <div className="relative">
-        <h1 className="page-title">Opgaver</h1>
-        <p className="caption mb-5">Opgavestyring og realtidsoverblik</p>
+        <h1 className="text-xl sm:text-2xl font-bold text-white">Opgaver</h1>
+        <p className="text-sm mb-5" style={{ color: 'rgba(255,255,255,0.5)' }}>Opgavestyring og realtidsoverblik</p>
         <div className="card text-center py-12">
           <Icon name="exclamation-triangle" size={48} className="text-yellow-400 mx-auto mb-4" />
           <h3 className="text-lg font-semibold mb-2">Ingen forbindelse til Gateway</h3>
@@ -404,21 +405,23 @@ export default function Tasks() {
   /* ── Main Render ─────────── */
   return (
     <div className="relative">
-      <div className="flex items-center justify-between mb-1">
-        <h1 className="page-title">Opgaver</h1>
-        <div className="flex items-center gap-3">
-          <button onClick={() => setShowCreateModal(true)} className="btn-primary text-sm flex items-center gap-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-1 gap-3">
+        <h1 className="text-xl sm:text-2xl font-bold text-white">Opgaver</h1>
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          <button onClick={() => setShowCreateModal(true)} className="btn-primary text-sm flex items-center justify-center gap-2 min-h-[44px]">
             <Icon name="plus" size={14} /> Opret Opgave
           </button>
-          <div className="flex items-center gap-1 p-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.04)' }}>
-            <TabBtn id="kanban" label="Kanban" />
-            <TabBtn id="livefeed" label="Live Feed" />
-            <TabBtn id="historik" label="Historik" />
-            <TabBtn id="visuel" label="Visuel" />
+          <div className="overflow-x-auto">
+            <div className="flex items-center gap-1 p-1 rounded-xl min-w-max" style={{ background: 'rgba(255,255,255,0.04)' }}>
+              <TabBtn id="kanban" label="Kanban" />
+              <TabBtn id="livefeed" label="Live Feed" />
+              <TabBtn id="historik" label="Historik" />
+              <TabBtn id="visuel" label="Visuel" />
+            </div>
           </div>
         </div>
       </div>
-      <p className="caption mb-5">
+      <p className="text-sm mb-5" style={{ color: 'rgba(255,255,255,0.5)' }}>
         {tasks.length} sessions · {active.length} aktive · opdateres hvert 3. sekund
         {isLoading && <span className="ml-2 text-blue-400">synkroniserer...</span>}
       </p>
@@ -518,7 +521,7 @@ export default function Tasks() {
           {agentActivities.filter(a => a.status === 'working').length > 0 && (
             <>
               <h3 className="text-xs uppercase tracking-wider font-semibold" style={{ color: 'rgba(0,122,255,0.7)' }}>Arbejder nu</h3>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                 {agentActivities.filter(a => a.status === 'working').map(agent => (
                   <AgentVisualCard key={agent.sessionKey} agent={agent} />
                 ))}
@@ -530,7 +533,7 @@ export default function Tasks() {
           {agentActivities.filter(a => a.status === 'done').length > 0 && (
             <>
               <h3 className="text-xs uppercase tracking-wider font-semibold mt-6" style={{ color: 'rgba(52,199,89,0.7)' }}>Afsluttet</h3>
-              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                 {agentActivities.filter(a => a.status === 'done').map(agent => (
                   <AgentVisualCard key={agent.sessionKey} agent={agent} />
                 ))}
@@ -548,11 +551,11 @@ export default function Tasks() {
       {showCreateModal && (
         <>
           <div className="fixed inset-0 z-50" style={{ background: 'rgba(0,0,0,0.85)' }} onClick={() => setShowCreateModal(false)} />
-          <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] z-50 p-6 rounded-2xl"
+          <div className="fixed bottom-0 left-0 right-0 sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:bottom-auto sm:right-auto w-full sm:w-[500px] z-50 p-6 rounded-t-2xl sm:rounded-2xl max-h-[90vh] overflow-y-auto"
             style={{ background: 'rgba(28,28,30,0.98)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(20px)' }}>
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-white">Opret Ny Opgave</h2>
-              <button onClick={() => setShowCreateModal(false)} className="w-8 h-8 flex items-center justify-center rounded-full"
+              <h2 className="text-lg sm:text-xl font-bold text-white">Opret Ny Opgave</h2>
+              <button onClick={() => setShowCreateModal(false)} className="w-11 h-11 sm:w-8 sm:h-8 flex items-center justify-center rounded-full"
                 style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.4)' }}>
                 <Icon name="xmark" size={14} />
               </button>
@@ -596,12 +599,12 @@ export default function Tasks() {
       {selectedTask && (
         <>
           <div className="fixed inset-0 z-50" style={{ background: 'rgba(0,0,0,0.85)' }} onClick={() => setSelectedTask(null)} />
-          <div className="fixed right-0 top-0 h-full w-[480px] z-50 overflow-y-auto"
+          <div className="fixed bottom-0 left-0 right-0 sm:right-0 sm:top-0 sm:left-auto sm:bottom-auto h-[85vh] sm:h-full w-full sm:w-[480px] z-50 overflow-y-auto rounded-t-2xl sm:rounded-none"
             style={{ background: 'rgba(20,20,24,0.98)', borderLeft: '1px solid rgba(255,255,255,0.1)' }}>
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-bold text-white">{selectedTask.title}</h2>
-                <button onClick={() => setSelectedTask(null)} className="w-8 h-8 flex items-center justify-center rounded-full"
+                <h2 className="text-base sm:text-lg font-bold text-white truncate pr-2">{selectedTask.title}</h2>
+                <button onClick={() => setSelectedTask(null)} className="w-11 h-11 sm:w-8 sm:h-8 flex-shrink-0 flex items-center justify-center rounded-full"
                   style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.4)' }}>
                   <Icon name="xmark" size={14} />
                 </button>

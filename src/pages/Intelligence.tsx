@@ -372,16 +372,16 @@ export default function Intelligence() {
               background: 'rgba(255,255,255,0.05)',
               border: '1px solid rgba(255,255,255,0.08)',
             }}>
-              <h3 style={{ color: '#ffffff', fontSize: '16px', fontWeight: 700, marginBottom: '20px' }}>Research Konfiguration</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <h3 style={{ color: '#ffffff', fontSize: '15px', fontWeight: 700, marginBottom: '20px' }}>Research Konfiguration</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div>
                   <label style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' as const, display: 'block', marginBottom: '8px' }}>Frekvens</label>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 flex-wrap">
                     {(['daily', 'weekly', 'monthly'] as const).map(f => (
                       <button key={f} onClick={() => setConfig(prev => ({ ...prev, frequency: f }))}
                         style={{
-                          padding: '6px 14px',
-                          fontSize: '12px',
+                          padding: '10px 16px',
+                          fontSize: '13px',
                           borderRadius: '20px',
                           fontWeight: 500,
                           border: 'none',
@@ -389,6 +389,7 @@ export default function Intelligence() {
                           transition: 'all 0.15s',
                           background: config.frequency === f ? '#007AFF' : 'rgba(255,255,255,0.08)',
                           color: config.frequency === f ? '#fff' : 'rgba(255,255,255,0.6)',
+                          minHeight: '44px',
                         }}>
                         {f === 'daily' ? 'Dagligt' : f === 'weekly' ? 'Ugentligt' : 'Månedligt'}
                       </button>
@@ -462,7 +463,7 @@ export default function Intelligence() {
                     />
                     <button onClick={addTopic} style={{
                       background: '#007AFF', color: '#fff', border: 'none', borderRadius: '8px',
-                      padding: '6px 16px', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+                      padding: '10px 20px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', minHeight: '44px',
                     }}>Tilføj</button>
                   </div>
                 </div>
@@ -481,7 +482,7 @@ export default function Intelligence() {
                   </div>
                   <button onClick={() => setShowConfig(false)} style={{
                     background: '#007AFF', color: '#fff', border: 'none', borderRadius: '8px',
-                    padding: '8px 20px', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+                    padding: '10px 24px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', minHeight: '44px',
                   }}>Gem konfiguration</button>
                 </div>
               </div>
@@ -582,21 +583,21 @@ export default function Intelligence() {
               <div style={{ marginBottom: '28px' }}>
                 {deployedArticles.has(selectedItem.id) ? (
                   <button disabled style={{
-                    display: 'inline-flex', alignItems: 'center', gap: '8px',
-                    padding: '10px 24px', borderRadius: '24px', fontSize: '13px', fontWeight: 600,
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                    padding: '12px 24px', borderRadius: '24px', fontSize: '14px', fontWeight: 600,
                     background: 'rgba(52,199,89,0.1)', color: '#34C759', border: '1px solid rgba(52,199,89,0.2)',
-                    cursor: 'default',
+                    cursor: 'default', minHeight: '44px',
                   }}>
                     <Icon name="checkmark-circle" size={18} /> Deployed
                   </button>
                 ) : (
                   <button onClick={() => deployArticle(selectedItem)} style={{
-                    display: 'inline-flex', alignItems: 'center', gap: '8px',
-                    padding: '10px 24px', borderRadius: '24px', fontSize: '13px', fontWeight: 600,
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                    padding: '12px 24px', borderRadius: '24px', fontSize: '14px', fontWeight: 600,
                     color: '#fff', border: 'none', cursor: 'pointer',
                     background: 'linear-gradient(135deg, #007AFF, #0055CC)',
                     boxShadow: '0 4px 16px rgba(0,122,255,0.3)',
-                    transition: 'all 0.15s',
+                    transition: 'all 0.15s', minHeight: '44px',
                   }}
                     className="hover:opacity-90 active:scale-95"
                   >

@@ -99,34 +99,37 @@ export default function Skills() {
 
   return (
     <div className="relative">
-      <div className="flex items-center justify-between mb-1">
-        <h1 className="page-title">Færdigheder</h1>
-        <div className="flex items-center gap-1 p-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.04)' }}>
-          {(['installed', 'recommended', 'browse'] as const).map(t => (
-            <button key={t} onClick={() => setTab(t)}
-              className="px-4 py-1.5 text-sm font-medium rounded-lg transition-all"
-              style={{
-                background: tab === t ? 'rgba(0,122,255,0.2)' : 'transparent',
-                color: tab === t ? '#fff' : 'rgba(255,255,255,0.5)',
-                border: tab === t ? '1px solid rgba(0,122,255,0.3)' : '1px solid transparent'
-              }}>
-              {t === 'installed' ? `Installeret (${INSTALLED_SKILLS.length})` : t === 'recommended' ? 'Anbefalede' : 'Gennemse'}
-            </button>
-          ))}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 mb-1">
+        <h1 className="text-xl sm:text-2xl font-bold text-white">Færdigheder</h1>
+        <div className="overflow-x-auto w-full sm:w-auto">
+          <div className="flex items-center gap-1 p-1 rounded-xl min-w-fit" style={{ background: 'rgba(255,255,255,0.04)' }}>
+            {(['installed', 'recommended', 'browse'] as const).map(t => (
+              <button key={t} onClick={() => setTab(t)}
+                className="px-4 py-1.5 text-sm font-medium rounded-lg transition-all whitespace-nowrap"
+                style={{
+                  background: tab === t ? 'rgba(0,122,255,0.2)' : 'transparent',
+                  color: tab === t ? '#fff' : 'rgba(255,255,255,0.5)',
+                  border: tab === t ? '1px solid rgba(0,122,255,0.3)' : '1px solid transparent',
+                  minHeight: '44px',
+                }}>
+                {t === 'installed' ? `Installeret (${INSTALLED_SKILLS.length})` : t === 'recommended' ? 'Anbefalede' : 'Gennemse'}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
       <p className="caption mb-5">Administrer agent-færdigheder og plugins</p>
 
       {tab === 'installed' && (
         <>
-          <div className="flex items-center gap-3 mb-5 flex-wrap">
-            <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} className="input text-xs py-1.5">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-5">
+            <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} className="input text-xs py-1.5 w-full sm:w-auto" style={{ minHeight: '44px' }}>
               <option value="">Alle kategorier</option>
               {categories.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
-            <div className="relative">
+            <div className="relative w-full sm:w-auto">
               <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-white/40"><Icon name="magnifying-glass" size={14} /></span>
-              <input type="text" placeholder="Søg i skills..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="input text-xs py-1.5 w-48 pl-8" />
+              <input type="text" placeholder="Søg i skills..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="input text-xs py-1.5 w-full sm:w-48 pl-8" style={{ minHeight: '44px' }} />
             </div>
           </div>
 
@@ -137,10 +140,10 @@ export default function Skills() {
                 <h3 className="text-sm font-semibold text-white">Bruger-installerede</h3>
                 <span className="text-xs px-2 py-0.5 rounded-full" style={{ color: 'rgba(255,255,255,0.4)', background: 'rgba(255,255,255,0.06)' }}>{workspaceSkills.length}</span>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
                 {workspaceSkills.map(s => (
                   <div key={s.name} onClick={() => setSelectedSkill(s)} className="rounded-xl p-4 cursor-pointer transition-all duration-200"
-                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
+                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', minHeight: '44px' }}
                     onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.07)'; e.currentTarget.style.borderColor = 'rgba(0,122,255,0.3)' }}
                     onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)' }}>
                     <div className="flex items-start justify-between mb-2">
@@ -165,10 +168,10 @@ export default function Skills() {
             <h3 className="text-sm font-semibold text-white">System Skills</h3>
             <span className="text-xs px-2 py-0.5 rounded-full" style={{ color: 'rgba(255,255,255,0.4)', background: 'rgba(255,255,255,0.06)' }}>{systemSkills.length}</span>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {systemSkills.map(s => (
               <div key={s.name} onClick={() => setSelectedSkill(s)} className="rounded-xl p-4 cursor-pointer transition-all duration-200"
-                style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
+                style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', minHeight: '44px' }}
                 onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.borderColor = 'rgba(0,122,255,0.2)' }}
                 onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)' }}>
                 <div className="flex items-start justify-between mb-2">
@@ -196,10 +199,10 @@ export default function Skills() {
               Baseret på dine projekter (FLOW, Mission Kontrol) og din tech stack (Supabase, Vercel, React).
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {RECOMMENDED_SKILLS.map(s => (
               <div key={s.name} className="rounded-xl p-4 transition-all duration-200"
-                style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', minHeight: '44px' }}>
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <Icon name="sparkle" size={16} className="text-yellow-400" />
@@ -218,15 +221,15 @@ export default function Skills() {
                   <Icon name="info-circle" size={11} className="inline mr-1" />
                   {s.reason}
                 </p>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                   <button onClick={() => setInstalling(s.name)}
                     className="text-xs px-3 py-1.5 rounded-lg font-medium transition-all"
-                    style={{ background: 'rgba(0,122,255,0.15)', border: '1px solid rgba(0,122,255,0.3)', color: '#007AFF' }}>
+                    style={{ background: 'rgba(0,122,255,0.15)', border: '1px solid rgba(0,122,255,0.3)', color: '#007AFF', minHeight: '44px' }}>
                     {installing === s.name ? 'Installerer...' : 'Installer'}
                   </button>
                   <a href={s.url} target="_blank" rel="noopener noreferrer"
-                    className="text-xs px-3 py-1.5 rounded-lg font-medium transition-all inline-flex items-center gap-1"
-                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)', textDecoration: 'none' }}>
+                    className="text-xs px-3 py-1.5 rounded-lg font-medium transition-all inline-flex items-center justify-center gap-1"
+                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)', textDecoration: 'none', minHeight: '44px' }}>
                     <Icon name="doc" size={11} /> Se på ClawHub
                   </a>
                 </div>
@@ -242,12 +245,12 @@ export default function Skills() {
             <div className="rounded-xl p-5" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
               <h3 className="text-sm font-semibold text-white mb-3">Installer fra URL</h3>
               <p className="text-xs mb-3" style={{ color: 'rgba(255,255,255,0.4)' }}>Indsæt en URL til en GitHub repo eller skill-pakke</p>
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <input type="url" value={installUrl} onChange={e => setInstallUrl(e.target.value)}
-                  placeholder="https://github.com/user/skill-name" className="input flex-1 text-sm" />
+                  placeholder="https://github.com/user/skill-name" className="input flex-1 text-sm" style={{ minHeight: '44px' }} />
                 <button onClick={() => { if (installUrl) setInstalling('url') }}
-                  className="px-4 py-2 text-sm font-medium rounded-xl transition-all"
-                  style={{ background: 'rgba(0,122,255,0.15)', border: '1px solid rgba(0,122,255,0.3)', color: '#007AFF' }}>
+                  className="px-4 py-2 text-sm font-medium rounded-xl transition-all whitespace-nowrap"
+                  style={{ background: 'rgba(0,122,255,0.15)', border: '1px solid rgba(0,122,255,0.3)', color: '#007AFF', minHeight: '44px' }}>
                   Installer
                 </button>
               </div>
@@ -256,11 +259,11 @@ export default function Skills() {
             <div className="rounded-xl p-5" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
               <h3 className="text-sm font-semibold text-white mb-3">Søg på ClawHub</h3>
               <p className="text-xs mb-3" style={{ color: 'rgba(255,255,255,0.4)' }}>Find og installer skills fra clawhub.com</p>
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
-                  placeholder="Søg efter skills..." className="input flex-1 text-sm" />
-                <button className="px-4 py-2 text-sm font-medium rounded-xl transition-all"
-                  style={{ background: 'rgba(0,122,255,0.15)', border: '1px solid rgba(0,122,255,0.3)', color: '#007AFF' }}>
+                  placeholder="Søg efter skills..." className="input flex-1 text-sm" style={{ minHeight: '44px' }} />
+                <button className="px-4 py-2 text-sm font-medium rounded-xl transition-all whitespace-nowrap"
+                  style={{ background: 'rgba(0,122,255,0.15)', border: '1px solid rgba(0,122,255,0.3)', color: '#007AFF', minHeight: '44px' }}>
                   Søg
                 </button>
               </div>
@@ -288,7 +291,7 @@ export default function Skills() {
       {selectedSkill && (
         <>
           <div className="fixed inset-0 z-50" style={{ background: 'rgba(0,0,0,0.85)' }} onClick={() => setSelectedSkill(null)} />
-          <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] z-50 p-6 rounded-2xl"
+          <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-2rem)] sm:w-[500px] max-w-[500px] z-50 p-4 sm:p-6 rounded-2xl max-h-[90vh] overflow-y-auto"
             style={{ background: 'rgba(28,28,30,0.98)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(20px)' }}>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
@@ -298,8 +301,8 @@ export default function Skills() {
                   <CategoryBadge category={selectedSkill.category} />
                 </div>
               </div>
-              <button onClick={() => setSelectedSkill(null)} className="w-8 h-8 flex items-center justify-center rounded-full"
-                style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.4)' }}>
+              <button onClick={() => setSelectedSkill(null)} className="flex items-center justify-center rounded-full flex-shrink-0"
+                style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.4)', minWidth: '44px', minHeight: '44px' }}>
                 <Icon name="xmark" size={14} />
               </button>
             </div>

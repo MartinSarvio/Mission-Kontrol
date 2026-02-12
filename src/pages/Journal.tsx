@@ -18,15 +18,16 @@ export default function Journal() {
 
   return (
     <div>
-      <h1 className="page-title mb-1">Journal</h1>
+      <h1 className="text-xl sm:text-2xl font-bold mb-1">Journal</h1>
       <p className="caption mb-6">Samlet aktivitetstidslinje</p>
 
-      <div className="flex items-center gap-3 mb-6">
-        <SearchBar value={search} onChange={setSearch} placeholder="Søg i indlæg..." />
-        <div className="flex gap-1">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-6">
+        <div className="flex-1"><SearchBar value={search} onChange={setSearch} placeholder="Søg i indlæg..." /></div>
+        <div className="flex gap-1 overflow-x-auto pb-1">
           {['all', 'info', 'warning', 'error', 'critical'].map(f => (
             <button key={f} onClick={() => setFilter(f)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${filter === f ? 'bg-apple-blue text-white' : 'px-4 py-2 rounded-xl text-sm font-medium bg-white/5 border border-white/10 text-white'}`}>
+              className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all whitespace-nowrap ${filter === f ? 'bg-apple-blue text-white' : 'px-4 py-2 rounded-xl text-sm font-medium bg-white/5 border border-white/10 text-white'}`}
+              style={{ minHeight: '44px' }}>
               {f === 'all' ? 'Alle' : f === 'info' ? 'Info' : f === 'warning' ? 'Advarsel' : f === 'error' ? 'Fejl' : 'Kritisk'}
             </button>
           ))}
@@ -37,7 +38,7 @@ export default function Journal() {
         {filtered.map(entry => (
           <Card key={entry.id} className={`cursor-pointer ${entry.pinned ? 'ring-1 ring-apple-blue/30' : ''}`}>
             <div onClick={() => setExpanded(expanded === entry.id ? null : entry.id)}>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   {entry.pinned && <Icon name="pin" size={14} className="text-apple-blue" />}
                   <StatusBadge status={entry.severity} />
@@ -56,7 +57,7 @@ export default function Journal() {
 
             {expanded === entry.id && (
               <div className="mt-4 pt-4 space-y-3 text-sm" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <p className="caption mb-1">Prompt / Input</p>
                     <p className="p-3 rounded-xl text-sm" style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.7)' }}>{entry.prompt}</p>
@@ -66,7 +67,7 @@ export default function Journal() {
                     <p className="p-3 rounded-xl text-sm" style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.7)' }}>{entry.output}</p>
                   </div>
                 </div>
-                <div className="flex gap-6">
+                <div className="flex flex-wrap gap-3 sm:gap-6">
                   <div><span className="caption">Klient:</span> <span className="font-medium">{entry.client}</span></div>
                   <div><span className="caption">Latens:</span> <span className="font-medium">{entry.latencyMs}ms</span></div>
                   <div><span className="caption">Omkostning:</span> <span className="font-medium">${entry.cost.toFixed(3)}</span></div>
@@ -82,7 +83,7 @@ export default function Journal() {
                     <span className="flex items-center gap-1.5"><Icon name="doc-text" size={14} /> {entry.notes}</span>
                   </div>
                 )}
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   {entry.tags.map(t => (
                     <span key={t} className="px-2 py-0.5 rounded-lg text-xs" style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.4)' }}>{t}</span>
                   ))}

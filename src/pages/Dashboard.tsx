@@ -88,12 +88,12 @@ export default function Dashboard() {
   return (
     <div>
       <div className="flex items-center gap-3 mb-1">
-        <h1 className="page-title">Oversigt</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-white">Oversigt</h1>
         {!isConnected && <DemoBadge />}
       </div>
-      <p className="caption mb-8">Driftsoverblik — {new Date().toLocaleDateString('da-DK', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
+      <p className="text-sm mb-8" style={{ color: 'rgba(255,255,255,0.5)' }}>Driftsoverblik — {new Date().toLocaleDateString('da-DK', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
 
-      <div className="grid grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {[
           { label: 'Aktive Sessioner', value: useLive ? sessions.length : s.activeTasks, sub: useLive ? `${runningCount} aktive, ${completedCount} afsluttet` : 'på tværs af alle agenter' },
           { label: 'API Forespørgsler i Dag', value: s.apiToday.requests.toLocaleString(), sub: parsedStatus?.tokens || `${s.apiToday.tokens.toLocaleString()} tokens` },
@@ -108,7 +108,7 @@ export default function Dashboard() {
         ))}
       </div>
 
-      <div className="grid grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
         <Card title="System">
           <div className="space-y-2 text-sm">
             {parsedStatus ? (
@@ -145,7 +145,7 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 mb-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
         <Card title="Kanaler" subtitle={`Forbindelsesstatus${liveChannels ? '' : ' (demo)'}`}>
           <div className="space-y-3">
             {displayChannels.map(ch => (

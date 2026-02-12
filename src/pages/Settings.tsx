@@ -55,7 +55,7 @@ function ApiConnectionSection() {
             onChange={e => setUrl(e.target.value)}
             placeholder="http://127.0.0.1:63362"
             className="w-full px-3 py-2 text-sm rounded-xl transition-all duration-150"
-            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: '#ffffff', colorScheme: 'dark' }}
+            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: '#ffffff', colorScheme: 'dark', minHeight: '44px' }}
           />
         </div>
 
@@ -67,14 +67,14 @@ function ApiConnectionSection() {
             onChange={e => setToken(e.target.value)}
             placeholder="Gateway auth token"
             className="w-full px-3 py-2 text-sm rounded-xl transition-all duration-150"
-            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: '#ffffff', colorScheme: 'dark' }}
+            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: '#ffffff', colorScheme: 'dark', minHeight: '44px' }}
           />
         </div>
 
-        <div className="flex gap-3">
-          <button onClick={handleSave} className="btn-primary">Gem</button>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <button onClick={handleSave} className="btn-primary" style={{ minHeight: '44px' }}>Gem</button>
           <button onClick={handleTest} disabled={testing} className="px-4 py-2 text-sm font-medium rounded-xl transition-all duration-150"
-            style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)', color: '#ffffff', backdropFilter: 'blur(12px)' }}>
+            style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)', color: '#ffffff', backdropFilter: 'blur(12px)', minHeight: '44px' }}>
             {testing ? 'Tester...' : 'Test Forbindelse'}
           </button>
         </div>
@@ -111,16 +111,19 @@ export default function Settings() {
 
   return (
     <div>
-      <h1 className="page-title mb-1">Indstillinger</h1>
+      <h1 className="text-xl sm:text-2xl font-bold text-white mb-1">Indstillinger</h1>
       <p className="caption mb-6">API forbindelse, systemkonfiguration, modeller og sikkerhed</p>
 
-      <div className="flex gap-1 mb-6">
-        {(['api', 'system', 'modeller', 'sikkerhed'] as const).map(tab => (
-          <button key={tab} onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${activeTab === tab ? 'bg-apple-blue text-white' : 'px-4 py-2 rounded-xl text-sm font-medium bg-white/5 border border-white/10 text-white'}`}>
-            {tab === 'api' ? 'API Forbindelse' : tab === 'system' ? 'System' : tab === 'modeller' ? 'Modeller' : 'Sikkerhed'}
-          </button>
-        ))}
+      <div className="overflow-x-auto mb-6">
+        <div className="flex gap-1 min-w-fit">
+          {(['api', 'system', 'modeller', 'sikkerhed'] as const).map(tab => (
+            <button key={tab} onClick={() => setActiveTab(tab)}
+              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${activeTab === tab ? 'bg-apple-blue text-white' : 'px-4 py-2 rounded-xl text-sm font-medium bg-white/5 border border-white/10 text-white'}`}
+              style={{ minHeight: '44px' }}>
+              {tab === 'api' ? 'API Forbindelse' : tab === 'system' ? 'System' : tab === 'modeller' ? 'Modeller' : 'Sikkerhed'}
+            </button>
+          ))}
+        </div>
       </div>
 
       {activeTab === 'api' && (
@@ -231,7 +234,7 @@ export default function Settings() {
           </Card>
 
           <Card title="Samtidige Begrænsninger">
-            <div className="grid grid-cols-2 gap-4 text-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
               <div className="p-4 rounded-xl" style={{ background: 'rgba(255,255,255,0.06)' }}>
                 <p className="caption">Maks Samtidige Agenter</p>
                 <p className="text-2xl font-bold mt-1">{systemInfo.maxAgents}</p>
