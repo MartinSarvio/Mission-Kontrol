@@ -305,7 +305,7 @@ export default function Tasks() {
               <div className="flex gap-3 pt-4">
                 <button 
                   onClick={() => setShowCreateModal(false)}
-                  className="btn-secondary flex-1"
+                  className="px-4 py-2 text-sm font-medium rounded-xl flex-1" style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff" }}
                   disabled={isCreating}
                 >
                   Annuller

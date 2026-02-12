@@ -72,7 +72,7 @@ export default function Documents() {
             </div>
             <div className="flex gap-2 pt-2">
               <button className="btn-primary">Download</button>
-              <button className="btn-secondary">{selected.doNotUse ? 'Aktivér' : 'Markér Brug Ikke'}</button>
+              <button className="px-4 py-2 text-sm font-medium rounded-xl" style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff" }}>{selected.doNotUse ? 'Aktivér' : 'Markér Brug Ikke'}</button>
             </div>
           </div>
         )}

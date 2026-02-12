@@ -26,7 +26,7 @@ export default function Journal() {
         <div className="flex gap-1">
           {['all', 'info', 'warning', 'error', 'critical'].map(f => (
             <button key={f} onClick={() => setFilter(f)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${filter === f ? 'bg-apple-blue text-white' : 'btn-secondary'}`}>
+              className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${filter === f ? 'bg-apple-blue text-white' : 'px-4 py-2 rounded-xl text-sm font-medium bg-white/5 border border-white/10 text-white'}`}>
               {f === 'all' ? 'Alle' : f === 'info' ? 'Info' : f === 'warning' ? 'Advarsel' : f === 'error' ? 'Fejl' : 'Kritisk'}
             </button>
           ))}

@@ -53,7 +53,7 @@ export default function Index() {
         <div className="flex gap-1 mt-4 mb-6">
           {(['all', 'agents', 'clients', 'documents', 'journal', 'cron'] as Category[]).map(c => (
             <button key={c} onClick={() => setCategory(c)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${category === c ? 'bg-apple-blue text-white' : 'btn-secondary'}`}>
+              className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${category === c ? 'bg-apple-blue text-white' : 'px-4 py-2 rounded-xl text-sm font-medium bg-white/5 border border-white/10 text-white'}`}>
               {categoryLabels[c]}
             </button>
           ))}

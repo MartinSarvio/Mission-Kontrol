@@ -9,7 +9,7 @@ export default function Evals() {
 
       <div className="flex gap-3 mb-6">
         <button className="btn-primary">Ny Evaluering</button>
-        <button className="btn-secondary">Opret Datasæt</button>
+        <button className="px-4 py-2 text-sm font-medium rounded-xl" style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff" }}>Opret Datasæt</button>
       </div>
 
       <Card>

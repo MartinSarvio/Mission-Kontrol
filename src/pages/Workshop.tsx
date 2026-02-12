@@ -22,7 +22,7 @@ export default function Workshop() {
             />
             <div className="flex items-center gap-3 mt-4">
               <button className="btn-primary">Kør</button>
-              <button className="btn-secondary">Gem som Skabelon</button>
+              <button className="px-4 py-2 text-sm font-medium rounded-xl" style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff" }}>Gem som Skabelon</button>
               <select className="input text-sm">
                 {availableModels.slice(0, 5).map(m => (
                   <option key={m}>{m}</option>

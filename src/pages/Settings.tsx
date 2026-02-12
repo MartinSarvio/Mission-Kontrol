@@ -117,7 +117,7 @@ export default function Settings() {
       <div className="flex gap-1 mb-6">
         {(['api', 'system', 'modeller', 'sikkerhed'] as const).map(tab => (
           <button key={tab} onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${activeTab === tab ? 'bg-apple-blue text-white' : 'btn-secondary'}`}>
+            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${activeTab === tab ? 'bg-apple-blue text-white' : 'px-4 py-2 rounded-xl text-sm font-medium bg-white/5 border border-white/10 text-white'}`}>
             {tab === 'api' ? 'API Forbindelse' : tab === 'system' ? 'System' : tab === 'modeller' ? 'Modeller' : 'Sikkerhed'}
           </button>
         ))}
