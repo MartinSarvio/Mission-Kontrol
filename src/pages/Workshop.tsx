@@ -32,12 +32,12 @@ export default function Workshop() {
           </Card>
 
           <Card title="Output" className="mt-4">
-            <div className="bg-apple-gray-50 rounded-lg p-4 min-h-[120px] text-sm text-apple-gray-500 font-mono">
+            <div className="rounded-xl p-4 min-h-[120px] text-sm font-mono" style={{ background: 'rgba(245,245,247,0.5)', color: '#86868b' }}>
               Kør en prompt for at se output her...
             </div>
             <div className="flex gap-3 mt-3">
-              <button className="text-xs text-apple-blue hover:underline">Vis i Journal →</button>
-              <button className="text-xs text-apple-blue hover:underline">Vis Trace →</button>
+              <button className="text-xs text-apple-blue hover:underline">Vis i Journal</button>
+              <button className="text-xs text-apple-blue hover:underline">Vis Trace</button>
             </div>
           </Card>
         </div>
@@ -49,7 +49,8 @@ export default function Workshop() {
                 <div
                   key={t.id}
                   onClick={() => { setSelectedTemplate(t.id); setPrompt(t.prompt) }}
-                  className={`p-3 rounded-lg cursor-pointer transition-colors ${selectedTemplate === t.id ? 'bg-blue-50 border border-apple-blue/20' : 'bg-apple-gray-50 hover:bg-apple-gray-100'}`}
+                  className={`p-3 rounded-xl cursor-pointer transition-all ${selectedTemplate === t.id ? '' : ''}`}
+                  style={{ background: selectedTemplate === t.id ? 'rgba(0,122,255,0.06)' : 'rgba(245,245,247,0.5)', border: selectedTemplate === t.id ? '1px solid rgba(0,122,255,0.15)' : '1px solid transparent' }}
                 >
                   <p className="text-sm font-medium">{t.name}</p>
                   <p className="caption mt-1">{t.runs} kørsler · Sidst brugt {t.lastUsed}</p>
@@ -72,7 +73,7 @@ export default function Workshop() {
                 { name: 'perplexity', desc: 'Websøgning via Sonar Pro' },
                 { name: 'youtube-watcher', desc: 'Video-transskriptioner' },
               ].map((s, i) => (
-                <div key={i} className="flex items-center justify-between py-2 border-b border-apple-gray-50 last:border-0 text-sm">
+                <div key={i} className="flex items-center justify-between py-2 glass-row text-sm">
                   <span className="font-medium font-mono">{s.name}</span>
                   <span className="caption">{s.desc}</span>
                 </div>

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import Card from '../components/Card'
 import StatusBadge from '../components/StatusBadge'
 import SearchBar from '../components/SearchBar'
+import Icon from '../components/Icon'
 import { journalEntries } from '../data/mock'
 
 export default function Journal() {
@@ -25,7 +26,7 @@ export default function Journal() {
         <div className="flex gap-1">
           {['all', 'info', 'warning', 'error', 'critical'].map(f => (
             <button key={f} onClick={() => setFilter(f)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${filter === f ? 'bg-apple-blue text-white' : 'bg-white text-apple-gray-500 hover:bg-apple-gray-100'}`}>
+              className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${filter === f ? 'bg-apple-blue text-white' : 'btn-secondary'}`}>
               {f === 'all' ? 'Alle' : f === 'info' ? 'Info' : f === 'warning' ? 'Advarsel' : f === 'error' ? 'Fejl' : 'Kritisk'}
             </button>
           ))}
@@ -38,31 +39,31 @@ export default function Journal() {
             <div onClick={() => setExpanded(expanded === entry.id ? null : entry.id)}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  {entry.pinned && <span className="text-apple-blue text-xs">📌</span>}
+                  {entry.pinned && <Icon name="pin" size={14} className="text-apple-blue" />}
                   <StatusBadge status={entry.severity} />
                   <span className="text-sm font-medium">{entry.task}</span>
                 </div>
                 <div className="flex items-center gap-4">
                   <span className="caption">{entry.agent}</span>
                   <span className="caption">{entry.timestamp}</span>
-                  <svg className={`w-4 h-4 text-apple-gray-300 transition-transform ${expanded === entry.id ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
+                  <span className={`transition-transform ${expanded === entry.id ? 'rotate-180' : ''}`}>
+                    <Icon name="chevron-down" size={16} className="text-apple-gray-300" />
+                  </span>
                 </div>
               </div>
-              <p className="text-sm text-apple-gray-500 mt-2">{entry.output}</p>
+              <p className="text-sm mt-2" style={{ color: '#636366' }}>{entry.output}</p>
             </div>
 
             {expanded === entry.id && (
-              <div className="mt-4 pt-4 border-t border-apple-gray-100 space-y-3 text-sm">
+              <div className="mt-4 pt-4 space-y-3 text-sm" style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="caption mb-1">Prompt / Input</p>
-                    <p className="bg-apple-gray-50 p-3 rounded-lg text-apple-gray-600">{entry.prompt}</p>
+                    <p className="p-3 rounded-xl text-sm" style={{ background: 'rgba(245,245,247,0.5)', color: '#636366' }}>{entry.prompt}</p>
                   </div>
                   <div>
                     <p className="caption mb-1">Output</p>
-                    <p className="bg-apple-gray-50 p-3 rounded-lg text-apple-gray-600">{entry.output}</p>
+                    <p className="p-3 rounded-xl text-sm" style={{ background: 'rgba(245,245,247,0.5)', color: '#636366' }}>{entry.output}</p>
                   </div>
                 </div>
                 <div className="flex gap-6">
@@ -72,14 +73,18 @@ export default function Journal() {
                   <div><span className="caption">Værktøjer:</span> <span className="font-medium">{entry.tools.join(', ')}</span></div>
                 </div>
                 {entry.error && (
-                  <div className="bg-red-50 text-red-700 p-3 rounded-lg text-sm">⚠️ {entry.error}</div>
+                  <div className="p-3 rounded-xl text-sm" style={{ background: 'rgba(255,59,48,0.06)', color: '#FF3B30' }}>
+                    <span className="flex items-center gap-1.5"><Icon name="exclamation" size={14} /> {entry.error}</span>
+                  </div>
                 )}
                 {entry.notes && (
-                  <div className="bg-blue-50 text-blue-700 p-3 rounded-lg text-sm">📝 {entry.notes}</div>
+                  <div className="p-3 rounded-xl text-sm" style={{ background: 'rgba(0,122,255,0.06)', color: '#007AFF' }}>
+                    <span className="flex items-center gap-1.5"><Icon name="doc-text" size={14} /> {entry.notes}</span>
+                  </div>
                 )}
                 <div className="flex gap-2">
                   {entry.tags.map(t => (
-                    <span key={t} className="px-2 py-0.5 bg-apple-gray-100 text-apple-gray-500 rounded text-xs">{t}</span>
+                    <span key={t} className="px-2 py-0.5 rounded-lg text-xs" style={{ background: 'rgba(0,0,0,0.04)', color: '#86868b' }}>{t}</span>
                   ))}
                 </div>
               </div>

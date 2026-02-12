@@ -4,6 +4,7 @@ import Table from '../components/Table'
 import StatusBadge from '../components/StatusBadge'
 import SearchBar from '../components/SearchBar'
 import Modal from '../components/Modal'
+import Icon from '../components/Icon'
 import { clients } from '../data/mock'
 import { Client } from '../types'
 
@@ -20,7 +21,7 @@ export default function Clients() {
 
       <div className="flex items-center gap-3 mb-6">
         <div className="flex-1"><SearchBar value={search} onChange={setSearch} placeholder="Søg klienter..." /></div>
-        <button className="btn-primary">Tilføj Klient</button>
+        <button className="btn-primary flex items-center gap-1.5"><Icon name="person" size={14} /> Tilføj Klient</button>
       </div>
 
       <Card>
@@ -29,7 +30,7 @@ export default function Clients() {
           onRowClick={setSelected}
           columns={[
             { key: 'name', header: 'Klient', render: c => <span className="font-medium">{c.name}</span> },
-            { key: 'company', header: 'Virksomhed', render: c => <span className="text-apple-gray-500">{c.company}</span> },
+            { key: 'company', header: 'Virksomhed', render: c => <span style={{ color: '#636366' }}>{c.company}</span> },
             { key: 'status', header: 'Status', render: c => <StatusBadge status={c.status} /> },
             { key: 'tasks', header: 'Aktive Opgaver', render: c => c.activeTasks },
             { key: 'spend', header: 'Samlet Forbrug', render: c => c.totalSpend > 0 ? `$${c.totalSpend.toFixed(2)}` : 'API-nøgle' },
@@ -49,7 +50,7 @@ export default function Clients() {
               <div><p className="caption">Rolle</p><p className="font-medium capitalize">{selected.role}</p></div>
               <div><p className="caption">Aktive Opgaver</p><p className="font-medium">{selected.activeTasks}</p></div>
               <div><p className="caption">Dokumenter</p><p className="font-medium">{selected.documents}</p></div>
-              <div><p className="caption">Forbindelse</p><p className="font-mono text-xs bg-apple-gray-50 px-2 py-1 rounded">{selected.apiKey}</p></div>
+              <div><p className="caption">Forbindelse</p><p className="font-mono text-xs px-2 py-1 rounded-lg" style={{ background: 'rgba(0,0,0,0.04)' }}>{selected.apiKey}</p></div>
               <div><p className="caption">Samlet Forbrug</p><p className="font-medium">{selected.totalSpend > 0 ? `$${selected.totalSpend.toFixed(2)}` : 'Via API-nøgle'}</p></div>
             </div>
           </div>

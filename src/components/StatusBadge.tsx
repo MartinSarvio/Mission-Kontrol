@@ -14,16 +14,16 @@ const statusTextColors: Record<string, string> = {
   blocked: 'text-[#FF9500]', info: 'text-[#007AFF]',
 }
 
-const statusBgColors: Record<string, string> = {
-  active: 'bg-green-50', running: 'bg-green-50', success: 'bg-green-50', completed: 'bg-green-50',
-  idle: 'bg-gray-50', paused: 'bg-orange-50', warning: 'bg-orange-50',
-  failed: 'bg-red-50', error: 'bg-red-50', critical: 'bg-red-50',
-  blocked: 'bg-orange-50', info: 'bg-blue-50',
+const glassBg: Record<string, string> = {
+  active: 'rgba(52,199,89,0.1)', running: 'rgba(52,199,89,0.1)', success: 'rgba(52,199,89,0.1)', completed: 'rgba(52,199,89,0.1)',
+  idle: 'rgba(142,142,147,0.1)', paused: 'rgba(255,149,0,0.1)', warning: 'rgba(255,149,0,0.1)',
+  failed: 'rgba(255,59,48,0.1)', error: 'rgba(255,59,48,0.1)', critical: 'rgba(255,59,48,0.1)',
+  blocked: 'rgba(255,149,0,0.1)', info: 'rgba(0,122,255,0.1)',
 }
 
 export default function StatusBadge({ status }: { status: Status | Severity | string }) {
   return (
-    <span className={`badge ${statusBgColors[status] || 'bg-gray-50'} ${statusTextColors[status] || 'text-gray-500'}`}>
+    <span className={`badge ${statusTextColors[status] || 'text-gray-500'}`} style={{ background: glassBg[status] || 'rgba(142,142,147,0.1)' }}>
       <span className={`badge-dot ${statusColors[status] || 'bg-gray-400'}`} />
       <span className="capitalize">{status}</span>
     </span>

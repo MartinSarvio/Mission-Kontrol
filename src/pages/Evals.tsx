@@ -1,4 +1,5 @@
 import Card from '../components/Card'
+import Icon from '../components/Icon'
 
 export default function Evals() {
   return (
@@ -13,10 +14,10 @@ export default function Evals() {
 
       <Card>
         <div className="text-center py-16">
-          <p className="text-4xl mb-4">◑</p>
-          <p className="text-lg font-medium text-apple-gray-500 mb-2">Ingen evalueringer endnu</p>
+          <Icon name="gauge" size={40} className="text-apple-gray-300 mx-auto mb-4" />
+          <p className="text-lg font-medium mb-2" style={{ color: '#636366' }}>Ingen evalueringer endnu</p>
           <p className="caption max-w-md mx-auto">
-            Evalueringer giver dig mulighed for at måle agentkvalitet over tid med standardiserede testdatasæt. 
+            Evalueringer giver dig mulighed for at måle agentkvalitet over tid med standardiserede testdatasæt.
             Opret et datasæt og kør din første evaluering for at komme i gang.
           </p>
         </div>

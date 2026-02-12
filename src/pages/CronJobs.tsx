@@ -1,4 +1,5 @@
 import Card from '../components/Card'
+import Icon from '../components/Icon'
 import { cronJobs } from '../data/mock'
 
 export default function CronJobs() {
@@ -15,17 +16,17 @@ export default function CronJobs() {
       {cronJobs.length === 0 ? (
         <Card>
           <div className="text-center py-16">
-            <p className="text-4xl mb-4">⟳</p>
-            <p className="text-lg font-medium text-apple-gray-500 mb-2">Ingen planlagte jobs endnu</p>
+            <Icon name="clock" size={40} className="text-apple-gray-300 mx-auto mb-4" />
+            <p className="text-lg font-medium mb-2" style={{ color: '#636366' }}>Ingen planlagte jobs endnu</p>
             <p className="caption max-w-md mx-auto">
-              Planlagte jobs giver dig mulighed for at automatisere gentagne opgaver som rapporter, sundhedstjek, backups og mere. 
-              Klik "Opret Job" for at komme i gang.
+              Planlagte jobs giver dig mulighed for at automatisere gentagne opgaver som rapporter, sundhedstjek, backups og mere.
+              Klik &quot;Opret Job&quot; for at komme i gang.
             </p>
           </div>
         </Card>
       ) : (
         <Card>
-          <p className="text-apple-gray-500 text-sm">Jobs vises her når de er konfigureret.</p>
+          <p className="text-sm" style={{ color: '#636366' }}>Jobs vises her når de er konfigureret.</p>
         </Card>
       )}
     </div>

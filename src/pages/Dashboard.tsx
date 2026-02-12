@@ -25,7 +25,6 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* System Info */}
       <div className="grid grid-cols-3 gap-4 mb-8">
         <Card title="System">
           <div className="space-y-2 text-sm">
@@ -52,12 +51,11 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* Channels */}
       <div className="grid grid-cols-2 gap-4 mb-8">
         <Card title="Kanaler" subtitle="Forbindelsesstatus">
           <div className="space-y-3">
             {channels.map(ch => (
-              <div key={ch.name} className="flex items-center justify-between py-2 border-b border-apple-gray-50 last:border-0">
+              <div key={ch.name} className="flex items-center justify-between py-2 glass-row">
                 <div className="flex items-center gap-3">
                   <StatusBadge status={ch.status === 'ok' ? 'active' : ch.status === 'warning' ? 'warning' : ch.status === 'setup' ? 'idle' : 'paused'} />
                   <span className="text-sm font-medium">{ch.name}</span>
@@ -71,7 +69,7 @@ export default function Dashboard() {
         <Card title="Kræver Opmærksomhed" subtitle={`${s.attentionItems.length} punkter kræver handling`}>
           <div className="space-y-3">
             {s.attentionItems.map(item => (
-              <div key={item.id} className="flex items-center justify-between py-2 border-b border-apple-gray-50 last:border-0">
+              <div key={item.id} className="flex items-center justify-between py-2 glass-row">
                 <div className="flex items-center gap-3">
                   <StatusBadge status={item.severity} />
                   <span className="text-sm">{item.title}</span>
@@ -83,17 +81,16 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* Sessions */}
       <Card title="Sessioner" subtitle="Aktive agentsessioner">
         <div className="space-y-3">
           {agents.map(a => (
-            <div key={a.id} className="flex items-center justify-between py-2 border-b border-apple-gray-50 last:border-0">
+            <div key={a.id} className="flex items-center justify-between py-2 glass-row">
               <div>
                 <p className="text-sm font-medium">{a.name}</p>
                 <p className="caption">{a.purpose}</p>
               </div>
               <div className="flex items-center gap-4">
-                <span className="text-xs font-mono bg-apple-gray-50 px-2 py-0.5 rounded">{a.model}</span>
+                <span className="text-xs font-mono px-2 py-0.5 rounded-lg" style={{ background: 'rgba(0,0,0,0.04)' }}>{a.model}</span>
                 <StatusBadge status={a.status} />
               </div>
             </div>

@@ -46,14 +46,14 @@ export default function ApiUsage() {
             { model: 'claude-sonnet-4-5', role: 'Fallback 1', status: 'Klar' },
             { model: 'claude-opus-4-5', role: 'Fallback 2', status: 'Klar' },
             { model: 'claude-opus-4-1', role: 'Fallback 3', status: 'Klar' },
-            { model: 'claude-haiku-4-5', role: 'Fallback 4', status: 'Klar (⚠️ under anbefalet)' },
+            { model: 'claude-haiku-4-5', role: 'Fallback 4', status: 'Klar (under anbefalet)' },
           ].map((m, i) => (
-            <div key={i} className="flex items-center justify-between py-2 border-b border-apple-gray-50 last:border-0">
+            <div key={i} className="flex items-center justify-between py-2 glass-row">
               <div>
                 <p className="text-sm font-medium font-mono">{m.model}</p>
                 <p className="caption">{m.role}</p>
               </div>
-              <span className="text-sm text-apple-gray-500">{m.status}</span>
+              <span className="text-sm" style={{ color: '#636366' }}>{m.status}</span>
             </div>
           ))}
         </div>
@@ -65,12 +65,12 @@ export default function ApiUsage() {
             { name: 'anthropic:default', type: 'API-nøgle', desc: 'Primær autentificering' },
             { name: 'anthropic:flow-agent', type: 'Token', desc: 'Flow agent profil' },
           ].map((p, i) => (
-            <div key={i} className="flex items-center justify-between py-2 border-b border-apple-gray-50 last:border-0 text-sm">
+            <div key={i} className="flex items-center justify-between py-2 glass-row text-sm">
               <div>
                 <p className="font-medium font-mono">{p.name}</p>
                 <p className="caption">{p.desc}</p>
               </div>
-              <span className="px-2 py-0.5 bg-apple-gray-100 text-apple-gray-500 rounded text-xs">{p.type}</span>
+              <span className="px-2.5 py-1 rounded-full text-xs" style={{ background: 'rgba(0,0,0,0.04)', color: '#86868b' }}>{p.type}</span>
             </div>
           ))}
         </div>

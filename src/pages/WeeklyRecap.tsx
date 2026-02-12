@@ -27,7 +27,7 @@ export default function WeeklyRecap() {
         <Card title="Kvalitetsscore">
           <div className="flex items-center gap-4">
             <div className="text-5xl font-bold text-apple-blue">{m.qualityScore}%</div>
-            <div className="text-sm text-apple-gray-500">
+            <div className="text-sm" style={{ color: '#636366' }}>
               <p>Baseret på evalueringer, fejlfrekvens og svartider.</p>
               <p className="mt-1 text-[#34C759] font-medium">Ny instans — baseline etableres</p>
             </div>
@@ -36,7 +36,7 @@ export default function WeeklyRecap() {
         <Card title="Omkostning pr. Klient">
           <div className="space-y-2">
             {m.costPerClient.map((c, i) => (
-              <div key={i} className="flex items-center justify-between py-2 border-b border-apple-gray-50 last:border-0 text-sm">
+              <div key={i} className="flex items-center justify-between py-2 glass-row text-sm">
                 <span className="font-medium">{c.client}</span>
                 <span>${c.cost.toFixed(2)}</span>
               </div>
@@ -48,7 +48,7 @@ export default function WeeklyRecap() {
       <Card title="Top Hændelser" className="mb-6">
         <div className="space-y-3">
           {m.incidents.slice(0, 5).map(inc => (
-            <div key={inc.id} className="flex items-center justify-between py-2 border-b border-apple-gray-50 last:border-0">
+            <div key={inc.id} className="flex items-center justify-between py-2 glass-row">
               <div className="flex items-center gap-3">
                 <StatusBadge status={inc.severity} />
                 <div>
@@ -65,9 +65,9 @@ export default function WeeklyRecap() {
       <Card title="Forslag til Næste Uge">
         <div className="space-y-2">
           {m.suggestions.map((s, i) => (
-            <div key={i} className="flex gap-3 py-2 text-sm border-b border-apple-gray-50 last:border-0">
+            <div key={i} className="flex gap-3 py-2 text-sm glass-row">
               <span className="text-apple-blue font-bold">{i + 1}</span>
-              <p className="text-apple-gray-600">{s}</p>
+              <p style={{ color: '#636366' }}>{s}</p>
             </div>
           ))}
         </div>

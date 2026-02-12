@@ -9,7 +9,7 @@ interface LayoutProps {
 
 export default function Layout({ children, activePage, onNavigate }: LayoutProps) {
   return (
-    <div className="flex min-h-screen bg-apple-bg">
+    <div className="flex min-h-screen">
       <Sidebar active={activePage} onNavigate={onNavigate} />
       <main className="flex-1 ml-60 p-8 max-w-[1400px]">
         {children}

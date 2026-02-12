@@ -1,4 +1,5 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useMemo } from 'react'
+import Icon from '../components/Icon'
 
 interface TaskStep {
   name: string
@@ -42,18 +43,18 @@ interface LiveEvent {
 }
 
 const priorityConfig = {
-  critical: { label: 'Kritisk', color: 'bg-red-100 text-red-700', dot: 'bg-red-500' },
-  high: { label: 'Høj', color: 'bg-orange-100 text-orange-700', dot: 'bg-orange-500' },
-  normal: { label: 'Normal', color: 'bg-blue-100 text-blue-600', dot: 'bg-blue-500' },
-  low: { label: 'Lav', color: 'bg-gray-100 text-gray-500', dot: 'bg-gray-400' },
+  critical: { label: 'Kritisk', color: 'text-red-700', bg: 'rgba(255,59,48,0.1)', dot: 'bg-red-500' },
+  high: { label: 'Høj', color: 'text-orange-700', bg: 'rgba(255,149,0,0.1)', dot: 'bg-orange-500' },
+  normal: { label: 'Normal', color: 'text-blue-600', bg: 'rgba(0,122,255,0.1)', dot: 'bg-blue-500' },
+  low: { label: 'Lav', color: 'text-gray-500', bg: 'rgba(142,142,147,0.1)', dot: 'bg-gray-400' },
 }
 
-const eventTypeLabels: Record<string, { icon: string; label: string }> = {
-  step_started: { icon: '▶️', label: 'Agent startede trin' },
-  tool_called: { icon: '🔧', label: 'Værktøj kaldt' },
-  doc_read: { icon: '📄', label: 'Dokument læst' },
-  error: { icon: '❌', label: 'Fejl opstået' },
-  task_done: { icon: '✅', label: 'Opgave færdig' },
+const eventTypeConfig: Record<string, { icon: string; label: string }> = {
+  step_started: { icon: 'play', label: 'Agent startede trin' },
+  tool_called: { icon: 'wrench', label: 'Værktøj kaldt' },
+  doc_read: { icon: 'doc', label: 'Dokument læst' },
+  error: { icon: 'xmark', label: 'Fejl opstået' },
+  task_done: { icon: 'check', label: 'Opgave færdig' },
 }
 
 const initialTasks: Task[] = [
@@ -201,6 +202,91 @@ const initialTasks: Task[] = [
       { name: 'Verificér restore', status: 'done', startedAt: '2026-02-09T16:50:00', finishedAt: '2026-02-09T17:00:00' },
     ],
   },
+  // Historical tasks for Historik view
+  {
+    id: 't13', title: 'SSL certifikat fornyelse', status: 'completed', priority: 'critical',
+    agent: 'devops-agent', client: 'OpenClaw', type: 'infrastruktur',
+    created: '2026-02-08T06:00:00', started: '2026-02-08T06:05:00', finished: '2026-02-08T06:15:00',
+    estimatedMinutes: 15, progress: 100, lastActivity: 'Certifikat fornyet', result: 'success',
+    steps: [{ name: 'Forny certifikat', status: 'done', startedAt: '2026-02-08T06:05:00', finishedAt: '2026-02-08T06:15:00' }],
+  },
+  {
+    id: 't14', title: 'Log rotation fejl', status: 'completed', priority: 'high',
+    agent: 'devops-agent', client: 'OpenClaw', type: 'infrastruktur',
+    created: '2026-02-08T12:00:00', started: '2026-02-08T12:10:00', finished: '2026-02-08T12:40:00',
+    estimatedMinutes: 30, progress: 100, lastActivity: 'Log rotation retableret', result: 'error',
+    steps: [{ name: 'Diagnosticér', status: 'done' }, { name: 'Fix konfiguration', status: 'error' }],
+  },
+  {
+    id: 't15', title: 'Kundedata eksport til CSV', status: 'completed', priority: 'normal',
+    agent: 'analytics-agent', client: 'FLOW', type: 'rapport',
+    created: '2026-02-09T10:00:00', started: '2026-02-09T10:05:00', finished: '2026-02-09T10:20:00',
+    estimatedMinutes: 20, progress: 100, lastActivity: 'CSV eksporteret', result: 'success',
+    steps: [{ name: 'Hent data', status: 'done' }, { name: 'Generér CSV', status: 'done' }],
+  },
+  {
+    id: 't16', title: 'E-mail notifikation test', status: 'completed', priority: 'low',
+    agent: 'channel-manager', client: 'OpenClaw', type: 'test',
+    created: '2026-02-09T14:00:00', started: '2026-02-09T14:05:00', finished: '2026-02-09T14:10:00',
+    estimatedMinutes: 10, progress: 100, lastActivity: 'Test gennemført', result: 'success',
+    steps: [{ name: 'Send test e-mail', status: 'done' }],
+  },
+  {
+    id: 't17', title: 'Supabase schema validering', status: 'completed', priority: 'high',
+    agent: 'backend-dev', client: 'FLOW', type: 'backend',
+    created: '2026-02-10T11:00:00', started: '2026-02-10T11:10:00', finished: '2026-02-10T11:45:00',
+    estimatedMinutes: 40, progress: 100, lastActivity: 'Schema valideret OK', result: 'success',
+    steps: [{ name: 'Validér relationer', status: 'done' }, { name: 'Kør migrations', status: 'done' }],
+  },
+  {
+    id: 't18', title: 'Fejlsøgning: Telegram timeout', status: 'completed', priority: 'critical',
+    agent: 'channel-manager', client: 'OpenClaw', type: 'bugfix',
+    created: '2026-02-10T15:00:00', started: '2026-02-10T15:05:00', finished: '2026-02-10T15:50:00',
+    estimatedMinutes: 45, progress: 100, lastActivity: 'Timeout løst — polling interval justeret', result: 'success',
+    steps: [{ name: 'Analysér logs', status: 'done' }, { name: 'Justér polling', status: 'done' }, { name: 'Verificér', status: 'done' }],
+  },
+  {
+    id: 't19', title: 'Perplexity API integration', status: 'completed', priority: 'high',
+    agent: 'mission-kontrol-builder', client: 'OpenClaw', type: 'integration',
+    created: '2026-02-10T09:00:00', started: '2026-02-10T09:05:00', finished: '2026-02-10T10:30:00',
+    estimatedMinutes: 90, progress: 100, lastActivity: 'Sonar Pro Search integreret', result: 'success',
+    steps: [{ name: 'Konfigurer API', status: 'done' }, { name: 'Implementér søgning', status: 'done' }, { name: 'Test', status: 'done' }],
+  },
+  {
+    id: 't20', title: 'Workspace filer synkronisering', status: 'completed', priority: 'normal',
+    agent: 'devops-agent', client: 'OpenClaw', type: 'infrastruktur',
+    created: '2026-02-09T20:00:00', started: '2026-02-09T20:05:00', finished: '2026-02-09T20:15:00',
+    estimatedMinutes: 15, progress: 100, lastActivity: 'Alle filer synkroniseret', result: 'success',
+    steps: [{ name: 'Synkroniser', status: 'done' }],
+  },
+  {
+    id: 't21', title: 'Fejlsøgning: Memory leak i agent', status: 'completed', priority: 'critical',
+    agent: 'devops-agent', client: 'OpenClaw', type: 'bugfix',
+    created: '2026-02-08T18:00:00', started: '2026-02-08T18:10:00', finished: '2026-02-08T19:20:00',
+    estimatedMinutes: 60, progress: 100, lastActivity: 'Memory leak identificeret og løst', result: 'success',
+    steps: [{ name: 'Profiler hukommelse', status: 'done' }, { name: 'Identificér leak', status: 'done' }, { name: 'Patch', status: 'done' }],
+  },
+  {
+    id: 't22', title: 'YouTube watcher skill test', status: 'completed', priority: 'low',
+    agent: 'mission-kontrol-builder', client: 'OpenClaw', type: 'test',
+    created: '2026-02-08T15:00:00', started: '2026-02-08T15:05:00', finished: '2026-02-08T15:20:00',
+    estimatedMinutes: 20, progress: 100, lastActivity: 'Transskription fungerer', result: 'success',
+    steps: [{ name: 'Test transskription', status: 'done' }],
+  },
+  {
+    id: 't23', title: 'FLOW menu upload API', status: 'completed', priority: 'high',
+    agent: 'backend-dev', client: 'FLOW', type: 'backend',
+    created: '2026-02-10T13:00:00', started: '2026-02-10T13:10:00', finished: '2026-02-10T14:30:00',
+    estimatedMinutes: 90, progress: 100, lastActivity: 'Upload endpoint klar', result: 'error',
+    steps: [{ name: 'Design endpoint', status: 'done' }, { name: 'Implementér', status: 'done' }, { name: 'Test', status: 'error' }],
+  },
+  {
+    id: 't24', title: 'Daglig sundhedsrapport', status: 'completed', priority: 'normal',
+    agent: 'analytics-agent', client: 'OpenClaw', type: 'rapport',
+    created: '2026-02-11T06:00:00', started: '2026-02-11T06:05:00', finished: '2026-02-11T06:15:00',
+    estimatedMinutes: 15, progress: 100, lastActivity: 'Rapport sendt', result: 'success',
+    steps: [{ name: 'Indsaml data', status: 'done' }, { name: 'Generér rapport', status: 'done' }],
+  },
 ]
 
 const mockEvents: LiveEvent[] = [
@@ -227,17 +313,27 @@ function timeAgo(dateStr: string): string {
   return `${days}d siden`
 }
 
-function formatTime(dateStr: string): string {
-  return new Date(dateStr).toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' })
-}
-
 function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('da-DK', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 }
 
+function durationMinutes(start: string, end: string): number {
+  return Math.round((new Date(end).getTime() - new Date(start).getTime()) / 60000)
+}
+
+function formatDuration(mins: number): string {
+  if (mins < 60) return `${mins}m`
+  const h = Math.floor(mins / 60)
+  const m = mins % 60
+  return m > 0 ? `${h}t ${m}m` : `${h}t`
+}
+
+type SortKey = 'title' | 'client' | 'agent' | 'priority' | 'created' | 'finished' | 'duration' | 'result'
+type SortDir = 'asc' | 'desc'
+
 export default function Tasks() {
   const [tasks, setTasks] = useState<Task[]>(initialTasks)
-  const [viewMode, setViewMode] = useState<'kanban' | 'livefeed'>('kanban')
+  const [viewMode, setViewMode] = useState<'kanban' | 'livefeed' | 'historik'>('kanban')
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
   const [filterClient, setFilterClient] = useState('')
   const [filterAgent, setFilterAgent] = useState('')
@@ -246,6 +342,13 @@ export default function Tasks() {
   const [onlyMine, setOnlyMine] = useState(false)
   const [eventFilterAgent, setEventFilterAgent] = useState('')
   const [eventFilterClient, setEventFilterClient] = useState('')
+  // Historik state
+  const [histSearch, setHistSearch] = useState('')
+  const [histClient, setHistClient] = useState('')
+  const [histAgent, setHistAgent] = useState('')
+  const [histStatus, setHistStatus] = useState('')
+  const [histSort, setHistSort] = useState<SortKey>('created')
+  const [histSortDir, setHistSortDir] = useState<SortDir>('desc')
   const dragItem = useRef<string | null>(null)
 
   const clients = [...new Set(tasks.map(t => t.client))]
@@ -274,9 +377,53 @@ export default function Tasks() {
     return true
   }).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
 
-  function handleDragStart(taskId: string) {
-    dragItem.current = taskId
+  // Historik data
+  const histTasks = useMemo(() => {
+    const all = tasks.filter(t => t.status === 'completed')
+    let result = all.filter(t => {
+      if (histSearch && !t.title.toLowerCase().includes(histSearch.toLowerCase())) return false
+      if (histClient && t.client !== histClient) return false
+      if (histAgent && t.agent !== histAgent) return false
+      if (histStatus === 'success' && t.result !== 'success') return false
+      if (histStatus === 'error' && t.result !== 'error') return false
+      return true
+    })
+    const priorityOrder = { critical: 0, high: 1, normal: 2, low: 3 }
+    result.sort((a, b) => {
+      let cmp = 0
+      switch (histSort) {
+        case 'title': cmp = a.title.localeCompare(b.title); break
+        case 'client': cmp = a.client.localeCompare(b.client); break
+        case 'agent': cmp = a.agent.localeCompare(b.agent); break
+        case 'priority': cmp = priorityOrder[a.priority] - priorityOrder[b.priority]; break
+        case 'created': cmp = new Date(a.created).getTime() - new Date(b.created).getTime(); break
+        case 'finished': cmp = new Date(a.finished || '').getTime() - new Date(b.finished || '').getTime(); break
+        case 'duration':
+          const da = a.started && a.finished ? durationMinutes(a.started, a.finished) : 0
+          const db = b.started && b.finished ? durationMinutes(b.started, b.finished) : 0
+          cmp = da - db; break
+        case 'result': cmp = (a.result || '').localeCompare(b.result || ''); break
+      }
+      return histSortDir === 'asc' ? cmp : -cmp
+    })
+    return result
+  }, [tasks, histSearch, histClient, histAgent, histStatus, histSort, histSortDir])
+
+  const histStats = useMemo(() => {
+    const all = tasks.filter(t => t.status === 'completed')
+    const success = all.filter(t => t.result === 'success').length
+    const errors = all.filter(t => t.result === 'error').length
+    const durations = all.filter(t => t.started && t.finished).map(t => durationMinutes(t.started!, t.finished!))
+    const avg = durations.length ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) : 0
+    return { total: all.length, successRate: all.length ? Math.round(success / all.length * 100) : 0, avgDuration: avg, errorRate: all.length ? Math.round(errors / all.length * 100) : 0 }
+  }, [tasks])
+
+  function toggleSort(key: SortKey) {
+    if (histSort === key) setHistSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    else { setHistSort(key); setHistSortDir('desc') }
   }
+
+  function handleDragStart(taskId: string) { dragItem.current = taskId }
 
   function handleDrop(newStatus: 'queued' | 'active' | 'completed') {
     if (!dragItem.current) return
@@ -284,16 +431,8 @@ export default function Tasks() {
       if (t.id !== dragItem.current) return t
       const updated = { ...t, status: newStatus }
       if (newStatus === 'active' && !t.started) updated.started = new Date().toISOString()
-      if (newStatus === 'completed') {
-        updated.finished = new Date().toISOString()
-        updated.progress = 100
-        updated.result = 'success'
-      }
-      if (newStatus === 'queued') {
-        updated.started = undefined
-        updated.progress = undefined
-        updated.currentStep = undefined
-      }
+      if (newStatus === 'completed') { updated.finished = new Date().toISOString(); updated.progress = 100; updated.result = 'success' }
+      if (newStatus === 'queued') { updated.started = undefined; updated.progress = undefined; updated.currentStep = undefined }
       return updated
     }))
     dragItem.current = null
@@ -316,19 +455,19 @@ export default function Tasks() {
         draggable
         onDragStart={() => handleDragStart(task.id)}
         onClick={() => setSelectedTask(task)}
-        className="bg-white rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer border border-gray-100 group"
+        className="glass-task-card group"
       >
         <div className="flex items-start justify-between mb-2">
           <div className="flex items-center gap-2 flex-1 min-w-0">
             <span className={`w-2 h-2 rounded-full flex-shrink-0 ${task.status === 'active' ? 'bg-blue-500 animate-pulse' : task.result === 'success' ? 'bg-green-500' : task.result === 'error' ? 'bg-red-500' : pc.dot}`} />
             <h4 className="text-sm font-semibold text-gray-900 truncate">{task.title}</h4>
           </div>
-          <span className={`badge text-[10px] flex-shrink-0 ml-2 ${pc.color}`}>{pc.label}</span>
+          <span className={`badge text-[10px] flex-shrink-0 ml-2 ${pc.color}`} style={{ background: pc.bg }}>{pc.label}</span>
         </div>
         <div className="flex items-center gap-2 mb-2">
-          <span className="text-[11px] text-gray-400">{task.client}</span>
-          <span className="text-gray-300">·</span>
-          <span className="text-[11px] text-gray-400">{task.agent}</span>
+          <span className="text-[11px]" style={{ color: '#86868b' }}>{task.client}</span>
+          <span style={{ color: '#d2d2d7' }}>·</span>
+          <span className="text-[11px]" style={{ color: '#86868b' }}>{task.agent}</span>
         </div>
         {task.status === 'active' && task.progress !== undefined && (
           <div className="mb-2">
@@ -336,32 +475,34 @@ export default function Tasks() {
               <span className="text-[11px] text-blue-600 font-medium">{task.currentStep}</span>
               <span className="text-[11px] font-semibold text-blue-600">{task.progress}%</span>
             </div>
-            <div className="w-full h-1.5 bg-blue-100 rounded-full overflow-hidden">
+            <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(0,122,255,0.1)' }}>
               <div className="h-full bg-blue-500 rounded-full transition-all duration-500" style={{ width: `${task.progress}%` }} />
             </div>
           </div>
         )}
         {task.status === 'completed' && task.result && (
-          <div className={`mb-2 text-[11px] font-medium ${task.result === 'success' ? 'text-green-600' : 'text-red-600'}`}>
-            {task.result === 'success' ? '✓ Gennemført' : '✕ Fejlet'}
+          <div className={`mb-2 text-[11px] font-medium flex items-center gap-1 ${task.result === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+            <Icon name={task.result === 'success' ? 'check' : 'xmark'} size={12} />
+            {task.result === 'success' ? 'Gennemført' : 'Fejlet'}
           </div>
         )}
-        <p className="text-[11px] text-gray-400 mb-3 line-clamp-1">{task.lastActivity}</p>
+        <p className="text-[11px] mb-3 line-clamp-1" style={{ color: '#86868b' }}>{task.lastActivity}</p>
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1 text-[10px] text-gray-400">
-            <span>⏱ {task.estimatedMinutes}m</span>
-            <span className="text-gray-300">·</span>
+          <div className="flex items-center gap-1 text-[10px]" style={{ color: '#86868b' }}>
+            <Icon name="timer" size={12} />
+            <span>{task.estimatedMinutes}m</span>
+            <span style={{ color: '#d2d2d7' }}>·</span>
             <span>{timeAgo(task.created)}</span>
           </div>
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             {task.status === 'active' && (
-              <button onClick={e => { e.stopPropagation(); handleAction(task.id, 'pause') }} className="w-6 h-6 flex items-center justify-center rounded-md hover:bg-gray-100 text-xs" title="Pause">⏸</button>
+              <button onClick={e => { e.stopPropagation(); handleAction(task.id, 'pause') }} className="w-6 h-6 flex items-center justify-center rounded-lg text-gray-500" style={{ background: 'rgba(0,0,0,0.04)' }} title="Pause"><Icon name="pause" size={12} /></button>
             )}
-            <button onClick={e => { e.stopPropagation(); handleAction(task.id, 'restart') }} className="w-6 h-6 flex items-center justify-center rounded-md hover:bg-gray-100 text-xs" title="Genstart">🔄</button>
+            <button onClick={e => { e.stopPropagation(); handleAction(task.id, 'restart') }} className="w-6 h-6 flex items-center justify-center rounded-lg text-gray-500" style={{ background: 'rgba(0,0,0,0.04)' }} title="Genstart"><Icon name="restart" size={12} /></button>
             {task.status !== 'completed' && (
-              <button onClick={e => { e.stopPropagation(); handleAction(task.id, 'cancel') }} className="w-6 h-6 flex items-center justify-center rounded-md hover:bg-gray-100 text-xs" title="Annuller">✕</button>
+              <button onClick={e => { e.stopPropagation(); handleAction(task.id, 'cancel') }} className="w-6 h-6 flex items-center justify-center rounded-lg text-red-500" style={{ background: 'rgba(255,59,48,0.06)' }} title="Annuller"><Icon name="xmark" size={12} /></button>
             )}
-            <button onClick={e => { e.stopPropagation(); setSelectedTask(task) }} className="w-6 h-6 flex items-center justify-center rounded-md hover:bg-gray-100 text-xs" title="Detaljer">→</button>
+            <button onClick={e => { e.stopPropagation(); setSelectedTask(task) }} className="w-6 h-6 flex items-center justify-center rounded-lg text-gray-500" style={{ background: 'rgba(0,0,0,0.04)' }} title="Detaljer"><Icon name="chevron-right" size={12} /></button>
           </div>
         </div>
       </div>
@@ -369,39 +510,49 @@ export default function Tasks() {
   }
 
   const Column = ({ title, count, color, tasks: columnTasks, status }: { title: string; count: number; color: string; tasks: Task[]; status: 'queued' | 'active' | 'completed' }) => (
-    <div
-      className="flex-1 min-w-[300px]"
-      onDragOver={e => e.preventDefault()}
-      onDrop={() => handleDrop(status)}
-    >
+    <div className="flex-1 min-w-[300px]" onDragOver={e => e.preventDefault()} onDrop={() => handleDrop(status)}>
       <div className="flex items-center gap-2 mb-4 px-1">
         <span className={`w-2.5 h-2.5 rounded-full ${color}`} />
-        <h3 className="text-sm font-semibold text-gray-700">{title}</h3>
-        <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">{count}</span>
+        <h3 className="text-sm font-semibold" style={{ color: '#1d1d1f' }}>{title}</h3>
+        <span className="text-xs px-2 py-0.5 rounded-full" style={{ color: '#86868b', background: 'rgba(0,0,0,0.04)' }}>{count}</span>
       </div>
-      <div className="space-y-3 min-h-[200px] p-2 rounded-xl bg-gray-50/50">
+      <div className="space-y-3 min-h-[200px] p-2 glass-column">
         {columnTasks.map(task => <TaskCard key={task.id} task={task} />)}
         {columnTasks.length === 0 && (
-          <div className="text-center py-8 text-gray-300 text-sm">Ingen opgaver</div>
+          <div className="text-center py-8 text-sm" style={{ color: '#aeaeb2' }}>Ingen opgaver</div>
         )}
       </div>
     </div>
+  )
+
+  const SortHeader = ({ label, sortKey }: { label: string; sortKey: SortKey }) => (
+    <th
+      onClick={() => toggleSort(sortKey)}
+      className="table-header text-left px-4 py-3 cursor-pointer select-none"
+    >
+      <span className="flex items-center gap-1">
+        {label}
+        {histSort === sortKey && <Icon name="arrow-up-down" size={12} className={histSortDir === 'asc' ? '' : 'rotate-180'} />}
+      </span>
+    </th>
   )
 
   return (
     <div className="relative">
       <div className="flex items-center justify-between mb-1">
         <h1 className="page-title">Opgaver</h1>
-        <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
-          <button onClick={() => setViewMode('kanban')} className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${viewMode === 'kanban' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}`}>Kanban</button>
-          <button onClick={() => setViewMode('livefeed')} className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${viewMode === 'livefeed' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}`}>Live Feed</button>
+        <div className="glass-toggle-group flex items-center">
+          {(['kanban', 'livefeed', 'historik'] as const).map(m => (
+            <button key={m} onClick={() => setViewMode(m)} className={`px-4 py-1.5 text-sm font-medium rounded-xl transition-all ${viewMode === m ? 'glass-toggle-active text-gray-900' : 'text-gray-500'}`}>
+              {m === 'kanban' ? 'Kanban' : m === 'livefeed' ? 'Live Feed' : 'Historik'}
+            </button>
+          ))}
         </div>
       </div>
       <p className="caption mb-5">Opgavestyring og realtidsoverblik</p>
 
       {viewMode === 'kanban' && (
         <>
-          {/* Filters */}
           <div className="flex items-center gap-3 mb-5 flex-wrap">
             <select value={filterClient} onChange={e => setFilterClient(e.target.value)} className="input text-xs py-1.5">
               <option value="">Alle klienter</option>
@@ -415,20 +566,15 @@ export default function Tasks() {
               <option value="">Alle typer</option>
               {types.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
-            <input
-              type="text"
-              placeholder="Søg efter titel..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              className="input text-xs py-1.5 w-48"
-            />
-            <label className="flex items-center gap-2 text-xs text-gray-500 cursor-pointer">
+            <div className="relative">
+              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400"><Icon name="magnifying-glass" size={14} /></span>
+              <input type="text" placeholder="Søg efter titel..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="input text-xs py-1.5 w-48 pl-8" />
+            </div>
+            <label className="flex items-center gap-2 text-xs cursor-pointer" style={{ color: '#86868b' }}>
               <input type="checkbox" checked={onlyMine} onChange={e => setOnlyMine(e.target.checked)} className="rounded" />
               Kun mine opgaver
             </label>
           </div>
-
-          {/* Kanban Board */}
           <div className="flex gap-5 overflow-x-auto pb-4">
             <Column title="Kø" count={queued.length} color="bg-yellow-400" tasks={queued} status="queued" />
             <Column title="Aktiv" count={active.length} color="bg-blue-500" tasks={active} status="active" />
@@ -451,29 +597,22 @@ export default function Tasks() {
           </div>
           <div className="space-y-2">
             {filteredEvents.map(event => {
-              const evType = eventTypeLabels[event.type]
+              const evType = eventTypeConfig[event.type]
               return (
-                <div
-                  key={event.id}
-                  onClick={() => {
-                    const t = tasks.find(t => t.id === event.taskId)
-                    if (t) setSelectedTask(t)
-                  }}
-                  className="card flex items-start gap-4 cursor-pointer hover:shadow-md transition-shadow"
-                >
-                  <span className="text-lg mt-0.5">{evType.icon}</span>
+                <div key={event.id} onClick={() => { const t = tasks.find(t => t.id === event.taskId); if (t) setSelectedTask(t) }} className="card flex items-start gap-4 cursor-pointer">
+                  <span className="mt-0.5"><Icon name={evType.icon} size={18} className={event.type === 'error' ? 'text-red-500' : event.type === 'task_done' ? 'text-green-500' : 'text-gray-500'} /></span>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5">
-                      <span className="text-xs font-semibold text-gray-500">{evType.label}</span>
-                      <span className="text-gray-300">·</span>
-                      <span className="text-xs text-gray-400">{event.agent}</span>
-                      <span className="text-gray-300">·</span>
-                      <span className="text-xs text-gray-400">{event.client}</span>
+                      <span className="text-xs font-semibold" style={{ color: '#86868b' }}>{evType.label}</span>
+                      <span style={{ color: '#d2d2d7' }}>·</span>
+                      <span className="text-xs" style={{ color: '#86868b' }}>{event.agent}</span>
+                      <span style={{ color: '#d2d2d7' }}>·</span>
+                      <span className="text-xs" style={{ color: '#86868b' }}>{event.client}</span>
                     </div>
-                    <p className="text-sm font-medium text-gray-900">{event.taskTitle}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">{event.message}</p>
+                    <p className="text-sm font-medium" style={{ color: '#1d1d1f' }}>{event.taskTitle}</p>
+                    <p className="text-xs mt-0.5" style={{ color: '#636366' }}>{event.message}</p>
                   </div>
-                  <span className="text-[11px] text-gray-400 whitespace-nowrap">{formatDate(event.timestamp)}</span>
+                  <span className="text-[11px] whitespace-nowrap" style={{ color: '#86868b' }}>{formatDate(event.timestamp)}</span>
                 </div>
               )
             })}
@@ -481,51 +620,139 @@ export default function Tasks() {
         </>
       )}
 
+      {viewMode === 'historik' && (
+        <>
+          {/* Summary stats */}
+          <div className="grid grid-cols-4 gap-4 mb-5">
+            {[
+              { label: 'Total opgaver', value: histStats.total.toString(), icon: 'checklist' },
+              { label: 'Succesrate', value: `${histStats.successRate}%`, icon: 'check' },
+              { label: 'Gns. varighed', value: formatDuration(histStats.avgDuration), icon: 'clock' },
+              { label: 'Fejlrate', value: `${histStats.errorRate}%`, icon: 'xmark' },
+            ].map((s, i) => (
+              <div key={i} className="card">
+                <div className="flex items-center gap-2 mb-1">
+                  <Icon name={s.icon} size={16} className="text-gray-400" />
+                  <p className="caption">{s.label}</p>
+                </div>
+                <p className="text-2xl font-bold">{s.value}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Filters */}
+          <div className="flex items-center gap-3 mb-5 flex-wrap">
+            <div className="relative flex-1 max-w-xs">
+              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400"><Icon name="magnifying-glass" size={14} /></span>
+              <input type="text" placeholder="Søg i opgaver..." value={histSearch} onChange={e => setHistSearch(e.target.value)} className="input text-xs py-1.5 w-full pl-8" />
+            </div>
+            <select value={histClient} onChange={e => setHistClient(e.target.value)} className="input text-xs py-1.5">
+              <option value="">Alle klienter</option>
+              {clients.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+            <select value={histAgent} onChange={e => setHistAgent(e.target.value)} className="input text-xs py-1.5">
+              <option value="">Alle agenter</option>
+              {agents.map(a => <option key={a} value={a}>{a}</option>)}
+            </select>
+            <select value={histStatus} onChange={e => setHistStatus(e.target.value)} className="input text-xs py-1.5">
+              <option value="">Alle statusser</option>
+              <option value="success">Succes</option>
+              <option value="error">Fejl</option>
+            </select>
+          </div>
+
+          {/* Table */}
+          <div className="card p-0 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+                    <SortHeader label="Opgave" sortKey="title" />
+                    <SortHeader label="Klient" sortKey="client" />
+                    <SortHeader label="Agent" sortKey="agent" />
+                    <SortHeader label="Prioritet" sortKey="priority" />
+                    <SortHeader label="Oprettet" sortKey="created" />
+                    <SortHeader label="Afsluttet" sortKey="finished" />
+                    <SortHeader label="Varighed" sortKey="duration" />
+                    <SortHeader label="Status" sortKey="result" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {histTasks.map(task => (
+                    <tr key={task.id} onClick={() => setSelectedTask(task)} className="glass-row cursor-pointer">
+                      <td className="px-4 py-3 text-sm font-medium" style={{ color: '#1d1d1f' }}>{task.title}</td>
+                      <td className="px-4 py-3 text-sm" style={{ color: '#636366' }}>{task.client}</td>
+                      <td className="px-4 py-3 text-sm" style={{ color: '#636366' }}>{task.agent}</td>
+                      <td className="px-4 py-3">
+                        <span className={`badge text-[10px] ${priorityConfig[task.priority].color}`} style={{ background: priorityConfig[task.priority].bg }}>{priorityConfig[task.priority].label}</span>
+                      </td>
+                      <td className="px-4 py-3 text-sm" style={{ color: '#86868b' }}>{formatDate(task.created)}</td>
+                      <td className="px-4 py-3 text-sm" style={{ color: '#86868b' }}>{task.finished ? formatDate(task.finished) : '-'}</td>
+                      <td className="px-4 py-3 text-sm" style={{ color: '#86868b' }}>
+                        {task.started && task.finished ? formatDuration(durationMinutes(task.started, task.finished)) : '-'}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`badge text-[10px] ${task.result === 'success' ? 'text-green-700' : 'text-red-700'}`} style={{ background: task.result === 'success' ? 'rgba(52,199,89,0.1)' : 'rgba(255,59,48,0.1)' }}>
+                          <Icon name={task.result === 'success' ? 'check' : 'xmark'} size={10} />
+                          {task.result === 'success' ? 'Succes' : 'Fejl'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      )}
+
       {/* Detail Side Panel */}
       {selectedTask && (
         <>
-          <div className="fixed inset-0 bg-black/20 z-50" onClick={() => setSelectedTask(null)} />
-          <div className="fixed right-0 top-0 h-full w-[480px] bg-white shadow-2xl z-50 overflow-y-auto animate-slide-in">
+          <div className="fixed inset-0 glass-overlay z-50" onClick={() => setSelectedTask(null)} />
+          <div className="fixed right-0 top-0 h-full w-[480px] glass-panel z-50 overflow-y-auto animate-slide-in">
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-gray-900">{selectedTask.title}</h2>
-                <button onClick={() => setSelectedTask(null)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400">✕</button>
+                <h2 className="text-xl font-bold" style={{ color: '#1d1d1f' }}>{selectedTask.title}</h2>
+                <button onClick={() => setSelectedTask(null)} className="w-8 h-8 flex items-center justify-center rounded-full" style={{ background: 'rgba(0,0,0,0.04)', color: '#86868b' }}>
+                  <Icon name="xmark" size={14} />
+                </button>
               </div>
 
               <div className="grid grid-cols-2 gap-4 mb-6">
                 <div>
-                  <p className="text-[11px] text-gray-400 uppercase tracking-wider mb-1">Status</p>
-                  <span className={`badge ${selectedTask.status === 'active' ? 'bg-blue-100 text-blue-700' : selectedTask.status === 'completed' ? (selectedTask.result === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700') : 'bg-yellow-100 text-yellow-700'}`}>
+                  <p className="text-[11px] uppercase tracking-wider mb-1" style={{ color: '#86868b' }}>Status</p>
+                  <span className={`badge ${selectedTask.status === 'active' ? 'text-blue-700' : selectedTask.status === 'completed' ? (selectedTask.result === 'success' ? 'text-green-700' : 'text-red-700') : 'text-yellow-700'}`} style={{ background: selectedTask.status === 'active' ? 'rgba(0,122,255,0.1)' : selectedTask.status === 'completed' ? (selectedTask.result === 'success' ? 'rgba(52,199,89,0.1)' : 'rgba(255,59,48,0.1)') : 'rgba(255,149,0,0.1)' }}>
                     {selectedTask.status === 'queued' ? 'I kø' : selectedTask.status === 'active' ? 'Aktiv' : 'Afsluttet'}
                   </span>
                 </div>
                 <div>
-                  <p className="text-[11px] text-gray-400 uppercase tracking-wider mb-1">Prioritet</p>
-                  <span className={`badge ${priorityConfig[selectedTask.priority].color}`}>{priorityConfig[selectedTask.priority].label}</span>
+                  <p className="text-[11px] uppercase tracking-wider mb-1" style={{ color: '#86868b' }}>Prioritet</p>
+                  <span className={`badge ${priorityConfig[selectedTask.priority].color}`} style={{ background: priorityConfig[selectedTask.priority].bg }}>{priorityConfig[selectedTask.priority].label}</span>
                 </div>
                 <div>
-                  <p className="text-[11px] text-gray-400 uppercase tracking-wider mb-1">Agent</p>
+                  <p className="text-[11px] uppercase tracking-wider mb-1" style={{ color: '#86868b' }}>Agent</p>
                   <p className="text-sm font-medium">{selectedTask.agent}</p>
                 </div>
                 <div>
-                  <p className="text-[11px] text-gray-400 uppercase tracking-wider mb-1">Klient</p>
+                  <p className="text-[11px] uppercase tracking-wider mb-1" style={{ color: '#86868b' }}>Klient</p>
                   <p className="text-sm font-medium">{selectedTask.client}</p>
                 </div>
                 <div>
-                  <p className="text-[11px] text-gray-400 uppercase tracking-wider mb-1">Type</p>
+                  <p className="text-[11px] uppercase tracking-wider mb-1" style={{ color: '#86868b' }}>Type</p>
                   <p className="text-sm font-medium">{selectedTask.type}</p>
                 </div>
                 <div>
-                  <p className="text-[11px] text-gray-400 uppercase tracking-wider mb-1">Estimeret</p>
+                  <p className="text-[11px] uppercase tracking-wider mb-1" style={{ color: '#86868b' }}>Estimeret</p>
                   <p className="text-sm font-medium">{selectedTask.estimatedMinutes} min</p>
                 </div>
                 <div>
-                  <p className="text-[11px] text-gray-400 uppercase tracking-wider mb-1">Oprettet</p>
+                  <p className="text-[11px] uppercase tracking-wider mb-1" style={{ color: '#86868b' }}>Oprettet</p>
                   <p className="text-sm">{formatDate(selectedTask.created)}</p>
                 </div>
                 {selectedTask.started && (
                   <div>
-                    <p className="text-[11px] text-gray-400 uppercase tracking-wider mb-1">Startet</p>
+                    <p className="text-[11px] uppercase tracking-wider mb-1" style={{ color: '#86868b' }}>Startet</p>
                     <p className="text-sm">{formatDate(selectedTask.started)}</p>
                   </div>
                 )}
@@ -537,31 +764,30 @@ export default function Tasks() {
                     <span className="text-sm font-medium text-blue-600">{selectedTask.currentStep}</span>
                     <span className="text-sm font-bold text-blue-600">{selectedTask.progress}%</span>
                   </div>
-                  <div className="w-full h-2 bg-blue-100 rounded-full overflow-hidden">
+                  <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: 'rgba(0,122,255,0.1)' }}>
                     <div className="h-full bg-blue-500 rounded-full transition-all" style={{ width: `${selectedTask.progress}%` }} />
                   </div>
                 </div>
               )}
 
               <div className="mb-6">
-                <h3 className="text-sm font-semibold text-gray-700 mb-3">Trin</h3>
+                <h3 className="text-sm font-semibold mb-3" style={{ color: '#1d1d1f' }}>Trin</h3>
                 <div className="space-y-2">
                   {selectedTask.steps.map((step, i) => (
-                    <div key={i} className="flex items-center gap-3 py-2 px-3 rounded-lg bg-gray-50">
+                    <div key={i} className="flex items-center gap-3 py-2 px-3 rounded-xl" style={{ background: 'rgba(245,245,247,0.5)' }}>
                       <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                        step.status === 'done' ? 'bg-green-100 text-green-600' :
-                        step.status === 'running' ? 'bg-blue-100 text-blue-600 animate-pulse' :
-                        step.status === 'error' ? 'bg-red-100 text-red-600' :
-                        'bg-gray-100 text-gray-400'
-                      }`}>
-                        {step.status === 'done' ? '✓' : step.status === 'running' ? '▶' : step.status === 'error' ? '!' : (i + 1)}
+                        step.status === 'done' ? 'text-green-600' :
+                        step.status === 'running' ? 'text-blue-600 animate-pulse' :
+                        step.status === 'error' ? 'text-red-600' : 'text-gray-400'
+                      }`} style={{ background: step.status === 'done' ? 'rgba(52,199,89,0.1)' : step.status === 'running' ? 'rgba(0,122,255,0.1)' : step.status === 'error' ? 'rgba(255,59,48,0.1)' : 'rgba(142,142,147,0.1)' }}>
+                        {step.status === 'done' ? <Icon name="check" size={10} /> : step.status === 'running' ? <Icon name="play" size={10} /> : step.status === 'error' ? '!' : (i + 1)}
                       </span>
                       <div className="flex-1">
-                        <p className="text-sm font-medium text-gray-700">{step.name}</p>
-                        {step.tool && <p className="text-[11px] text-gray-400">Værktøj: {step.tool}</p>}
+                        <p className="text-sm font-medium" style={{ color: '#1d1d1f' }}>{step.name}</p>
+                        {step.tool && <p className="text-[11px]" style={{ color: '#86868b' }}>Værktøj: {step.tool}</p>}
                       </div>
                       {step.finishedAt && step.startedAt && (
-                        <span className="text-[10px] text-gray-400">
+                        <span className="text-[10px]" style={{ color: '#86868b' }}>
                           {Math.round((new Date(step.finishedAt).getTime() - new Date(step.startedAt).getTime()) / 60000)}m
                         </span>
                       )}
@@ -572,14 +798,14 @@ export default function Tasks() {
 
               <div className="flex gap-2">
                 {selectedTask.status === 'active' && (
-                  <button onClick={() => { handleAction(selectedTask.id, 'pause'); setSelectedTask(null) }} className="btn-secondary text-xs">⏸ Pause</button>
+                  <button onClick={() => { handleAction(selectedTask.id, 'pause'); setSelectedTask(null) }} className="btn-secondary text-xs flex items-center gap-1.5"><Icon name="pause" size={12} /> Pause</button>
                 )}
-                <button onClick={() => { handleAction(selectedTask.id, 'restart'); setSelectedTask(null) }} className="btn-secondary text-xs">🔄 Genstart</button>
+                <button onClick={() => { handleAction(selectedTask.id, 'restart'); setSelectedTask(null) }} className="btn-secondary text-xs flex items-center gap-1.5"><Icon name="restart" size={12} /> Genstart</button>
                 {selectedTask.status !== 'completed' && (
-                  <button onClick={() => { handleAction(selectedTask.id, 'cancel'); setSelectedTask(null) }} className="btn-secondary text-xs text-red-500">✕ Annuller</button>
+                  <button onClick={() => { handleAction(selectedTask.id, 'cancel'); setSelectedTask(null) }} className="btn-secondary text-xs text-red-500 flex items-center gap-1.5"><Icon name="xmark" size={12} /> Annuller</button>
                 )}
                 {selectedTask.journalRef && (
-                  <button className="btn-primary text-xs">📋 Gå til journal</button>
+                  <button className="btn-primary text-xs flex items-center gap-1.5"><Icon name="doc-text" size={12} /> Gå til journal</button>
                 )}
               </div>
             </div>

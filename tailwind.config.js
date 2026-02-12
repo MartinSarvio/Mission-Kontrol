@@ -29,11 +29,12 @@ export default {
         sans: ['-apple-system', 'BlinkMacSystemFont', 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', 'Helvetica', 'Arial', 'sans-serif'],
       },
       boxShadow: {
-        'card': '0 1px 3px rgba(0,0,0,0.1)',
-        'card-hover': '0 4px 12px rgba(0,0,0,0.1)',
+        'card': '0 2px 12px rgba(0,0,0,0.04), 0 0.5px 1px rgba(0,0,0,0.03)',
+        'card-hover': '0 4px 20px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04)',
+        'glass': '0 8px 32px rgba(0,0,0,0.06)',
       },
       borderRadius: {
-        'card': '12px',
+        'card': '16px',
       }
     },
   },
