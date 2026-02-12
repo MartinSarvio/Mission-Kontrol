@@ -4,276 +4,237 @@ import Icon from '../components/Icon'
 import { useLiveData } from '../api/LiveDataContext'
 import { createAgent, ApiSession } from '../api/openclaw'
 
-/* ── Agent type for display ─────────────────────────────────── */
-interface AgentCard {
+/* ── Types ──────────────────────────────────────────────────── */
+type AgentStatus = 'online' | 'offline' | 'working' | 'completed' | 'not-created'
+type AgentCategory = 'main' | 'team' | 'sub'
+
+interface AgentEntry {
   id: string
   name: string
   role: string
   directive: string
-  status: 'online' | 'offline' | 'working' | 'completed'
+  bio?: string
+  status: AgentStatus
   model: string
   icon: string
   iconBg: string
+  category: AgentCategory
   contextPercent?: number
   activeTask?: string
   taskProgress?: number
-  isMain?: boolean
   session?: ApiSession
 }
 
-/* ── Static sub-agent definitions ───────────────────────────── */
-const KNOWN_SUBAGENTS: Record<string, Partial<AgentCard>> = {
-  'mission-kontrol-builder': { name: 'Builder', role: 'Frontend Udvikler', directive: 'Bygger og implementerer UI-komponenter til Mission Kontrol dashboardet.', icon: 'code', iconBg: 'linear-gradient(135deg, #FF6B35, #FF3B30)' },
-  'mission-kontrol-danish': { name: 'Dansk', role: 'Lokalisering', directive: 'Oversætter al tekst til dansk og sikrer konsistent sprogbrug.', icon: 'globe', iconBg: 'linear-gradient(135deg, #30D158, #34C759)' },
-  'mission-kontrol-kanban': { name: 'Kanban', role: 'UI Specialist', directive: 'Designer og implementerer kanban-board og opgavestyring.', icon: 'grid', iconBg: 'linear-gradient(135deg, #FF9F0A, #FF6B35)' },
-  'mission-kontrol-glass': { name: 'Glass', role: 'Design System', directive: 'Udvikler glassmorphism design system med mørk æstetik.', icon: 'palette', iconBg: 'linear-gradient(135deg, #BF5AF2, #AF52DE)' },
-  'mission-kontrol-live': { name: 'Live', role: 'API Integration', directive: 'Integrerer live data fra OpenClaw Gateway API\'et.', icon: 'zap', iconBg: 'linear-gradient(135deg, #007AFF, #5AC8FA)' },
-  'mission-kontrol-intel': { name: 'Intel', role: 'Intelligens Design', directive: 'Designer intelligence og analytics dashboards.', icon: 'lightbulb', iconBg: 'linear-gradient(135deg, #FFD60A, #FF9F0A)' },
-  'mission-kontrol-intel-dark': { name: 'Intel Dark', role: 'Dark Mode Designer', directive: 'Optimerer dark mode for intelligence-siderne.', icon: 'moon', iconBg: 'linear-gradient(135deg, #5E5CE6, #BF5AF2)' },
-  'mission-kontrol-darkmode': { name: 'Darkmode', role: 'Theme Arkitekt', directive: 'Arkitekt for det gennemgående mørke tema og farvesystem.', icon: 'moon', iconBg: 'linear-gradient(135deg, #1C1C1E, #636366)' },
-  'mission-kontrol-agents': { name: 'Agents', role: 'Agent Designer', directive: 'Designer og implementerer agent-oversigten med hero cards.', icon: 'robot', iconBg: 'linear-gradient(135deg, #007AFF, #AF52DE)' },
-}
+/* ── Static data ────────────────────────────────────────────── */
+const TEAM_AGENTS: AgentEntry[] = [
+  { id: 'team-designer', name: 'Designer', role: 'UI/UX Designer', directive: 'Design system konsistens, font hierarki, farvenuancer, layout, spacing og brugeroplevelse.', bio: 'Kreativ specialist med ansvar for visuelt design, wireframes, prototyper og den samlede brugeroplevelse.', status: 'not-created', model: 'claude-sonnet-4-5', icon: 'palette', iconBg: 'linear-gradient(135deg, #BF5AF2, #AF52DE)', category: 'team' },
+  { id: 'team-frontend', name: 'Frontend', role: 'Frontend Udvikler', directive: 'Implementerer designs, browser kompatibilitet, performance optimering, responsive design og component architecture.', bio: 'Teknisk specialist i React, TypeScript og moderne frontend-teknologier. Omsætter designs til pixel-perfekt kode.', status: 'not-created', model: 'claude-sonnet-4-5', icon: 'code', iconBg: 'linear-gradient(135deg, #FF6B35, #FF3B30)', category: 'team' },
+  { id: 'team-backend', name: 'Backend', role: 'Backend Udvikler & DBA', directive: 'Supabase database design, API endpoints, integrationer, logging struktur, data migration og sikkerhed.', bio: 'Database arkitekt og backend-specialist. Ansvarlig for serverlogik, API-design og dataintegritet.', status: 'not-created', model: 'claude-sonnet-4-5', icon: 'server', iconBg: 'linear-gradient(135deg, #30D158, #34C759)', category: 'team' },
+  { id: 'team-projektleder', name: 'Projektleder', role: 'Koordinering & QA', directive: 'Prioritering, koordinering af alle agents, kvalitetssikring, status rapportering og fejlfinding.', bio: 'Koordinator og kvalitetsansvarlig. Sikrer at alle opgaver leveres fejlfrit og til tiden.', status: 'not-created', model: 'claude-sonnet-4-5', icon: 'clipboard', iconBg: 'linear-gradient(135deg, #FF9F0A, #FF6B35)', category: 'team' },
+]
 
-function buildAgentCards(sessions: ApiSession[]): AgentCard[] {
-  const cards: AgentCard[] = []
+function buildMainAgent(sessions: ApiSession[]): AgentEntry {
   const mainSession = sessions.find(s => s.key === 'agent:main:main')
   const now = Date.now()
-
-  // Main agent card
+  const maxCtx = 200000
   if (mainSession) {
-    const maxCtx = 200000
     const ctxPct = mainSession.contextTokens ? Math.min(100, Math.round((mainSession.contextTokens / maxCtx) * 100)) : 0
-    cards.push({
-      id: 'main',
-      name: 'Maison',
-      role: 'Hovedagent — System Orkestrering & Strategi',
-      directive: 'Leder og koordinerer alle agenter. Ansvarlig for at delegere opgaver, sikre kvalitet og levere resultater til Martin.',
+    return {
+      id: 'main', name: 'Maison', role: 'System Orkestrering & Strategi',
+      directive: 'Leder og koordinerer alle agenter i systemet. Ansvarlig for at delegere opgaver på højeste niveau, sikre kvalitet og levere resultater til Martin.',
+      bio: 'Hovedintelligens og kommandør af agent-teamet. Ansvarlig for at delegere opgaver, overvåge fremgang og sikre missions-succes for alle projekter.',
       status: now - mainSession.updatedAt < 120000 ? 'online' : 'offline',
-      model: mainSession.model || 'claude-opus-4-6',
-      icon: 'brain',
-      iconBg: 'linear-gradient(135deg, #007AFF, #AF52DE)',
-      contextPercent: ctxPct,
-      activeTask: 'System orkestrering',
-      taskProgress: ctxPct,
-      isMain: true,
-      session: mainSession,
-    })
-  } else {
-    cards.push({
-      id: 'main',
-      name: 'Maison',
-      role: 'Hovedagent — System Orkestrering & Strategi',
-      directive: 'Leder og koordinerer alle agenter. Ansvarlig for at delegere opgaver, sikre kvalitet og levere resultater til Martin.',
-      status: 'offline',
-      model: 'claude-opus-4-6',
-      icon: 'brain',
-      iconBg: 'linear-gradient(135deg, #007AFF, #AF52DE)',
-      isMain: true,
-    })
-  }
-
-  // Sub-agent sessions
-  const subSessions = sessions.filter(s => s.key !== 'agent:main:main')
-  const usedLabels = new Set<string>()
-
-  for (const s of subSessions) {
-    const label = s.label || s.key
-    usedLabels.add(label)
-    const known = KNOWN_SUBAGENTS[label]
-    const isActive = now - s.updatedAt < 120000
-    cards.push({
-      id: s.key,
-      name: known?.name || label,
-      role: known?.role || 'Sub-agent',
-      directive: known?.directive || `Session: ${s.key}`,
-      status: isActive ? 'working' : 'completed',
-      model: s.model,
-      icon: known?.icon || 'robot',
-      iconBg: known?.iconBg || 'linear-gradient(135deg, #636366, #48484A)',
-      contextPercent: s.contextTokens ? Math.min(100, Math.round((s.contextTokens / 200000) * 100)) : undefined,
-      session: s,
-    })
-  }
-
-  // Add known sub-agents not in sessions as completed
-  for (const [label, info] of Object.entries(KNOWN_SUBAGENTS)) {
-    if (!usedLabels.has(label)) {
-      cards.push({
-        id: label,
-        name: info.name || label,
-        role: info.role || 'Sub-agent',
-        directive: info.directive || '',
-        status: 'completed',
-        model: 'claude-sonnet-4-5',
-        icon: info.icon || 'robot',
-        iconBg: info.iconBg || 'linear-gradient(135deg, #636366, #48484A)',
-      })
+      model: mainSession.model || 'claude-opus-4-6', icon: 'brain',
+      iconBg: 'linear-gradient(135deg, #007AFF, #AF52DE)', category: 'main',
+      contextPercent: ctxPct, activeTask: 'System orkestrering', taskProgress: ctxPct, session: mainSession,
     }
   }
-
-  return cards
+  return {
+    id: 'main', name: 'Maison', role: 'System Orkestrering & Strategi',
+    directive: 'Leder og koordinerer alle agenter i systemet. Ansvarlig for at delegere opgaver på højeste niveau, sikre kvalitet og levere resultater til Martin.',
+    bio: 'Hovedintelligens og kommandør af agent-teamet. Ansvarlig for at delegere opgaver, overvåge fremgang og sikre missions-succes for alle projekter.',
+    status: 'offline', model: 'claude-opus-4-6', icon: 'brain',
+    iconBg: 'linear-gradient(135deg, #007AFF, #AF52DE)', category: 'main',
+  }
 }
 
-/* ── Status dot component ───────────────────────────────────── */
-function StatusDot({ status }: { status: AgentCard['status'] }) {
-  const config = {
-    online: { color: '#30D158', label: 'Online', glow: '0 0 8px rgba(48,209,88,0.6)' },
-    offline: { color: '#636366', label: 'Offline', glow: 'none' },
-    working: { color: '#007AFF', label: 'Arbejder', glow: '0 0 8px rgba(0,122,255,0.6)' },
-    completed: { color: '#30D158', label: 'Færdig', glow: 'none' },
-  }[status]
+function buildSubAgents(sessions: ApiSession[]): AgentEntry[] {
+  const now = Date.now()
+  return sessions.filter(s => s.key !== 'agent:main:main').map(s => {
+    const label = s.label || s.key
+    const isActive = now - s.updatedAt < 120000
+    return {
+      id: s.key, name: label, role: 'Sub-agent',
+      directive: `Session: ${s.key}`, status: isActive ? 'working' as AgentStatus : 'completed' as AgentStatus,
+      model: s.model, icon: 'robot', iconBg: 'linear-gradient(135deg, #636366, #48484A)',
+      category: 'sub' as AgentCategory,
+      contextPercent: s.contextTokens ? Math.min(100, Math.round((s.contextTokens / 200000) * 100)) : undefined,
+      session: s,
+    }
+  })
+}
 
+/* ── Helpers ─────────────────────────────────────────────────── */
+function statusColor(s: AgentStatus) {
+  return { online: '#30D158', offline: '#636366', working: '#007AFF', completed: '#30D158', 'not-created': '#636366' }[s]
+}
+function statusLabel(s: AgentStatus) {
+  return { online: 'Online', offline: 'Offline', working: 'Arbejder', completed: 'Færdig', 'not-created': 'Ikke oprettet' }[s]
+}
+function statusGlow(s: AgentStatus) {
+  if (s === 'online') return '0 0 8px rgba(48,209,88,0.6)'
+  if (s === 'working') return '0 0 8px rgba(0,122,255,0.6)'
+  return 'none'
+}
+
+/* ── Small components ───────────────────────────────────────── */
+function StatusBadge({ status }: { status: AgentStatus }) {
   return (
     <span className="inline-flex items-center gap-1.5">
-      <span
-        className="w-2.5 h-2.5 rounded-full"
-        style={{ background: config.color, boxShadow: config.glow }}
-      />
-      <span className="text-xs font-medium uppercase tracking-wider" style={{ color: config.color }}>
-        {config.label}
-      </span>
+      <span className="w-2 h-2 rounded-full" style={{ background: statusColor(status), boxShadow: statusGlow(status) }} />
+      <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: statusColor(status) }}>{statusLabel(status)}</span>
     </span>
   )
 }
 
-/* ── Progress bar ───────────────────────────────────────────── */
 function ProgressBar({ value, color = '#007AFF' }: { value: number; color?: string }) {
   return (
     <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
-      <div
-        className="h-full rounded-full transition-all duration-700"
-        style={{ width: `${value}%`, background: color }}
-      />
+      <div className="h-full rounded-full transition-all duration-700" style={{ width: `${value}%`, background: color }} />
     </div>
   )
 }
 
-/* ── Hero Agent Card ────────────────────────────────────────── */
-function HeroCard({ agent, onClick }: { agent: AgentCard; onClick: () => void }) {
-  const isMain = agent.isMain
-
+/* ── Left Panel List Item ───────────────────────────────────── */
+function RosterItem({ agent, selected, onClick }: { agent: AgentEntry; selected: boolean; onClick: () => void }) {
+  const isMain = agent.category === 'main'
   return (
     <div
       onClick={onClick}
-      className="relative group cursor-pointer rounded-2xl p-6 transition-all duration-300"
+      className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-200"
       style={{
-        background: 'rgba(255,255,255,0.03)',
-        border: isMain ? '1px solid rgba(0,122,255,0.25)' : '1px solid rgba(255,255,255,0.06)',
-        backdropFilter: 'blur(40px)',
-        WebkitBackdropFilter: 'blur(40px)',
+        background: selected ? 'rgba(0,122,255,0.15)' : 'transparent',
+        border: selected ? '1px solid rgba(0,122,255,0.3)' : '1px solid transparent',
+        ...(isMain && !selected ? { border: '1px solid rgba(0,122,255,0.1)' } : {}),
       }}
-      onMouseEnter={e => {
-        e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
-        e.currentTarget.style.borderColor = isMain ? 'rgba(0,122,255,0.4)' : 'rgba(255,255,255,0.12)'
-        e.currentTarget.style.boxShadow = isMain
-          ? '0 0 30px rgba(0,122,255,0.1), 0 8px 32px rgba(0,0,0,0.3)'
-          : '0 8px 32px rgba(0,0,0,0.3)'
-      }}
-      onMouseLeave={e => {
-        e.currentTarget.style.background = 'rgba(255,255,255,0.03)'
-        e.currentTarget.style.borderColor = isMain ? 'rgba(0,122,255,0.25)' : 'rgba(255,255,255,0.06)'
-        e.currentTarget.style.boxShadow = 'none'
-      }}
+      onMouseEnter={e => { if (!selected) e.currentTarget.style.background = 'rgba(255,255,255,0.04)' }}
+      onMouseLeave={e => { if (!selected) e.currentTarget.style.background = 'transparent' }}
     >
-      {/* Header row: avatar + status + name */}
-      <div className="flex items-start gap-5 mb-4">
-        {/* Avatar */}
-        <div
-          className="flex-shrink-0 rounded-2xl flex items-center justify-center"
-          style={{
-            width: isMain ? 80 : 64,
-            height: isMain ? 80 : 64,
-            background: agent.iconBg,
-            boxShadow: isMain ? '0 4px 20px rgba(0,122,255,0.3)' : '0 2px 12px rgba(0,0,0,0.3)',
-          }}
-        >
-          <Icon name={agent.icon} size={isMain ? 36 : 28} className="text-white" />
-        </div>
+      <div className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: agent.iconBg, boxShadow: isMain ? '0 0 12px rgba(0,122,255,0.2)' : 'none' }}>
+        <Icon name={agent.icon} size={18} className="text-white" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold text-white truncate">{agent.name}</p>
+        <p className="text-[11px] truncate" style={{ color: 'rgba(255,255,255,0.4)' }}>{agent.role}</p>
+      </div>
+      <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: statusColor(agent.status), boxShadow: statusGlow(agent.status) }} />
+    </div>
+  )
+}
 
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-3 mb-1">
-            <StatusDot status={agent.status} />
-          </div>
-          <h3 className={`font-bold text-white leading-tight ${isMain ? 'text-3xl' : 'text-2xl'}`}>
-            {agent.name}
-          </h3>
-          <p className="text-sm italic mt-0.5" style={{ color: 'rgba(255,255,255,0.5)' }}>
-            &quot;{agent.role}&quot;
-          </p>
+/* ── Right Panel Detail View ────────────────────────────────── */
+function AgentDetail({ agent, onCreateTeamAgent }: { agent: AgentEntry; onCreateTeamAgent: (a: AgentEntry) => void }) {
+  return (
+    <div className="animate-fadeIn">
+      {/* Header */}
+      <div className="flex items-start gap-5 mb-6">
+        <div className="flex-shrink-0 w-20 h-20 rounded-2xl flex items-center justify-center" style={{ background: agent.iconBg, boxShadow: agent.category === 'main' ? '0 4px 24px rgba(0,122,255,0.3)' : '0 2px 12px rgba(0,0,0,0.3)' }}>
+          <Icon name={agent.icon} size={36} className="text-white" />
+        </div>
+        <div className="flex-1">
+          <StatusBadge status={agent.status} />
+          <h2 className="text-4xl font-bold text-white mt-1 leading-tight">{agent.name}</h2>
+          <p className="text-sm italic mt-1" style={{ color: 'rgba(255,255,255,0.5)' }}>&quot;{agent.role}&quot;</p>
         </div>
       </div>
 
-      {/* Mission Directive */}
-      <div className="mb-4">
-        <p className="text-[11px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'rgba(255,255,255,0.35)' }}>
-          Missions Direktiv
-        </p>
-        <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.7)' }}>
-          {agent.directive}
-        </p>
+      {/* Missions Direktiv */}
+      <div className="mb-5">
+        <p className="text-[11px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'rgba(255,255,255,0.35)' }}>Missions Direktiv</p>
+        <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.7)' }}>{agent.directive}</p>
       </div>
 
-      {/* Active Task card (if applicable) */}
-      {(agent.activeTask || agent.status === 'completed') && (
-        <div className="rounded-xl p-3 mb-3" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.05)' }}>
+      {/* Operationel Bio */}
+      {agent.bio && (
+        <div className="mb-5">
+          <p className="text-[11px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'rgba(255,255,255,0.35)' }}>Operationel Bio</p>
+          <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.7)' }}>{agent.bio}</p>
+        </div>
+      )}
+
+      {/* Active Task */}
+      {(agent.activeTask || agent.status === 'completed' || agent.status === 'working') && (
+        <div className="rounded-xl p-4 mb-5" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
           <div className="flex items-center justify-between mb-2">
-            <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.35)' }}>
-              Aktiv Opgave
-            </p>
+            <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.35)' }}>Aktiv Opgave</p>
             <span className="text-[10px] px-2 py-0.5 rounded-full font-medium" style={{
               background: agent.status === 'completed' ? 'rgba(48,209,88,0.12)' : 'rgba(0,122,255,0.12)',
               color: agent.status === 'completed' ? '#30D158' : '#007AFF',
             }}>
-              {agent.status === 'completed' ? 'Færdig' : agent.status === 'working' ? 'Arbejder' : 'Aktiv'}
+              {statusLabel(agent.status)}
             </span>
           </div>
-          <p className="text-sm font-medium text-white mb-2">
-            {agent.activeTask || (agent.status === 'completed' ? 'Opgave fuldført' : '—')}
-          </p>
+          <p className="text-sm font-medium text-white mb-2">{agent.activeTask || (agent.status === 'completed' ? 'Opgave fuldført' : 'Arbejder...')}</p>
           {agent.taskProgress !== undefined && (
             <ProgressBar value={agent.taskProgress} color={agent.status === 'completed' ? '#30D158' : '#007AFF'} />
           )}
-          {agent.status === 'completed' && !agent.taskProgress && (
-            <ProgressBar value={100} color="#30D158" />
-          )}
+          {agent.status === 'completed' && agent.taskProgress === undefined && <ProgressBar value={100} color="#30D158" />}
         </div>
       )}
 
-      {/* Footer: model + context */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <span className="text-[10px] px-2 py-1 rounded-lg font-mono" style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.5)' }}>
-          {agent.model}
-        </span>
+      {/* Model + Context */}
+      <div className="flex items-center gap-3 flex-wrap mb-5">
+        <span className="text-[10px] px-2.5 py-1 rounded-lg font-mono" style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.5)' }}>{agent.model}</span>
         {agent.contextPercent !== undefined && (
-          <div className="flex items-center gap-2 flex-1 min-w-[100px]">
+          <div className="flex items-center gap-2 flex-1 min-w-[120px]">
             <span className="text-[10px] font-medium" style={{ color: 'rgba(255,255,255,0.35)' }}>Kontekst</span>
-            <div className="flex-1">
-              <ProgressBar value={agent.contextPercent} color={agent.contextPercent > 80 ? '#FF453A' : agent.contextPercent > 50 ? '#FF9F0A' : '#30D158'} />
-            </div>
+            <div className="flex-1"><ProgressBar value={agent.contextPercent} color={agent.contextPercent > 80 ? '#FF453A' : agent.contextPercent > 50 ? '#FF9F0A' : '#30D158'} /></div>
             <span className="text-[10px] font-mono" style={{ color: 'rgba(255,255,255,0.4)' }}>{agent.contextPercent}%</span>
           </div>
         )}
       </div>
+
+      {/* Session info */}
+      {agent.session && (
+        <div className="grid grid-cols-2 gap-4 text-sm mb-5">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.35)' }}>Kanal</p>
+            <p className="font-medium text-white">{agent.session.lastChannel}</p>
+          </div>
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.35)' }}>Session ID</p>
+            <p className="font-mono text-xs break-all" style={{ color: 'rgba(255,255,255,0.5)' }}>{agent.session.sessionId}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Create button for planned team agents */}
+      {agent.status === 'not-created' && (
+        <button
+          onClick={() => onCreateTeamAgent(agent)}
+          className="w-full py-3 rounded-xl font-semibold text-white text-sm transition-all mt-2"
+          style={{ background: 'linear-gradient(135deg, #007AFF, #AF52DE)' }}
+          onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,122,255,0.4)' }}
+          onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none' }}
+        >
+          <Icon name="user-plus" size={14} className="mr-2 inline" />
+          Opret denne agent
+        </button>
+      )}
     </div>
   )
 }
 
-/* ── Create Agent Modal ─────────────────────────────────────── */
-const MODEL_OPTIONS = [
-  'claude-opus-4-6',
-  'claude-sonnet-4-5',
-  'claude-haiku-4-5',
-  'gpt-5.2',
-]
-
+/* ── Create Agent Modal (kept from original) ────────────────── */
+const MODEL_OPTIONS = ['claude-opus-4-6', 'claude-sonnet-4-5', 'claude-haiku-4-5', 'gpt-5.2']
 const SKILL_OPTIONS = ['perplexity', 'youtube-watcher', 'web-search', 'code-exec', 'browser']
 const PRIORITY_OPTIONS = ['Normal', 'Høj', 'Kritisk']
 
-function CreateAgentModal({ open, onClose, onCreated }: { open: boolean; onClose: () => void; onCreated: (name: string) => void }) {
-  const [name, setName] = useState('')
-  const [role, setRole] = useState('')
-  const [directive, setDirective] = useState('')
-  const [model, setModel] = useState(MODEL_OPTIONS[0])
+function CreateAgentModal({ open, onClose, onCreated, prefill }: { open: boolean; onClose: () => void; onCreated: (name: string) => void; prefill?: AgentEntry | null }) {
+  const [name, setName] = useState(prefill?.name || '')
+  const [role, setRole] = useState(prefill?.role || '')
+  const [directive, setDirective] = useState(prefill?.directive || '')
+  const [model, setModel] = useState(prefill?.model || MODEL_OPTIONS[0])
   const [skills, setSkills] = useState<string[]>([])
   const [priority, setPriority] = useState('Normal')
   const [autoStart, setAutoStart] = useState(true)
@@ -281,12 +242,17 @@ function CreateAgentModal({ open, onClose, onCreated }: { open: boolean; onClose
   const [creating, setCreating] = useState(false)
   const [error, setError] = useState('')
 
+  // Update when prefill changes
+  const prefillId = prefill?.id
+  useState(() => {
+    if (prefill) { setName(prefill.name); setRole(prefill.role); setDirective(prefill.directive); setModel(prefill.model) }
+  })
+
   const toggleSkill = (s: string) => setSkills(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s])
 
   const handleSubmit = async () => {
     if (!name.trim()) { setError('Navn er påkrævet'); return }
-    setCreating(true)
-    setError('')
+    setCreating(true); setError('')
     try {
       const task = [
         directive && `Missions direktiv: ${directive}`,
@@ -295,129 +261,75 @@ function CreateAgentModal({ open, onClose, onCreated }: { open: boolean; onClose
         skills.length > 0 && `Skills: ${skills.join(', ')}`,
         firstTask && `Første opgave: ${firstTask}`,
       ].filter(Boolean).join('\n\n')
-
-      await createAgent({
-        name: name.trim(),
-        task: task || `Agent: ${name}`,
-        model,
-        label: name.trim().toLowerCase().replace(/\s+/g, '-'),
-      })
-      onCreated(name)
-      onClose()
-      // Reset
+      await createAgent({ name: name.trim(), task: task || `Agent: ${name}`, model, label: name.trim().toLowerCase().replace(/\s+/g, '-') })
+      onCreated(name); onClose()
       setName(''); setRole(''); setDirective(''); setModel(MODEL_OPTIONS[0]); setSkills([]); setPriority('Normal'); setAutoStart(true); setFirstTask('')
-    } catch (e: any) {
-      setError(e.message || 'Kunne ikke oprette agent')
-    } finally {
-      setCreating(false)
-    }
+    } catch (e: any) { setError(e.message || 'Kunne ikke oprette agent') } finally { setCreating(false) }
   }
 
-  const inputStyle: React.CSSProperties = {
-    background: 'rgba(255,255,255,0.06)',
-    border: '1px solid rgba(255,255,255,0.1)',
-    color: 'white',
-    borderRadius: '0.75rem',
-    padding: '0.625rem 0.875rem',
-    width: '100%',
-    fontSize: '0.875rem',
-    outline: 'none',
-  }
+  const inputStyle: React.CSSProperties = { background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', borderRadius: '0.75rem', padding: '0.625rem 0.875rem', width: '100%', fontSize: '0.875rem', outline: 'none' }
+
+  // Suppress unused var warnings
+  void autoStart; void prefillId
 
   return (
     <Modal open={open} onClose={onClose} title="Opret Ny Agent">
       <div className="space-y-4">
-        {/* Name */}
         <div>
           <label className="text-xs font-semibold uppercase tracking-wider block mb-1.5" style={{ color: 'rgba(255,255,255,0.5)' }}>Navn *</label>
           <input value={name} onChange={e => setName(e.target.value)} placeholder="f.eks. Research Agent" style={inputStyle} />
         </div>
-
-        {/* Role */}
         <div>
           <label className="text-xs font-semibold uppercase tracking-wider block mb-1.5" style={{ color: 'rgba(255,255,255,0.5)' }}>Rolle</label>
           <input value={role} onChange={e => setRole(e.target.value)} placeholder="f.eks. Frontend Udvikler" style={inputStyle} />
         </div>
-
-        {/* Directive */}
         <div>
           <label className="text-xs font-semibold uppercase tracking-wider block mb-1.5" style={{ color: 'rgba(255,255,255,0.5)' }}>Missions Direktiv</label>
           <textarea value={directive} onChange={e => setDirective(e.target.value)} placeholder="Beskriv hvad agenten skal gøre..." rows={3} style={inputStyle} />
         </div>
-
-        {/* Model */}
         <div>
           <label className="text-xs font-semibold uppercase tracking-wider block mb-1.5" style={{ color: 'rgba(255,255,255,0.5)' }}>Model</label>
           <select value={model} onChange={e => setModel(e.target.value)} style={inputStyle}>
             {MODEL_OPTIONS.map(m => <option key={m} value={m}>{m}</option>)}
           </select>
         </div>
-
-        {/* Skills */}
         <div>
           <label className="text-xs font-semibold uppercase tracking-wider block mb-1.5" style={{ color: 'rgba(255,255,255,0.5)' }}>Skills</label>
           <div className="flex flex-wrap gap-2">
             {SKILL_OPTIONS.map(s => (
-              <button key={s} onClick={() => toggleSkill(s)}
-                className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
-                style={{
-                  background: skills.includes(s) ? 'rgba(0,122,255,0.2)' : 'rgba(255,255,255,0.06)',
-                  border: skills.includes(s) ? '1px solid rgba(0,122,255,0.4)' : '1px solid rgba(255,255,255,0.08)',
-                  color: skills.includes(s) ? '#5AC8FA' : 'rgba(255,255,255,0.5)',
-                }}>
-                {s}
-              </button>
+              <button key={s} onClick={() => toggleSkill(s)} className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all" style={{
+                background: skills.includes(s) ? 'rgba(0,122,255,0.2)' : 'rgba(255,255,255,0.06)',
+                border: skills.includes(s) ? '1px solid rgba(0,122,255,0.4)' : '1px solid rgba(255,255,255,0.08)',
+                color: skills.includes(s) ? '#5AC8FA' : 'rgba(255,255,255,0.5)',
+              }}>{s}</button>
             ))}
           </div>
         </div>
-
-        {/* Priority */}
         <div>
           <label className="text-xs font-semibold uppercase tracking-wider block mb-1.5" style={{ color: 'rgba(255,255,255,0.5)' }}>Prioritet</label>
           <div className="flex gap-2">
             {PRIORITY_OPTIONS.map(p => (
-              <button key={p} onClick={() => setPriority(p)}
-                className="px-4 py-1.5 rounded-lg text-xs font-medium transition-all"
-                style={{
-                  background: priority === p ? (p === 'Kritisk' ? 'rgba(255,69,58,0.2)' : p === 'Høj' ? 'rgba(255,159,10,0.2)' : 'rgba(0,122,255,0.2)') : 'rgba(255,255,255,0.06)',
-                  border: priority === p ? `1px solid ${p === 'Kritisk' ? 'rgba(255,69,58,0.4)' : p === 'Høj' ? 'rgba(255,159,10,0.4)' : 'rgba(0,122,255,0.4)'}` : '1px solid rgba(255,255,255,0.08)',
-                  color: priority === p ? (p === 'Kritisk' ? '#FF453A' : p === 'Høj' ? '#FF9F0A' : '#007AFF') : 'rgba(255,255,255,0.5)',
-                }}>
-                {p}
-              </button>
+              <button key={p} onClick={() => setPriority(p)} className="px-4 py-1.5 rounded-lg text-xs font-medium transition-all" style={{
+                background: priority === p ? (p === 'Kritisk' ? 'rgba(255,69,58,0.2)' : p === 'Høj' ? 'rgba(255,159,10,0.2)' : 'rgba(0,122,255,0.2)') : 'rgba(255,255,255,0.06)',
+                border: priority === p ? `1px solid ${p === 'Kritisk' ? 'rgba(255,69,58,0.4)' : p === 'Høj' ? 'rgba(255,159,10,0.4)' : 'rgba(0,122,255,0.4)'}` : '1px solid rgba(255,255,255,0.08)',
+                color: priority === p ? (p === 'Kritisk' ? '#FF453A' : p === 'Høj' ? '#FF9F0A' : '#007AFF') : 'rgba(255,255,255,0.5)',
+              }}>{p}</button>
             ))}
           </div>
         </div>
-
-        {/* Auto start */}
         <div className="flex items-center justify-between">
           <label className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.5)' }}>Automatisk Start</label>
-          <button onClick={() => setAutoStart(!autoStart)}
-            className="w-11 h-6 rounded-full transition-all relative"
-            style={{ background: autoStart ? '#007AFF' : 'rgba(255,255,255,0.15)' }}>
-            <span className="absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all"
-              style={{ left: autoStart ? '22px' : '2px' }} />
+          <button onClick={() => setAutoStart(!autoStart)} className="w-11 h-6 rounded-full transition-all relative" style={{ background: autoStart ? '#007AFF' : 'rgba(255,255,255,0.15)' }}>
+            <span className="absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all" style={{ left: autoStart ? '22px' : '2px' }} />
           </button>
         </div>
-
-        {/* First task */}
         <div>
           <label className="text-xs font-semibold uppercase tracking-wider block mb-1.5" style={{ color: 'rgba(255,255,255,0.5)' }}>Første Opgave (valgfri)</label>
           <textarea value={firstTask} onChange={e => setFirstTask(e.target.value)} placeholder="Hvad skal agenten gøre først?" rows={2} style={inputStyle} />
         </div>
-
         {error && <p className="text-sm text-red-400">{error}</p>}
-
-        {/* Submit */}
-        <button
-          onClick={handleSubmit}
-          disabled={creating}
-          className="w-full py-3 rounded-xl font-semibold text-white transition-all"
-          style={{
-            background: creating ? 'rgba(0,122,255,0.3)' : 'linear-gradient(135deg, #007AFF, #AF52DE)',
-            opacity: creating ? 0.6 : 1,
-          }}
-        >
+        <button onClick={handleSubmit} disabled={creating} className="w-full py-3 rounded-xl font-semibold text-white transition-all"
+          style={{ background: creating ? 'rgba(0,122,255,0.3)' : 'linear-gradient(135deg, #007AFF, #AF52DE)', opacity: creating ? 0.6 : 1 }}>
           {creating ? 'Opretter...' : 'Opret Agent'}
         </button>
       </div>
@@ -425,147 +337,145 @@ function CreateAgentModal({ open, onClose, onCreated }: { open: boolean; onClose
   )
 }
 
-/* ── Toast notification ─────────────────────────────────────── */
+/* ── Toast ───────────────────────────────────────────────────── */
 function Toast({ message, visible }: { message: string; visible: boolean }) {
   return (
-    <div
-      className="fixed bottom-6 right-6 z-50 px-5 py-3 rounded-xl text-sm font-medium text-white transition-all duration-500"
-      style={{
-        background: 'rgba(48,209,88,0.15)',
-        border: '1px solid rgba(48,209,88,0.3)',
-        backdropFilter: 'blur(20px)',
-        transform: visible ? 'translateY(0)' : 'translateY(20px)',
-        opacity: visible ? 1 : 0,
-        pointerEvents: visible ? 'auto' : 'none',
-      }}
-    >
-      <Icon name="check" size={14} className="text-green-400 mr-2 inline" />
-      {message}
+    <div className="fixed bottom-6 right-6 z-50 px-5 py-3 rounded-xl text-sm font-medium text-white transition-all duration-500" style={{
+      background: 'rgba(48,209,88,0.15)', border: '1px solid rgba(48,209,88,0.3)', backdropFilter: 'blur(20px)',
+      transform: visible ? 'translateY(0)' : 'translateY(20px)', opacity: visible ? 1 : 0, pointerEvents: visible ? 'auto' : 'none',
+    }}>
+      <Icon name="check" size={14} className="text-green-400 mr-2 inline" />{message}
     </div>
   )
 }
 
+/* ── Tab type ────────────────────────────────────────────────── */
+type TabFilter = 'alle' | 'team' | 'sub'
+
 /* ── Main Page ──────────────────────────────────────────────── */
 export default function Agents() {
   const { isConnected, sessions } = useLiveData()
-  const [selectedAgent, setSelectedAgent] = useState<AgentCard | null>(null)
+  const [selectedId, setSelectedId] = useState<string>('main')
+  const [tab, setTab] = useState<TabFilter>('alle')
   const [showCreate, setShowCreate] = useState(false)
+  const [prefillAgent, setPrefillAgent] = useState<AgentEntry | null>(null)
   const [toast, setToast] = useState({ message: '', visible: false })
 
-  const cards = buildAgentCards(isConnected ? sessions : [])
-  const mainCard = cards.find(c => c.isMain)
-  const subCards = cards.filter(c => !c.isMain)
+  const mainAgent = buildMainAgent(isConnected ? sessions : [])
+  const subAgents = buildSubAgents(isConnected ? sessions : [])
+  const allAgents: AgentEntry[] = [mainAgent, ...TEAM_AGENTS, ...subAgents]
+
+  const selected = allAgents.find(a => a.id === selectedId) || mainAgent
+
+  const filteredAgents = (() => {
+    if (tab === 'team') return TEAM_AGENTS
+    if (tab === 'sub') return subAgents
+    return allAgents
+  })()
 
   const showToast = (msg: string) => {
     setToast({ message: msg, visible: true })
     setTimeout(() => setToast(t => ({ ...t, visible: false })), 3000)
   }
 
+  const handleCreateTeamAgent = (agent: AgentEntry) => {
+    setPrefillAgent(agent)
+    setShowCreate(true)
+  }
+
+  const tabs: { key: TabFilter; label: string }[] = [
+    { key: 'alle', label: 'Alle' },
+    { key: 'team', label: 'Team' },
+    { key: 'sub', label: 'Sub-Agenter' },
+  ]
+
   return (
-    <div>
+    <div className="h-full flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="page-title mb-1">Agenter</h1>
-          <p className="caption">{cards.length} agenter · {cards.filter(c => c.status === 'online' || c.status === 'working').length} aktive</p>
+          <p className="caption">{allAgents.length} agenter · {allAgents.filter(a => a.status === 'online' || a.status === 'working').length} aktive</p>
         </div>
-        <button
-          onClick={() => setShowCreate(true)}
+        <button onClick={() => { setPrefillAgent(null); setShowCreate(true) }}
           className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-white text-sm transition-all"
           style={{ background: 'linear-gradient(135deg, #007AFF, #AF52DE)' }}
           onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,122,255,0.4)' }}
-          onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none' }}
-        >
-          <Icon name="user-plus" size={16} />
-          Opret Agent
+          onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none' }}>
+          <Icon name="user-plus" size={16} />Opret Agent
         </button>
       </div>
 
-      {/* Main Agent */}
-      {mainCard && (
-        <div className="mb-6">
-          <HeroCard agent={mainCard} onClick={() => setSelectedAgent(mainCard)} />
-        </div>
-      )}
+      {/* Tabs */}
+      <div className="flex gap-1 mb-4 p-1 rounded-xl w-fit" style={{ background: 'rgba(255,255,255,0.04)' }}>
+        {tabs.map(t => (
+          <button key={t.key} onClick={() => setTab(t.key)}
+            className="px-4 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all"
+            style={{
+              background: tab === t.key ? 'rgba(0,122,255,0.2)' : 'transparent',
+              color: tab === t.key ? '#5AC8FA' : 'rgba(255,255,255,0.4)',
+              border: tab === t.key ? '1px solid rgba(0,122,255,0.3)' : '1px solid transparent',
+            }}>
+            {t.label}
+          </button>
+        ))}
+      </div>
 
-      {/* Sub-agents grid */}
-      {subCards.length > 0 && (
-        <>
-          <h2 className="text-xs font-semibold uppercase tracking-wider mb-4" style={{ color: 'rgba(255,255,255,0.35)' }}>
-            Sub-agenter ({subCards.length})
-          </h2>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {subCards.map(agent => (
-              <HeroCard key={agent.id} agent={agent} onClick={() => setSelectedAgent(agent)} />
-            ))}
-          </div>
-        </>
-      )}
+      {/* Two-column layout */}
+      <div className="flex gap-4 flex-1 min-h-0">
+        {/* Left Panel — Roster */}
+        <div className="w-[300px] flex-shrink-0 rounded-2xl p-4 overflow-y-auto" style={{
+          background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)',
+          backdropFilter: 'blur(40px)', WebkitBackdropFilter: 'blur(40px)',
+        }}>
+          <p className="text-[10px] font-bold uppercase tracking-[0.2em] mb-4 px-1" style={{ color: 'rgba(255,255,255,0.25)' }}>
+            Agent Roster
+          </p>
 
-      {/* Detail Modal */}
-      <Modal open={!!selectedAgent} onClose={() => setSelectedAgent(null)} title={selectedAgent?.name || ''}>
-        {selectedAgent && (
-          <div className="space-y-5">
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{ background: selectedAgent.iconBg }}>
-                <Icon name={selectedAgent.icon} size={28} className="text-white" />
-              </div>
-              <div>
-                <StatusDot status={selectedAgent.status} />
-                <h3 className="text-xl font-bold text-white mt-1">{selectedAgent.name}</h3>
-                <p className="text-sm italic" style={{ color: 'rgba(255,255,255,0.5)' }}>&quot;{selectedAgent.role}&quot;</p>
-              </div>
-            </div>
+          {/* Show by category when 'alle' */}
+          {tab === 'alle' ? (
+            <>
+              {/* Hovedagent */}
+              <p className="text-[9px] font-bold uppercase tracking-[0.15em] mb-2 mt-2 px-1" style={{ color: 'rgba(0,122,255,0.6)' }}>Hovedagent</p>
+              <RosterItem agent={mainAgent} selected={selectedId === mainAgent.id} onClick={() => setSelectedId(mainAgent.id)} />
 
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.35)' }}>Missions Direktiv</p>
-              <p className="text-sm" style={{ color: 'rgba(255,255,255,0.7)' }}>{selectedAgent.directive}</p>
-            </div>
+              {/* Team */}
+              <p className="text-[9px] font-bold uppercase tracking-[0.15em] mb-2 mt-4 px-1" style={{ color: 'rgba(175,82,222,0.6)' }}>Team Agenter</p>
+              {TEAM_AGENTS.map(a => <RosterItem key={a.id} agent={a} selected={selectedId === a.id} onClick={() => setSelectedId(a.id)} />)}
 
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <p className="caption mb-1">Model</p>
-                <span className="text-xs px-2 py-1 rounded-lg font-mono" style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.7)' }}>{selectedAgent.model}</span>
-              </div>
-              {selectedAgent.session && (
+              {/* Sub-agents */}
+              {subAgents.length > 0 && (
                 <>
-                  <div>
-                    <p className="caption mb-1">Kanal</p>
-                    <p className="font-medium text-white">{selectedAgent.session.lastChannel}</p>
-                  </div>
-                  <div>
-                    <p className="caption mb-1">Session ID</p>
-                    <p className="font-mono text-xs break-all" style={{ color: 'rgba(255,255,255,0.5)' }}>{selectedAgent.session.sessionId}</p>
-                  </div>
-                  <div>
-                    <p className="caption mb-1">Session Key</p>
-                    <p className="font-mono text-xs break-all" style={{ color: 'rgba(255,255,255,0.5)' }}>{selectedAgent.session.key}</p>
-                  </div>
+                  <p className="text-[9px] font-bold uppercase tracking-[0.15em] mb-2 mt-4 px-1" style={{ color: 'rgba(99,99,102,0.8)' }}>Sub-Agenter</p>
+                  {subAgents.map(a => <RosterItem key={a.id} agent={a} selected={selectedId === a.id} onClick={() => setSelectedId(a.id)} />)}
                 </>
               )}
-            </div>
+            </>
+          ) : (
+            <>
+              {filteredAgents.length === 0 && (
+                <p className="text-xs text-center py-8" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                  {tab === 'sub' ? 'Ingen aktive sub-agenter' : 'Ingen agenter'}
+                </p>
+              )}
+              {filteredAgents.map(a => <RosterItem key={a.id} agent={a} selected={selectedId === a.id} onClick={() => setSelectedId(a.id)} />)}
+            </>
+          )}
+        </div>
 
-            {selectedAgent.contextPercent !== undefined && (
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <p className="caption">Kontekst Brug</p>
-                  <span className="text-xs font-mono" style={{ color: 'rgba(255,255,255,0.4)' }}>{selectedAgent.contextPercent}%</span>
-                </div>
-                <ProgressBar value={selectedAgent.contextPercent} color={selectedAgent.contextPercent > 80 ? '#FF453A' : selectedAgent.contextPercent > 50 ? '#FF9F0A' : '#30D158'} />
-              </div>
-            )}
-          </div>
-        )}
-      </Modal>
+        {/* Right Panel — Detail */}
+        <div className="flex-1 rounded-2xl p-6 overflow-y-auto" style={{
+          background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)',
+          backdropFilter: 'blur(40px)', WebkitBackdropFilter: 'blur(40px)',
+        }}>
+          <AgentDetail agent={selected} onCreateTeamAgent={handleCreateTeamAgent} />
+        </div>
+      </div>
 
-      {/* Create Agent Modal */}
-      <CreateAgentModal
-        open={showCreate}
-        onClose={() => setShowCreate(false)}
-        onCreated={(name) => showToast(`Agent '${name}' oprettet`)}
-      />
+      {/* Create Modal */}
+      <CreateAgentModal open={showCreate} onClose={() => { setShowCreate(false); setPrefillAgent(null) }}
+        onCreated={(name) => showToast(`Agent '${name}' oprettet`)} prefill={prefillAgent} />
 
-      {/* Toast */}
       <Toast message={toast.message} visible={toast.visible} />
     </div>
   )
