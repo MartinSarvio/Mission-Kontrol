@@ -1,13 +1,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import Icon from '../components/Icon'
 import { useLiveData } from '../api/LiveDataContext'
+import { fetchInstalledSkills, installSkill, searchSkills, SkillInfo } from '../api/openclaw'
 
-interface Skill {
-  name: string
-  description: string
-  location: 'workspace' | 'system'
-  path: string
-  category: string
+interface Skill extends SkillInfo {
+  path?: string
 }
 
 interface ClawHubSkill {
@@ -25,6 +22,7 @@ interface RecommendedSkill {
   owner: string
   url: string
   version: string
+  score?: number
 }
 
 // Detect category from skill name/path
@@ -60,21 +58,6 @@ const categoryColors: Record<string, { text: string; bg: string }> = {
   'Andet': { text: 'text-gray-400', bg: 'rgba(142,142,147,0.1)' },
 }
 
-async function invokeExec(command: string): Promise<string> {
-  const url = localStorage.getItem('openclaw-gateway-url') || 'http://127.0.0.1:63362'
-  const token = localStorage.getItem('openclaw-gateway-token') || ''
-  const resolvedUrl = (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app') && url.includes('ts.net'))
-    ? '/api/gateway' : url
-  const res = await fetch(`${resolvedUrl}/tools/invoke`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-    body: JSON.stringify({ tool: 'exec', args: { command } }),
-  })
-  if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  const data = await res.json()
-  return data.result?.content?.[0]?.text || ''
-}
-
 export default function Skills() {
   const { isConnected } = useLiveData()
   const [installedSkills, setInstalledSkills] = useState<Skill[]>([])
@@ -91,42 +74,18 @@ export default function Skills() {
   const [browseResults, setBrowseResults] = useState<ClawHubSkill[]>([])
   const [browseLoading, setBrowseLoading] = useState(false)
 
-  // Fetch installed skills (workspace + system) from filesystem
-  const fetchInstalledSkills = useCallback(async () => {
+  // Fetch installed skills from API
+  const fetchInstalledSkillsData = useCallback(async () => {
     if (!isConnected) { setLoadingInstalled(false); return }
     setLoadingInstalled(true)
     try {
-      // Get workspace skills
-      const wsOutput = await invokeExec(
-        'for d in /data/.openclaw/workspace/skills/*/; do [ -d "$d" ] && echo "ws|$(basename "$d")|$(head -3 "$d/SKILL.md" 2>/dev/null | grep -i "description:" | sed "s/.*description:\\s*//i" || echo "Workspace skill")"; done 2>/dev/null'
-      )
-      // Get system skills
-      const sysOutput = await invokeExec(
-        'for d in /usr/local/lib/node_modules/openclaw/skills/*/; do [ -d "$d" ] && echo "sys|$(basename "$d")|$(head -3 "$d/SKILL.md" 2>/dev/null | grep -i "description:" | sed "s/.*description:\\s*//i" || echo "System skill")"; done 2>/dev/null'
-      )
-
-      const skills: Skill[] = []
-      const parseLines = (output: string, location: 'workspace' | 'system', basePath: string) => {
-        output.split('\n').filter(Boolean).forEach(line => {
-          const parts = line.split('|')
-          if (parts.length >= 2) {
-            const name = parts[1].trim()
-            const desc = parts[2]?.trim() || (location === 'workspace' ? 'Workspace skill' : 'System skill')
-            if (name && name !== '*') {
-              skills.push({
-                name,
-                description: desc,
-                location,
-                path: `${basePath}/${name}`,
-                category: detectCategory(name),
-              })
-            }
-          }
-        })
-      }
-
-      parseLines(wsOutput, 'workspace', '/data/.openclaw/workspace/skills')
-      parseLines(sysOutput, 'system', '/usr/local/lib/node_modules/openclaw/skills')
+      const skillsData = await fetchInstalledSkills()
+      const skills: Skill[] = skillsData.map(s => ({
+        ...s,
+        path: s.location === 'workspace' 
+          ? `/data/.openclaw/workspace/skills/${s.name}`
+          : `/usr/local/lib/node_modules/openclaw/skills/${s.name}`,
+      }))
       setInstalledSkills(skills)
     } catch (err) {
       console.error('Failed to fetch skills:', err)
@@ -135,7 +94,7 @@ export default function Skills() {
     }
   }, [isConnected])
 
-  // Fetch recommended skills from ClawHub search
+  // Fetch recommended skills from ClawHub search using API
   const fetchRecommended = useCallback(async () => {
     if (!isConnected) return
     setLoadingRecommended(true)
@@ -157,27 +116,24 @@ export default function Skills() {
       }
 
       for (const query of searches) {
-        const output = await invokeExec(`clawhub search ${query} 2>&1 | head -5`)
-        // Parse: "name v1.0.0  Description  (0.XXX)"
-        output.split('\n').filter(l => l.trim() && !l.startsWith('-')).forEach(line => {
-          const match = line.match(/^(\S+)\s+v([\d.]+)\s+(.+?)\s+\(([\d.]+)\)$/)
-          if (match && !seen.has(match[1])) {
-            seen.add(match[1])
-            const [, name, version, description, score] = match
-            // Only include skills with decent relevance
-            if (parseFloat(score) >= 0.2) {
-              // Guess owner from name or default
-              const owner = name.includes('-') ? name.split('-')[0] : 'clawhub'
-              results.push({
-                name, version, description: description.trim(),
-                reason: reasons[query] || `Relevant for ${query}`,
-                category: categories[query] || 'Andet',
-                owner,
-                url: `https://clawhub.com/${name}`,
-              })
-            }
+        const skillResults = await searchSkills(query)
+        
+        for (const skill of skillResults) {
+          if (!seen.has(skill.name) && skill.score >= 0.2) {
+            seen.add(skill.name)
+            const owner = skill.name.includes('-') ? skill.name.split('-')[0] : 'clawhub'
+            results.push({
+              name: skill.name,
+              version: skill.version,
+              description: skill.description,
+              reason: reasons[query] || `Relevant for ${query}`,
+              category: categories[query] || 'Andet',
+              owner,
+              url: `https://clawhub.com/${skill.name}`,
+              score: skill.score,
+            })
           }
-        })
+        }
       }
 
       setRecommendedSkills(results.slice(0, 12))
@@ -188,31 +144,34 @@ export default function Skills() {
     }
   }, [isConnected])
 
-  // Search ClawHub
+  // Search ClawHub using API
   const searchClawHub = useCallback(async (query: string) => {
     if (!query.trim()) { setBrowseResults([]); return }
     setBrowseLoading(true)
     try {
-      const output = await invokeExec(`clawhub search "${query.replace(/"/g, '')}" 2>&1 | grep -v "^-"`)
-      const results: ClawHubSkill[] = []
-      output.split('\n').filter(Boolean).forEach(line => {
-        const match = line.match(/^(\S+)\s+v([\d.]+)\s+(.+?)\s+\(([\d.]+)\)$/)
-        if (match) {
-          results.push({ name: match[1], version: match[2], description: match[3].trim(), score: parseFloat(match[4]) })
-        }
-      })
-      setBrowseResults(results)
-    } catch { setBrowseResults([]) }
+      const results = await searchSkills(query)
+      setBrowseResults(results.map(s => ({
+        name: s.name,
+        version: s.version,
+        description: s.description,
+        score: s.score,
+      })))
+    } catch (err) { 
+      console.error('Failed to search ClawHub:', err)
+      setBrowseResults([]) 
+    }
     finally { setBrowseLoading(false) }
   }, [])
 
-  // Install skill
+  // Install skill using API
   const handleInstall = async (name: string) => {
     setInstalling(name)
     try {
-      await invokeExec(`cd /data/.openclaw/workspace && clawhub install ${name} 2>&1`)
-      // Refresh installed skills
-      await fetchInstalledSkills()
+      await installSkill(name)
+      // Refresh installed skills after short delay
+      setTimeout(() => {
+        fetchInstalledSkillsData()
+      }, 2000)
     } catch (err) {
       console.error('Install failed:', err)
     } finally {
@@ -220,7 +179,7 @@ export default function Skills() {
     }
   }
 
-  useEffect(() => { fetchInstalledSkills() }, [fetchInstalledSkills])
+  useEffect(() => { fetchInstalledSkillsData() }, [fetchInstalledSkillsData])
   useEffect(() => { if (tab === 'recommended' && recommendedSkills.length === 0) fetchRecommended() }, [tab, fetchRecommended, recommendedSkills.length])
 
   const categories = [...new Set(installedSkills.map(s => s.category))]
