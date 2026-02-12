@@ -83,8 +83,32 @@ export interface CronJobApi {
   args?: Record<string, unknown>
 }
 
+export interface SessionMessage {
+  role: string
+  text?: string
+  content?: string
+  timestamp?: number
+}
+
+export interface SessionWithMessages extends ApiSession {
+  lastMessages?: SessionMessage[]
+}
+
+export async function fetchSessionHistory(sessionKey: string, limit = 5): Promise<SessionMessage[]> {
+  const data = await invokeToolRaw('sessions_history', { sessionKey, limit, includeTools: false }) as any
+  const text = data.result?.content?.[0]?.text
+  if (text) {
+    try {
+      const parsed = JSON.parse(text)
+      return parsed.messages || parsed || []
+    } catch { /* fall through */ }
+  }
+  if (data.result?.details?.messages) return data.result.details.messages
+  return []
+}
+
 export async function fetchSessions(): Promise<SessionsResponse> {
-  const data = await invokeToolRaw('sessions_list', { messageLimit: 0 }) as any
+  const data = await invokeToolRaw('sessions_list', { messageLimit: 2 }) as any
   // The result text is JSON string
   const text = data.result?.content?.[0]?.text
   if (text) {
