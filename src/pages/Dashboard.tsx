@@ -180,7 +180,7 @@ export default function Dashboard() {
             </Card>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
             <Card title="Kanaler" subtitle={`${channels.filter(c => c.enabled).length} aktiverede`}>
               {channels.length === 0 ? (
                 <div className="text-center py-8 text-white/50 text-sm">Ingen kanaler konfigureret</div>

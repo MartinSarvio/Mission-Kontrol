@@ -521,7 +521,7 @@ export default function Tasks() {
           {agentActivities.filter(a => a.status === 'working').length > 0 && (
             <>
               <h3 className="text-xs uppercase tracking-wider font-semibold" style={{ color: 'rgba(0,122,255,0.7)' }}>Arbejder nu</h3>
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {agentActivities.filter(a => a.status === 'working').map(agent => (
                   <AgentVisualCard key={agent.sessionKey} agent={agent} />
                 ))}
@@ -533,7 +533,7 @@ export default function Tasks() {
           {agentActivities.filter(a => a.status === 'done').length > 0 && (
             <>
               <h3 className="text-xs uppercase tracking-wider font-semibold mt-6" style={{ color: 'rgba(52,199,89,0.7)' }}>Afsluttet</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {agentActivities.filter(a => a.status === 'done').map(agent => (
                   <AgentVisualCard key={agent.sessionKey} agent={agent} />
                 ))}
@@ -610,7 +610,7 @@ export default function Tasks() {
                 </button>
               </div>
               <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.03)' }}>
                     <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Status</p>
                     <div className="flex items-center gap-2"><StatusDot status={selectedTask.status} size={6} /><span className="text-sm text-white">{selectedTask.status === 'active' ? 'Aktiv' : selectedTask.status === 'completed' ? 'Afsluttet' : 'I kø'}</span></div>

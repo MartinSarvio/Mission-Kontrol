@@ -296,7 +296,7 @@ export default function Settings() {
               </Card>
 
               <Card title="Samtidige Begrænsninger">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4 text-sm">
                   <div className="p-4 rounded-xl" style={{ background: 'rgba(255,255,255,0.06)' }}>
                     <p className="caption">Maks Samtidige Agenter</p>
                     <p className="text-2xl font-bold mt-1">{gatewayConfig?.agents?.defaults?.maxConcurrent || 'N/A'}</p>

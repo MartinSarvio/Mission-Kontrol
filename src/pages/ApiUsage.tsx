@@ -99,7 +99,7 @@ export default function ApiUsage() {
       <h1 className="text-xl sm:text-2xl font-bold mb-1">API Forbrug</h1>
       <p className="caption mb-6">Tokenforbrug og omkostningssporing</p>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {[
           { 
             label: 'Samlet Tokens', 
@@ -133,7 +133,7 @@ export default function ApiUsage() {
       </div>
 
       {sessionMetrics.recentActivity.length > 0 && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <Card title="Sessions Sidst 7 Dage">
             <BarChart data={sessionMetrics.recentActivity} height={200} />
           </Card>

@@ -369,7 +369,7 @@ export default function Skills() {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {recommendedSkills.map(s => (
                 <div key={s.name} className="rounded-xl p-4 transition-all duration-200"
                   style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', minHeight: '44px' }}>

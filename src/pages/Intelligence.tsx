@@ -32,15 +32,7 @@ export default function Intelligence() {
   const [newAnalysisQuery, setNewAnalysisQuery] = useState('')
   const [isRunning, setIsRunning] = useState(false)
   const [toasts, setToasts] = useState<Toast[]>([])
-  const [isMobile, setIsMobile] = useState(false)
   const [showMobileList, setShowMobileList] = useState(false)
-
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 768)
-    check()
-    window.addEventListener('resize', check)
-    return () => window.removeEventListener('resize', check)
-  }, [])
 
   const showToast = useCallback((message: string) => {
     const id = Date.now().toString()
@@ -119,338 +111,198 @@ export default function Intelligence() {
   }
 
   return (
-    <div className="relative h-full" style={{
-      background: '#0a0a0f',
-      margin: '-24px',
-      padding: '0',
-      minHeight: 'calc(100vh - 60px)',
-    }}>
-      <div style={{
-        position: 'fixed',
-        inset: 0,
-        background: '#0a0a0f',
-        zIndex: -1,
-        pointerEvents: 'none',
-      }} />
+    <div className="flex flex-col lg:flex-row min-h-full">
+      {/* Left Sidebar - responsive */}
+      <div className={`
+        ${showMobileList ? 'fixed inset-0 z-50' : 'hidden'}
+        lg:block lg:relative lg:z-auto
+        w-full lg:w-80 flex-shrink-0 flex flex-col
+        bg-[#0a0a0f] lg:bg-white/[0.02]
+        lg:border-r lg:border-white/[0.06]
+      `}>
+        <div className="p-4 lg:px-4 lg:py-5 border-b border-white/[0.06]">
+          <div className="flex items-center justify-between mb-2">
+            <h1 className="text-xl font-bold text-white">Intelligens</h1>
+            <div className="flex items-center gap-2">
+              {!isConnected && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-400/15 text-orange-300">
+                  OFFLINE
+                </span>
+              )}
+              <button onClick={() => setShowNewAnalysis(!showNewAnalysis)}
+                className="btn-primary text-xs px-3 py-1.5"
+                style={{ minHeight: '36px' }}>
+                <Icon name="plus" size={12} />
+              </button>
+              <button onClick={() => setShowMobileList(false)}
+                className="lg:hidden p-2"
+                style={{ minHeight: '44px', minWidth: '44px' }}>
+                <Icon name="xmark" size={16} className="text-white/40" />
+              </button>
+            </div>
+          </div>
+          <p className="text-xs text-white/30">
+            {isLoading ? 'Indlæser...' : `${researchSessions.length} analyser`}
+          </p>
+        </div>
 
-      <div style={{ display: 'flex', height: 'calc(100vh - 60px)' }}>
-        {/* Left Sidebar */}
-        {(!isMobile || showMobileList) && (
-          <div style={{
-            width: isMobile ? '100%' : '280px',
-            flexShrink: 0,
-            borderRight: isMobile ? 'none' : '1px solid rgba(255,255,255,0.06)',
-            display: 'flex',
-            flexDirection: 'column',
-            background: 'rgba(255,255,255,0.02)',
-            ...(isMobile ? { position: 'fixed', inset: 0, zIndex: 50, background: '#0a0a0f' } : {}),
-          }}>
-            <div style={{
-              padding: '20px 16px 12px',
-              borderBottom: '1px solid rgba(255,255,255,0.06)',
-            }}>
-              <div className="flex items-center justify-between mb-2">
-                <h1 style={{ color: '#ffffff', fontSize: '20px', fontWeight: 700, letterSpacing: '-0.02em' }}>Intelligens</h1>
-                <div className="flex items-center gap-2">
-                  {!isConnected && (
-                    <span style={{
-                      background: 'rgba(255,159,10,0.15)',
-                      color: '#FFB340',
-                      fontSize: '10px',
-                      fontWeight: 700,
-                      padding: '2px 8px',
-                      borderRadius: '10px',
-                    }}>OFFLINE</span>
-                  )}
-                  <button onClick={() => setShowNewAnalysis(!showNewAnalysis)}
-                    style={{
-                      background: '#007AFF',
-                      color: '#fff',
-                      padding: '6px 12px',
-                      borderRadius: '8px',
-                      fontSize: '12px',
-                      fontWeight: 600,
-                      border: 'none',
-                      cursor: 'pointer',
-                    }}>
-                    <Icon name="plus" size={12} />
-                  </button>
-                  {isMobile && (
-                    <button onClick={() => setShowMobileList(false)}
-                      style={{ color: 'rgba(255,255,255,0.4)', padding: '4px' }}>
-                      <Icon name="xmark" size={16} />
-                    </button>
-                  )}
-                </div>
+        <div className="flex-1 overflow-y-auto p-2">
+          {isLoading && (
+            <div className="text-center py-8">
+              <div className="inline-block animate-spin text-blue-500">
+                <Icon name="arrow-path" size={24} />
               </div>
-              <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '12px' }}>
-                {isLoading ? 'Indlæser...' : `${researchSessions.length} analyser`}
+              <p className="text-xs text-white/30 mt-2">
+                Indlæser research...
               </p>
             </div>
+          )}
 
-            <div style={{ flex: 1, overflowY: 'auto', padding: '8px' }}>
-              {isLoading && (
-                <div className="text-center py-8">
-                  <div className="inline-block animate-spin" style={{ color: '#007AFF' }}>
-                    <Icon name="arrow-path" size={24} />
-                  </div>
-                  <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '12px', marginTop: '8px' }}>
-                    Indlæser research...
-                  </p>
-                </div>
-              )}
+          {!isLoading && researchSessions.length === 0 && (
+            <div className="text-center py-12 px-4">
+              <Icon name="magnifying-glass" size={32} className="text-white/20 mx-auto mb-3" />
+              <p className="text-sm text-white/40">
+                Ingen research-sessioner fundet
+              </p>
+              <p className="text-xs text-white/25 mt-1">
+                Klik + for at starte ny analyse
+              </p>
+            </div>
+          )}
 
-              {!isLoading && researchSessions.length === 0 && (
-                <div className="text-center py-12 px-4">
-                  <Icon name="magnifying-glass" size={32} className="text-white/20 mx-auto mb-3" />
-                  <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '13px' }}>
-                    Ingen research-sessioner fundet
-                  </p>
-                  <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: '11px', marginTop: '4px' }}>
-                    Klik + for at starte ny analyse
-                  </p>
-                </div>
-              )}
+          {researchSessions.map(item => {
+            const isActive = selectedKey === item.sessionKey
+            return (
+              <div key={item.sessionKey} onClick={() => openSession(item)}
+                className={`
+                  p-3 mb-0.5 rounded-xl cursor-pointer transition-all
+                  border-l-[3px] hover:bg-white/5
+                  ${isActive ? 'bg-blue-500/12 border-l-blue-500' : 'bg-transparent border-l-transparent'}
+                `}
+                style={{ minHeight: '44px' }}
+              >
+                <h3 className={`text-sm leading-tight mb-1 ${isActive ? 'font-bold text-white' : 'font-medium text-white/70'}`}>
+                  {item.label}
+                </h3>
+                <p className="text-xs text-white/40 truncate leading-tight">
+                  {item.preview}
+                </p>
+                <span className="text-[10px] text-white/25 block mt-1">
+                  {new Date(item.date).toLocaleDateString('da-DK', { day: 'numeric', month: 'short' })}
+                </span>
+              </div>
+            )
+          })}
+        </div>
+      </div>
 
-              {researchSessions.map(item => {
-                const isActive = selectedKey === item.sessionKey
-                return (
-                  <div key={item.sessionKey} onClick={() => openSession(item)}
-                    style={{
-                      padding: '12px',
-                      marginBottom: '2px',
-                      borderRadius: '10px',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s ease',
-                      background: isActive ? 'rgba(0,122,255,0.12)' : 'transparent',
-                      borderLeft: isActive ? '3px solid #007AFF' : '3px solid transparent',
-                    }}
-                    className="hover:bg-white/5"
-                  >
-                    <h3 style={{
-                      fontSize: '13px',
-                      fontWeight: isActive ? 700 : 500,
-                      color: isActive ? '#ffffff' : 'rgba(255,255,255,0.7)',
-                      lineHeight: 1.3,
-                      marginBottom: '4px',
-                    }}>{item.label}</h3>
-                    <p style={{
-                      fontSize: '11px',
-                      color: 'rgba(255,255,255,0.4)',
-                      lineHeight: 1.4,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}>{item.preview}</p>
-                    <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.25)', marginTop: '4px', display: 'block' }}>
-                      {new Date(item.date).toLocaleDateString('da-DK', { day: 'numeric', month: 'short' })}
-                    </span>
-                  </div>
-                )
-              })}
+      {/* Main Content Area */}
+      <div className="flex-1 overflow-y-auto">
+        {/* Mobile header - only show on mobile when list is hidden */}
+        <div className="lg:hidden flex items-center justify-between p-3 border-b border-white/[0.06] bg-white/[0.02]">
+          <button onClick={() => setShowMobileList(true)}
+            className="flex items-center gap-2 text-blue-500 text-sm font-medium"
+            style={{ minHeight: '44px' }}>
+            <Icon name="list" size={18} /> Analyser ({researchSessions.length})
+          </button>
+          <button onClick={() => setShowNewAnalysis(!showNewAnalysis)}
+            className="text-blue-500"
+            style={{ minHeight: '44px', minWidth: '44px' }}>
+            <Icon name="plus" size={18} />
+          </button>
+        </div>
+
+        {showNewAnalysis && (
+          <div className="m-4 lg:m-6 p-6 rounded-2xl bg-white/5 border border-white/[0.08]">
+            <h3 className="text-base font-bold text-white mb-3">Ny Analyse</h3>
+            <textarea
+              value={newAnalysisQuery}
+              onChange={e => setNewAnalysisQuery(e.target.value)}
+              placeholder="Beskriv hvad du vil researche..."
+              className="w-full min-h-[120px] bg-white/[0.08] border border-white/10 rounded-lg p-3 text-white text-sm resize-vertical mb-3"
+            />
+            <div className="flex flex-col sm:flex-row gap-2">
+              <button onClick={runNewAnalysis} disabled={isRunning || !newAnalysisQuery.trim()}
+                className="btn-primary"
+                style={{ minHeight: '44px', opacity: (!newAnalysisQuery.trim() || isRunning) ? 0.5 : 1 }}>
+                {isRunning ? 'Starter...' : 'Start Analyse'}
+              </button>
+              <button onClick={() => setShowNewAnalysis(false)}
+                className="px-5 py-2.5 text-sm font-semibold rounded-xl bg-white/[0.08] border border-white/10 text-white/60"
+                style={{ minHeight: '44px' }}>
+                Annuller
+              </button>
             </div>
           </div>
         )}
 
-        {/* Main Content Area */}
-        <div style={{ flex: 1, overflowY: 'auto', position: 'relative' }}>
-          {isMobile && !showMobileList && (
-            <div style={{
-              padding: '12px 16px',
-              borderBottom: '1px solid rgba(255,255,255,0.06)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              background: 'rgba(255,255,255,0.02)',
-            }}>
-              <button onClick={() => setShowMobileList(true)}
-                className="flex items-center gap-2"
-                style={{ color: '#007AFF', fontSize: '14px', fontWeight: 500 }}>
-                <Icon name="list" size={18} /> Analyser ({researchSessions.length})
-              </button>
-              <button onClick={() => setShowNewAnalysis(!showNewAnalysis)}
-                style={{ color: '#007AFF' }}>
-                <Icon name="plus" size={18} />
-              </button>
+        {selectedSession && !showNewAnalysis ? (
+          <div className="p-6 lg:p-14 max-w-3xl mx-auto">
+            <span className="inline-block text-[11px] font-bold tracking-wider px-3 py-1 rounded-md bg-purple-500/20 text-purple-300 mb-4">
+              RESEARCH
+            </span>
+
+            <h1 className="text-3xl lg:text-4xl font-extrabold text-white leading-tight mb-3">
+              {selectedSession.label}
+            </h1>
+
+            <p className="text-base text-white/50 leading-relaxed mb-5">
+              {selectedSession.preview}
+            </p>
+
+            <div className="flex items-center gap-3 flex-wrap mb-8">
+              <span className="inline-flex items-center gap-1.5 text-xs font-semibold tracking-wide px-3 py-1.5 rounded-md bg-white/[0.06] text-white/50 border border-white/[0.08]">
+                <Icon name="clock" size={12} />
+                {new Date(selectedSession.date).toLocaleDateString('da-DK', { day: 'numeric', month: 'long', year: 'numeric' })}
+              </span>
+              <span className="text-xs text-white/30">
+                Session: {selectedSession.sessionKey.slice(0, 12)}...
+              </span>
             </div>
-          )}
 
-          {showNewAnalysis && (
-            <div style={{
-              margin: '20px',
-              padding: '24px',
-              borderRadius: '16px',
-              background: 'rgba(255,255,255,0.05)',
-              border: '1px solid rgba(255,255,255,0.08)',
-            }}>
-              <h3 style={{ color: '#ffffff', fontSize: '15px', fontWeight: 700, marginBottom: '12px' }}>Ny Analyse</h3>
-              <textarea
-                value={newAnalysisQuery}
-                onChange={e => setNewAnalysisQuery(e.target.value)}
-                placeholder="Beskriv hvad du vil researche..."
-                style={{
-                  width: '100%',
-                  minHeight: '120px',
-                  background: 'rgba(255,255,255,0.08)',
-                  border: '1px solid rgba(255,255,255,0.1)',
-                  borderRadius: '8px',
-                  padding: '12px',
-                  color: '#fff',
-                  fontSize: '13px',
-                  resize: 'vertical',
-                  marginBottom: '12px',
-                }}
-              />
-              <div className="flex gap-2">
-                <button onClick={runNewAnalysis} disabled={isRunning || !newAnalysisQuery.trim()}
-                  style={{
-                    background: '#007AFF',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '8px',
-                    padding: '10px 20px',
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    cursor: isRunning ? 'wait' : 'pointer',
-                    opacity: (!newAnalysisQuery.trim() || isRunning) ? 0.5 : 1,
-                    minHeight: '44px',
-                  }}>
-                  {isRunning ? 'Starter...' : 'Start Analyse'}
-                </button>
-                <button onClick={() => setShowNewAnalysis(false)}
-                  style={{
-                    background: 'rgba(255,255,255,0.08)',
-                    color: 'rgba(255,255,255,0.6)',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: '8px',
-                    padding: '10px 20px',
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    minHeight: '44px',
-                  }}>
-                  Annuller
-                </button>
-              </div>
-            </div>
-          )}
+            <div className="h-px bg-white/[0.06] mb-8" />
 
-          {selectedSession && !showNewAnalysis ? (
-            <div style={{ padding: isMobile ? '24px 20px' : '40px 56px', maxWidth: '800px' }}>
-              <span style={{
-                display: 'inline-block',
-                fontSize: '11px',
-                fontWeight: 700,
-                letterSpacing: '0.1em',
-                padding: '4px 12px',
-                borderRadius: '6px',
-                background: 'rgba(88,86,214,0.2)',
-                color: '#8B8AFF',
-                marginBottom: '16px',
-              }}>RESEARCH</span>
-
-              <h1 style={{
-                color: '#ffffff',
-                fontSize: isMobile ? '28px' : '34px',
-                fontWeight: 800,
-                lineHeight: 1.15,
-                letterSpacing: '-0.03em',
-                marginBottom: '12px',
-              }}>{selectedSession.label}</h1>
-
-              <p style={{
-                color: 'rgba(255,255,255,0.5)',
-                fontSize: '16px',
-                lineHeight: 1.5,
-                marginBottom: '20px',
-              }}>{selectedSession.preview}</p>
-
-              <div className="flex items-center gap-3 flex-wrap" style={{ marginBottom: '32px' }}>
-                <span style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  letterSpacing: '0.05em',
-                  padding: '5px 12px',
-                  borderRadius: '6px',
-                  background: 'rgba(255,255,255,0.06)',
-                  color: 'rgba(255,255,255,0.5)',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                }}>
-                  <Icon name="clock" size={12} />
-                  {new Date(selectedSession.date).toLocaleDateString('da-DK', { day: 'numeric', month: 'long', year: 'numeric' })}
-                </span>
-                <span style={{
-                  fontSize: '11px',
-                  color: 'rgba(255,255,255,0.3)',
-                }}>Session: {selectedSession.sessionKey.slice(0, 12)}...</span>
-              </div>
-
-              <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)', marginBottom: '32px' }} />
-
-              <div className="space-y-6">
-                {selectedSession.messages.map((msg, i) => (
-                  <div key={i} style={{
-                    padding: '16px 20px',
-                    borderRadius: '12px',
-                    background: msg.role === 'user' 
-                      ? 'rgba(0,122,255,0.08)' 
-                      : 'rgba(255,255,255,0.03)',
-                    border: '1px solid ' + (msg.role === 'user' 
-                      ? 'rgba(0,122,255,0.15)' 
-                      : 'rgba(255,255,255,0.06)'),
-                  }}>
-                    <div className="flex items-center gap-2 mb-2">
-                      <Icon name={msg.role === 'user' ? 'person' : 'sparkle'} size={14} />
-                      <span style={{
-                        fontSize: '11px',
-                        fontWeight: 700,
-                        letterSpacing: '0.08em',
-                        color: msg.role === 'user' ? '#007AFF' : 'rgba(255,255,255,0.4)',
-                      }}>{msg.role === 'user' ? 'BRUGER' : 'ASSISTENT'}</span>
-                    </div>
-                    <p style={{
-                      color: 'rgba(255,255,255,0.75)',
-                      fontSize: '14px',
-                      lineHeight: 1.6,
-                      whiteSpace: 'pre-wrap',
-                    }}>{msg.text || msg.content || ''}</p>
+            <div className="space-y-6">
+              {selectedSession.messages.map((msg, i) => (
+                <div key={i} className={`
+                  p-4 lg:p-5 rounded-xl border
+                  ${msg.role === 'user' 
+                    ? 'bg-blue-500/[0.08] border-blue-500/15' 
+                    : 'bg-white/[0.03] border-white/[0.06]'}
+                `}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Icon name={msg.role === 'user' ? 'person' : 'sparkle'} size={14} />
+                    <span className={`text-[11px] font-bold tracking-wider ${msg.role === 'user' ? 'text-blue-500' : 'text-white/40'}`}>
+                      {msg.role === 'user' ? 'BRUGER' : 'ASSISTENT'}
+                    </span>
                   </div>
-                ))}
-              </div>
+                  <p className="text-sm text-white/75 leading-relaxed whitespace-pre-wrap">
+                    {msg.text || msg.content || ''}
+                  </p>
+                </div>
+              ))}
             </div>
-          ) : !showNewAnalysis && !selectedSession && !isLoading && (
-            <div className="flex items-center justify-center h-full px-4">
-              <div className="text-center">
-                <Icon name="magnifying-glass" size={48} className="text-white/20 mx-auto mb-4" />
-                <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '16px', fontWeight: 500 }}>
-                  Ingen analyse valgt
-                </p>
-                <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '13px', marginTop: '8px' }}>
-                  Vælg en analyse fra listen eller opret en ny
-                </p>
-              </div>
+          </div>
+        ) : !showNewAnalysis && !selectedSession && !isLoading && (
+          <div className="flex items-center justify-center h-full px-4">
+            <div className="text-center">
+              <Icon name="magnifying-glass" size={48} className="text-white/20 mx-auto mb-4" />
+              <p className="text-base font-medium text-white/50">
+                Ingen analyse valgt
+              </p>
+              <p className="text-sm text-white/30 mt-2">
+                Vælg en analyse fra listen eller opret en ny
+              </p>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Toast notifications */}
       <div className="fixed top-4 right-4 z-[100] flex flex-col gap-2">
         {toasts.map(toast => (
-          <div key={toast.id} className="animate-slide-in" style={{
-            borderRadius: '14px',
-            padding: '12px 20px',
-            fontSize: '13px',
-            fontWeight: 500,
-            background: 'rgba(30,30,35,0.95)',
-            backdropFilter: 'blur(20px)',
-            border: '1px solid rgba(255,255,255,0.1)',
-            color: '#fff',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-          }}>
+          <div key={toast.id} 
+            className="animate-slide-in rounded-2xl px-5 py-3 text-sm font-medium bg-[#1e1e23]/95 backdrop-blur-xl border border-white/10 text-white shadow-2xl">
             <div className="flex items-center gap-2">
               <Icon name="checkmark-circle" size={18} className="text-green-400" />
               <span>{toast.message}</span>

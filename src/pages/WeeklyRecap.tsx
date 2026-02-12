@@ -84,7 +84,7 @@ export default function WeeklyRecap() {
       <h1 className="text-xl sm:text-2xl font-bold mb-1">Ugerapport</h1>
       <p className="caption mb-6">{weekRange}</p>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         {[
           { label: 'Fuldført', value: metrics.completedSessions.toString(), color: 'text-[#34C759]' },
           { label: 'Aktive', value: metrics.activeSessions.toString(), color: 'text-apple-blue' },
@@ -98,7 +98,7 @@ export default function WeeklyRecap() {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <Card title="Aktivitetsoversigt">
           <div className="space-y-3">
             <div className="flex items-center justify-between py-2 glass-row">
