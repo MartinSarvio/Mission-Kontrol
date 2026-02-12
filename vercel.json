@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/gateway/:path*",
+      "destination": "https://srv1356942.tail9aaaf1.ts.net/:path*"
+    }
+  ]
+}

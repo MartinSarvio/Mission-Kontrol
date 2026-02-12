@@ -21,8 +21,16 @@ export function setGatewayToken(token: string) {
   localStorage.setItem(STORAGE_KEY_TOKEN, token)
 }
 
+function resolveApiUrl(base: string): string {
+  // If running on Vercel and gateway is external, use the proxy rewrite to avoid CORS
+  if (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app') && base.includes('ts.net')) {
+    return '/api/gateway'
+  }
+  return base
+}
+
 async function invokeToolRaw(tool: string, args: Record<string, unknown>): Promise<unknown> {
-  const url = getGatewayUrl()
+  const url = resolveApiUrl(getGatewayUrl())
   const token = getGatewayToken()
   if (!token) throw new Error('Ingen auth token konfigureret')
 
