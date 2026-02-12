@@ -215,20 +215,12 @@ export async function createAgent(config: {
   channels?: string[]
   workspace?: string
 }): Promise<any> {
-  // Create a real agent using CLI command
-  const cmd = `openclaw agents add --name "${config.name}" --model "${config.model || 'claude-sonnet-4-5'}"`
-  const result = await invokeToolRaw('exec', { command: cmd }) as any
-  
-  // If initialTask is provided, spawn a session for this agent with the task
-  if (config.task && result) {
-    return invokeToolRaw('sessions_spawn', {
-      task: config.task,
-      model: config.model,
-      label: config.label || config.name,
-    })
-  }
-  
-  return result
+  // Create agent by spawning a session with the task
+  return invokeToolRaw('sessions_spawn', {
+    task: config.task || `Du er agent "${config.name}". Vent på instruktioner.`,
+    model: config.model || 'sonnet',
+    label: config.label || config.name,
+  })
 }
 
 export async function testConnection(): Promise<{ ok: boolean; error?: string }> {
