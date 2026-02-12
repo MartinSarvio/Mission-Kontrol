@@ -3,6 +3,9 @@
 @tailwind utilities;
 
 @layer base {
+  *, *::before, *::after {
+    color-scheme: dark;
+  }
   body {
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', Helvetica, Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
@@ -10,6 +13,10 @@
     background: linear-gradient(135deg, #0a0a0f 0%, #12121a 50%, #0e0e16 100%);
     background-attachment: fixed;
     color: #ffffff;
+  }
+  input, textarea, select, button {
+    color: inherit;
+    background: transparent;
   }
 }
 
