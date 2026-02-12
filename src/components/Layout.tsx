@@ -17,7 +17,7 @@ export default function Layout({ children, activePage, onNavigate }: LayoutProps
   }
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen" style={{ background: '#0a0a0f' }}>
       {/* Mobile overlay backdrop */}
       {sidebarOpen && (
         <div
@@ -33,7 +33,7 @@ export default function Layout({ children, activePage, onNavigate }: LayoutProps
         onClose={() => setSidebarOpen(false)}
       />
 
-      <main className="flex-1 lg:ml-60 min-h-screen">
+      <main className="flex-1 lg:ml-60 min-h-screen" style={{ background: 'linear-gradient(135deg, #0a0a0f 0%, #12121a 50%, #0e0e16 100%)' }}>
         {/* Mobile header with hamburger */}
         <header className="lg:hidden flex items-center h-14 px-4 border-b border-white/10 sticky top-0 z-30" style={{ backgroundColor: '#0a0a0f' }}>
           <button

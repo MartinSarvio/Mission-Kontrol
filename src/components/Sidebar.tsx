@@ -61,8 +61,8 @@ export default function Sidebar({ active, onNavigate, isOpen, onClose }: Sidebar
           {/* Close button on mobile */}
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg active:bg-white/10 lg:hidden"
-            style={{ minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            className="p-1.5 rounded-lg active:bg-white/10 lg:hidden flex items-center justify-center"
+            style={{ minWidth: 44, minHeight: 44 }}
           >
             <Icon name="xmark" size={18} className="text-white/50" />
           </button>
