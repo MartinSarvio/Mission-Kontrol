@@ -13,7 +13,7 @@
   }
 }
 
-@layer components {
+/* Custom styles — outside @layer to ensure higher specificity than Tailwind utilities */
   /* Glass Sidebar */
   .glass-sidebar {
     backdrop-filter: blur(20px);
@@ -222,7 +222,6 @@
   .glass-row:hover {
     background: rgba(255, 255, 255, 0.04);
   }
-}
 
 /* Custom scrollbar - dark */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
