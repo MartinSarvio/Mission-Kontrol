@@ -64,7 +64,8 @@ export default function Intelligence() {
 
           // Udpak preview fra sidste assistant message
           const lastAssistant = [...msgs].reverse().find(m => m.role === 'assistant')
-          const previewText = lastAssistant?.text || lastAssistant?.content || ''
+          const rawPreview = lastAssistant?.text || lastAssistant?.content || ''
+          const previewText = typeof rawPreview === 'string' ? rawPreview : JSON.stringify(rawPreview)
           const preview = previewText.length > 200 
             ? previewText.slice(0, 200) + '...'
             : previewText || 'Ingen indhold tilgængeligt'

@@ -36,7 +36,7 @@ export default function Journal() {
             sessionKey: msg.session || 'unknown',
             sessionLabel: msg.session || 'Unavngiven session',
             role: msg.role || 'system',
-            content: msg.text || msg.content || '',
+            content: String(msg.text || (typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content)) || ''),
             model: msg.model,
             tokens: msg.tokens,
           }))
@@ -53,7 +53,7 @@ export default function Journal() {
   }, [isConnected])
 
   const filtered = entries.filter(e => {
-    if (search && !e.content.toLowerCase().includes(search.toLowerCase()) && !e.sessionLabel.toLowerCase().includes(search.toLowerCase())) return false
+    if (search && !(e.content || '').toLowerCase().includes(search.toLowerCase()) && !e.sessionLabel.toLowerCase().includes(search.toLowerCase())) return false
     if (filter === 'user' && e.role !== 'user') return false
     if (filter === 'assistant' && e.role !== 'assistant') return false
     if (filter === 'system' && e.role !== 'system') return false
@@ -130,7 +130,7 @@ export default function Journal() {
                   </div>
                 </div>
                 <p className="text-sm mt-2 line-clamp-2" style={{ color: 'rgba(255,255,255,0.7)' }}>
-                  {entry.content.substring(0, 200)}{entry.content.length > 200 ? '...' : ''}
+                  {(entry.content || '').substring(0, 200)}{(entry.content || '').length > 200 ? '...' : ''}
                 </p>
               </div>
 
