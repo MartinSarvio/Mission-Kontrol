@@ -6,34 +6,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Mission Kontrol</title>
     <style>
-      /* Force dark mode globally */
+      /* Force dark color-scheme */
       *, *::before, *::after { color-scheme: dark !important; }
       
-      /* ALL buttons default to blue */
-      button {
-        background: rgba(0,122,255,0.2) !important;
-        border: 1px solid rgba(0,122,255,0.3) !important;
-        color: #fff !important;
-      }
-      button:hover {
-        background: rgba(0,122,255,0.3) !important;
-      }
-      
-      /* Primary buttons stay solid blue */
-      .btn-primary, button[class*="bg-apple-blue"] {
-        background: #007AFF !important;
-        border: 1px solid #007AFF !important;
-        color: #fff !important;
-      }
-      
-      /* Active sidebar */
-      .sidebar-item.active {
-        background: rgba(0,122,255,0.15) !important;
-        color: #fff !important;
-      }
-      
-      /* Inputs & textareas */
-      input, textarea, select {
+      /* Form inputs only */
+      input[type="text"], input[type="password"], input[type="email"], input[type="url"], input[type="search"], input[type="number"],
+      textarea, select, .input {
         background: rgba(255,255,255,0.06) !important;
         border: 1px solid rgba(255,255,255,0.1) !important;
         color: #fff !important;
@@ -42,6 +20,19 @@
         border-color: rgba(0,122,255,0.4) !important;
         box-shadow: 0 0 0 3px rgba(0,122,255,0.12) !important;
         outline: none !important;
+      }
+      
+      /* Primary buttons */
+      .btn-primary {
+        background: #007AFF !important;
+        border: 1px solid #007AFF !important;
+        color: #fff !important;
+      }
+      
+      /* Sidebar active */
+      .sidebar-item.active {
+        background: rgba(0,122,255,0.15) !important;
+        color: #fff !important;
       }
     </style>
   </head>

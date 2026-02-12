@@ -1,551 +1,307 @@
 import { useState, useEffect } from 'react'
 import Icon from '../components/Icon'
-import { listSkills, installSkill, searchSkills } from '../api/openclaw'
+import { useLiveData } from '../api/LiveDataContext'
 
-/* ── Types ──────────────────────────────────────────────────── */
 interface Skill {
   name: string
   description: string
-  version?: string
-  scripts: string[]
-  updatedAt?: string
-  path?: string
+  location: 'workspace' | 'system'
+  path: string
+  category: string
 }
 
-interface SearchResult {
+interface RecommendedSkill {
   name: string
   description: string
-  author?: string
-  stars?: number
+  reason: string
+  category: string
 }
 
-/* ── Small components ───────────────────────────────────────── */
-function SkillCard({ skill, onClick }: { skill: Skill; onClick: () => void }) {
+const INSTALLED_SKILLS: Skill[] = [
+  // Workspace skills (user-installed)
+  { name: 'perplexity', description: 'Søg på nettet med AI-drevne svar via Perplexity API. Returnerer grundede svar med kilder. Understøtter batch-forespørgsler.', location: 'workspace', path: '/data/.openclaw/workspace/skills/perplexity', category: 'Søgning' },
+  { name: 'youtube-watcher', description: 'Hent og læs transskriptioner fra YouTube-videoer. Brug til at opsummere videoer eller udtrække information.', location: 'workspace', path: '/data/.openclaw/workspace/skills/youtube-watcher', category: 'Medier' },
+  
+  // System skills (built-in)
+  { name: 'clawhub', description: 'Søg, installer, opdater og publicer agent skills fra clawhub.com.', location: 'system', path: '/usr/local/lib/node_modules/openclaw/skills/clawhub', category: 'System' },
+  { name: 'healthcheck', description: 'Sikkerhedsaudit og hardening for OpenClaw deployments. Firewall, SSH, opdateringer.', location: 'system', path: '/usr/local/lib/node_modules/openclaw/skills/healthcheck', category: 'Sikkerhed' },
+  { name: 'weather', description: 'Aktuel vejrudsigt og prognoser (ingen API-nøgle påkrævet).', location: 'system', path: '/usr/local/lib/node_modules/openclaw/skills/weather', category: 'Data' },
+  { name: 'openai-image-gen', description: 'Generer billeder via OpenAI Images API. Random prompt sampler + gallerivisning.', location: 'system', path: '/usr/local/lib/node_modules/openclaw/skills/openai-image-gen', category: 'AI / Kreativ' },
+  { name: 'openai-whisper-api', description: 'Transskriber lyd via OpenAI Whisper API.', location: 'system', path: '/usr/local/lib/node_modules/openclaw/skills/openai-whisper-api', category: 'AI / Lyd' },
+  { name: 'skill-creator', description: 'Opret eller opdater AgentSkills. Design, strukturer og pakkér skills med scripts og referencer.', location: 'system', path: '/usr/local/lib/node_modules/openclaw/skills/skill-creator', category: 'Udvikling' },
+  { name: 'github', description: 'GitHub integration — repos, issues, PRs, actions.', location: 'system', path: '/usr/local/lib/node_modules/openclaw/skills/github', category: 'Udvikling' },
+  { name: 'coding-agent', description: 'Avanceret kodnings-agent med multi-fil redigering og projekt-forståelse.', location: 'system', path: '/usr/local/lib/node_modules/openclaw/skills/coding-agent', category: 'Udvikling' },
+  { name: 'discord', description: 'Discord bot integration og server management.', location: 'system', path: '/usr/local/lib/node_modules/openclaw/skills/discord', category: 'Kommunikation' },
+  { name: 'slack', description: 'Slack workspace integration og besked-håndtering.', location: 'system', path: '/usr/local/lib/node_modules/openclaw/skills/slack', category: 'Kommunikation' },
+  { name: 'notion', description: 'Notion workspace integration — sider, databaser, blokke.', location: 'system', path: '/usr/local/lib/node_modules/openclaw/skills/notion', category: 'Produktivitet' },
+  { name: 'trello', description: 'Trello board og task management integration.', location: 'system', path: '/usr/local/lib/node_modules/openclaw/skills/trello', category: 'Produktivitet' },
+  { name: 'spotify-player', description: 'Styr Spotify afspilning — søg, afspil, kø.', location: 'system', path: '/usr/local/lib/node_modules/openclaw/skills/spotify-player', category: 'Medier' },
+  { name: 'canvas', description: 'Opret og vis interaktive canvases med HTML/JS.', location: 'system', path: '/usr/local/lib/node_modules/openclaw/skills/canvas', category: 'Visuel' },
+  { name: 'summarize', description: 'Opsummer lange tekster, dokumenter og samtaler.', location: 'system', path: '/usr/local/lib/node_modules/openclaw/skills/summarize', category: 'AI / Tekst' },
+  { name: 'session-logs', description: 'Se og analyser session-logs og samtalehistorik.', location: 'system', path: '/usr/local/lib/node_modules/openclaw/skills/session-logs', category: 'System' },
+  { name: 'model-usage', description: 'Overvåg model-forbrug, tokens og omkostninger.', location: 'system', path: '/usr/local/lib/node_modules/openclaw/skills/model-usage', category: 'System' },
+]
+
+const RECOMMENDED_SKILLS: RecommendedSkill[] = [
+  { name: 'obsidian', description: 'Obsidian vault integration — noter, links, grafer. Perfekt til vidensstyring.', reason: 'Organiser projektnoter og dokumentation', category: 'Produktivitet' },
+  { name: 'google-calendar', description: 'Google Kalender integration — opret, læs og administrer events.', reason: 'Planlæg møder og deadlines', category: 'Produktivitet' },
+  { name: 'gmail', description: 'Gmail integration — læs, send og organiser emails.', reason: 'Automatiser email-kommunikation', category: 'Kommunikation' },
+  { name: 'figma', description: 'Figma design integration — hent designs, eksporter assets.', reason: 'Relevant for OrderFlow UI design', category: 'Design' },
+  { name: 'supabase', description: 'Supabase database og auth integration.', reason: 'Direkte integration med FLOW backend', category: 'Udvikling' },
+  { name: 'vercel', description: 'Vercel deployment management — deploy, rollback, logs.', reason: 'Styr Mission Kontrol og FLOW deployments', category: 'Udvikling' },
+  { name: 'sentry', description: 'Sentry error tracking integration.', reason: 'Overvåg fejl i produktion', category: 'Overvågning' },
+  { name: 'analytics', description: 'Web analytics integration — besøgende, sidevisninger, konverteringer.', reason: 'Følg Mission Kontrol og FLOW trafik', category: 'Data' },
+]
+
+const categoryColors: Record<string, { text: string; bg: string }> = {
+  'Søgning': { text: 'text-blue-400', bg: 'rgba(0,122,255,0.1)' },
+  'Medier': { text: 'text-purple-400', bg: 'rgba(175,82,222,0.1)' },
+  'System': { text: 'text-gray-400', bg: 'rgba(142,142,147,0.1)' },
+  'Sikkerhed': { text: 'text-red-400', bg: 'rgba(255,59,48,0.1)' },
+  'Data': { text: 'text-green-400', bg: 'rgba(52,199,89,0.1)' },
+  'AI / Kreativ': { text: 'text-pink-400', bg: 'rgba(255,45,85,0.1)' },
+  'AI / Lyd': { text: 'text-orange-400', bg: 'rgba(255,149,0,0.1)' },
+  'AI / Tekst': { text: 'text-cyan-400', bg: 'rgba(0,199,190,0.1)' },
+  'Udvikling': { text: 'text-yellow-400', bg: 'rgba(255,204,0,0.1)' },
+  'Kommunikation': { text: 'text-indigo-400', bg: 'rgba(88,86,214,0.1)' },
+  'Produktivitet': { text: 'text-teal-400', bg: 'rgba(48,176,199,0.1)' },
+  'Visuel': { text: 'text-violet-400', bg: 'rgba(139,92,246,0.1)' },
+  'Design': { text: 'text-rose-400', bg: 'rgba(251,113,133,0.1)' },
+  'Overvågning': { text: 'text-amber-400', bg: 'rgba(245,158,11,0.1)' },
+}
+
+export default function Skills() {
+  const { isConnected } = useLiveData()
+  const [selectedSkill, setSelectedSkill] = useState<Skill | null>(null)
+  const [tab, setTab] = useState<'installed' | 'recommended' | 'browse'>('installed')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [installUrl, setInstallUrl] = useState('')
+  const [installing, setInstalling] = useState<string | null>(null)
+  const [filterCategory, setFilterCategory] = useState('')
+
+  const categories = [...new Set(INSTALLED_SKILLS.map(s => s.category))]
+  
+  const filteredSkills = INSTALLED_SKILLS.filter(s => {
+    if (filterCategory && s.category !== filterCategory) return false
+    if (searchQuery && !s.name.toLowerCase().includes(searchQuery.toLowerCase()) && !s.description.toLowerCase().includes(searchQuery.toLowerCase())) return false
+    return true
+  })
+
+  const workspaceSkills = filteredSkills.filter(s => s.location === 'workspace')
+  const systemSkills = filteredSkills.filter(s => s.location === 'system')
+
+  const CategoryBadge = ({ category }: { category: string }) => {
+    const c = categoryColors[category] || { text: 'text-white/50', bg: 'rgba(255,255,255,0.05)' }
+    return <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${c.text}`} style={{ background: c.bg }}>{category}</span>
+  }
+
   return (
-    <div
-      onClick={onClick}
-      className="rounded-xl p-4 cursor-pointer transition-all duration-200"
-      style={{
-        background: 'rgba(255,255,255,0.03)',
-        border: '1px solid rgba(255,255,255,0.08)',
-        backdropFilter: 'blur(20px)',
-      }}
-      onMouseEnter={e => {
-        e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
-        e.currentTarget.style.borderColor = 'rgba(0,122,255,0.3)'
-      }}
-      onMouseLeave={e => {
-        e.currentTarget.style.background = 'rgba(255,255,255,0.03)'
-        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'
-      }}
-    >
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <div
-            className="w-10 h-10 rounded-lg flex items-center justify-center"
-            style={{ background: 'linear-gradient(135deg, #007AFF, #5AC8FA)' }}
-          >
-            <Icon name="sparkle" size={18} className="text-white" />
-          </div>
-          <div>
-            <h3 className="text-sm font-semibold text-white">{skill.name}</h3>
-            {skill.version && (
-              <span
-                className="text-[10px] font-mono"
-                style={{ color: 'rgba(255,255,255,0.4)' }}
-              >
-                v{skill.version}
-              </span>
-            )}
-          </div>
+    <div className="relative">
+      <div className="flex items-center justify-between mb-1">
+        <h1 className="page-title">Færdigheder</h1>
+        <div className="flex items-center gap-1 p-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.04)' }}>
+          {(['installed', 'recommended', 'browse'] as const).map(t => (
+            <button key={t} onClick={() => setTab(t)}
+              className="px-4 py-1.5 text-sm font-medium rounded-lg transition-all"
+              style={{
+                background: tab === t ? 'rgba(0,122,255,0.2)' : 'transparent',
+                color: tab === t ? '#fff' : 'rgba(255,255,255,0.5)',
+                border: tab === t ? '1px solid rgba(0,122,255,0.3)' : '1px solid transparent'
+              }}>
+              {t === 'installed' ? `Installeret (${INSTALLED_SKILLS.length})` : t === 'recommended' ? 'Anbefalede' : 'Gennemse'}
+            </button>
+          ))}
         </div>
-        {skill.scripts.length > 0 && (
-          <span
-            className="text-[10px] px-2 py-0.5 rounded-full font-medium"
-            style={{
-              background: 'rgba(48,209,88,0.12)',
-              color: '#30D158',
-            }}
-          >
-            {skill.scripts.length} scripts
-          </span>
-        )}
       </div>
-      <p className="text-xs leading-relaxed mb-2" style={{ color: 'rgba(255,255,255,0.6)' }}>
-        {skill.description || 'Ingen beskrivelse tilgængelig'}
-      </p>
-      {skill.updatedAt && (
-        <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.3)' }}>
-          Opdateret: {skill.updatedAt}
-        </p>
-      )}
-    </div>
-  )
-}
+      <p className="caption mb-5">Administrer agent-færdigheder og plugins</p>
 
-function SearchResultCard({ result, onInstall, installing }: { result: SearchResult; onInstall: () => void; installing: boolean }) {
-  return (
-    <div
-      className="rounded-xl p-4 transition-all duration-200"
-      style={{
-        background: 'rgba(255,255,255,0.03)',
-        border: '1px solid rgba(255,255,255,0.08)',
-      }}
-    >
-      <div className="flex items-start justify-between mb-2">
-        <div>
-          <h3 className="text-sm font-semibold text-white mb-1">{result.name}</h3>
-          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.6)' }}>
-            {result.description}
-          </p>
-        </div>
-        <button
-          onClick={onInstall}
-          disabled={installing}
-          className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition-all"
-          style={{
-            background: installing ? 'rgba(0,122,255,0.3)' : 'rgba(0,122,255,0.2)',
-            border: '1px solid rgba(0,122,255,0.4)',
-            opacity: installing ? 0.6 : 1,
-          }}
-        >
-          {installing ? 'Installerer...' : 'Installer'}
-        </button>
-      </div>
-      {result.author && (
-        <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.3)' }}>
-          Af {result.author}
-          {result.stars && ` · ${result.stars} ⭐`}
-        </p>
-      )}
-    </div>
-  )
-}
-
-function SkillDetailModal({ skill, onClose }: { skill: Skill | null; onClose: () => void }) {
-  if (!skill) return null
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      onClick={onClose}
-      style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(10px)' }}
-    >
-      <div
-        className="rounded-2xl p-6 w-full max-w-2xl max-h-[80vh] overflow-y-auto"
-        onClick={e => e.stopPropagation()}
-        style={{
-          background: 'rgba(20,20,22,0.95)',
-          border: '1px solid rgba(255,255,255,0.1)',
-          backdropFilter: 'blur(40px)',
-        }}
-      >
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div
-              className="w-12 h-12 rounded-xl flex items-center justify-center"
-              style={{ background: 'linear-gradient(135deg, #007AFF, #5AC8FA)' }}
-            >
-              <Icon name="sparkle" size={24} className="text-white" />
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold text-white">{skill.name}</h2>
-              {skill.version && (
-                <span className="text-xs font-mono" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                  Version {skill.version}
-                </span>
-              )}
+      {tab === 'installed' && (
+        <>
+          <div className="flex items-center gap-3 mb-5 flex-wrap">
+            <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} className="input text-xs py-1.5">
+              <option value="">Alle kategorier</option>
+              {categories.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+            <div className="relative">
+              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-white/40"><Icon name="magnifying-glass" size={14} /></span>
+              <input type="text" placeholder="Søg i skills..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="input text-xs py-1.5 w-48 pl-8" />
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 rounded-lg flex items-center justify-center transition-all"
-            style={{ background: 'rgba(255,255,255,0.08)' }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.12)' }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)' }}
-          >
-            <Icon name="xmark" size={14} className="text-white/60" />
-          </button>
-        </div>
 
-        <div className="space-y-4">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'rgba(255,255,255,0.35)' }}>
-              Beskrivelse
-            </p>
-            <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.7)' }}>
-              {skill.description || 'Ingen beskrivelse tilgængelig'}
-            </p>
-          </div>
-
-          {skill.scripts.length > 0 && (
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'rgba(255,255,255,0.35)' }}>
-                Scripts ({skill.scripts.length})
-              </p>
-              <div className="space-y-1">
-                {skill.scripts.map((script, idx) => (
-                  <div
-                    key={idx}
-                    className="px-3 py-2 rounded-lg text-xs font-mono"
-                    style={{ background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.7)' }}
-                  >
-                    {script}
+          {workspaceSkills.length > 0 && (
+            <>
+              <div className="flex items-center gap-2 mb-3">
+                <span className="w-2 h-2 rounded-full bg-green-500" />
+                <h3 className="text-sm font-semibold text-white">Bruger-installerede</h3>
+                <span className="text-xs px-2 py-0.5 rounded-full" style={{ color: 'rgba(255,255,255,0.4)', background: 'rgba(255,255,255,0.06)' }}>{workspaceSkills.length}</span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
+                {workspaceSkills.map(s => (
+                  <div key={s.name} onClick={() => setSelectedSkill(s)} className="rounded-xl p-4 cursor-pointer transition-all duration-200"
+                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.07)'; e.currentTarget.style.borderColor = 'rgba(0,122,255,0.3)' }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)' }}>
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <Icon name="sparkle" size={18} className="text-green-400" />
+                        <h4 className="text-sm font-semibold text-white">{s.name}</h4>
+                      </div>
+                      <CategoryBadge category={s.category} />
+                    </div>
+                    <p className="text-xs mb-3 line-clamp-2" style={{ color: 'rgba(255,255,255,0.5)' }}>{s.description}</p>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: 'rgba(52,199,89,0.1)', color: 'rgba(52,199,89,0.8)' }}>workspace</span>
+                    </div>
                   </div>
                 ))}
               </div>
-            </div>
+            </>
           )}
 
-          {skill.path && (
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'rgba(255,255,255,0.35)' }}>
-                Sti
-              </p>
-              <p className="text-xs font-mono" style={{ color: 'rgba(255,255,255,0.5)' }}>
-                {skill.path}
-              </p>
-            </div>
-          )}
-
-          {skill.updatedAt && (
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'rgba(255,255,255,0.35)' }}>
-                Sidst Opdateret
-              </p>
-              <p className="text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>
-                {skill.updatedAt}
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function Toast({ message, visible, type = 'success' }: { message: string; visible: boolean; type?: 'success' | 'error' }) {
-  return (
-    <div
-      className="fixed bottom-6 right-6 z-50 px-5 py-3 rounded-xl text-sm font-medium text-white transition-all duration-500"
-      style={{
-        background: type === 'success' ? 'rgba(48,209,88,0.15)' : 'rgba(255,69,58,0.15)',
-        border: type === 'success' ? '1px solid rgba(48,209,88,0.3)' : '1px solid rgba(255,69,58,0.3)',
-        backdropFilter: 'blur(20px)',
-        transform: visible ? 'translateY(0)' : 'translateY(20px)',
-        opacity: visible ? 1 : 0,
-        pointerEvents: visible ? 'auto' : 'none',
-      }}
-    >
-      <span className="inline-flex items-center mr-2">
-        <Icon name={type === 'success' ? 'check' : 'exclamation'} size={14} className={type === 'success' ? 'text-green-400' : 'text-red-400'} />
-      </span>
-      {message}
-    </div>
-  )
-}
-
-/* ── Main Page ──────────────────────────────────────────────── */
-type TabView = 'installed' | 'install' | 'search'
-
-export default function Skills() {
-  const [tab, setTab] = useState<TabView>('installed')
-  const [skills, setSkills] = useState<Skill[]>([])
-  const [selectedSkill, setSelectedSkill] = useState<Skill | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [searchResults, setSearchResults] = useState<SearchResult[]>([])
-  const [searching, setSearching] = useState(false)
-  const [installUrl, setInstallUrl] = useState('')
-  const [installing, setInstalling] = useState<string | null>(null)
-  const [toast, setToast] = useState({ message: '', visible: false, type: 'success' as 'success' | 'error' })
-
-  const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
-    setToast({ message: msg, visible: true, type })
-    setTimeout(() => setToast(t => ({ ...t, visible: false })), 3000)
-  }
-
-  const loadSkills = async () => {
-    setLoading(true)
-    try {
-      const result: any = await listSkills()
-      const text = result.result?.content?.[0]?.text || ''
-      
-      // Parse skills from command output
-      const lines = text.split('\n')
-      const parsedSkills: Skill[] = []
-      
-      let currentSkill: Partial<Skill> | null = null
-      
-      for (const line of lines) {
-        if (line === '---') {
-          if (currentSkill?.name) {
-            parsedSkills.push({
-              name: currentSkill.name,
-              description: currentSkill.description || '',
-              version: currentSkill.version,
-              scripts: currentSkill.scripts || [],
-              updatedAt: currentSkill.updatedAt,
-              path: currentSkill.path,
-            })
-          }
-          currentSkill = {}
-        } else if (currentSkill !== null) {
-          if (!currentSkill.name && line.trim()) {
-            currentSkill.name = line.trim()
-            currentSkill.path = `/data/.openclaw/workspace/skills/${line.trim()}`
-          } else if (line.trim()) {
-            if (!currentSkill.description) {
-              currentSkill.description = line.trim()
-            }
-          }
-        }
-      }
-      
-      // Add last skill
-      if (currentSkill?.name) {
-        parsedSkills.push({
-          name: currentSkill.name,
-          description: currentSkill.description || '',
-          version: currentSkill.version,
-          scripts: currentSkill.scripts || [],
-          updatedAt: currentSkill.updatedAt,
-          path: currentSkill.path,
-        })
-      }
-      
-      setSkills(parsedSkills)
-    } catch (e: any) {
-      showToast(`Kunne ikke indlæse skills: ${e.message}`, 'error')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) return
-    setSearching(true)
-    try {
-      const result: any = await searchSkills(searchQuery)
-      const text = result.result?.content?.[0]?.text || ''
-      
-      // Parse search results (simplified - adjust based on actual clawhub output)
-      const lines = text.split('\n').filter((l: string) => l.trim())
-      const results: SearchResult[] = lines.slice(0, 10).map((line: string) => ({
-        name: line.trim(),
-        description: 'Skill fra ClawHub',
-      }))
-      
-      setSearchResults(results)
-    } catch (e: any) {
-      showToast(`Søgning fejlede: ${e.message}`, 'error')
-    } finally {
-      setSearching(false)
-    }
-  }
-
-  const handleInstallFromHub = async (skillName: string) => {
-    setInstalling(skillName)
-    try {
-      await installSkill(skillName)
-      showToast(`${skillName} installeret`)
-      loadSkills()
-      setTab('installed')
-    } catch (e: any) {
-      showToast(`Installation fejlede: ${e.message}`, 'error')
-    } finally {
-      setInstalling(null)
-    }
-  }
-
-  const handleInstallFromUrl = async () => {
-    if (!installUrl.trim()) return
-    setInstalling('url')
-    try {
-      // Extract skill name from URL
-      const skillName = installUrl.split('/').filter(Boolean).pop() || 'unknown'
-      await installSkill(installUrl)
-      showToast(`Skill installeret fra URL`)
-      loadSkills()
-      setInstallUrl('')
-      setTab('installed')
-    } catch (e: any) {
-      showToast(`Installation fra URL fejlede: ${e.message}`, 'error')
-    } finally {
-      setInstalling(null)
-    }
-  }
-
-  useEffect(() => {
-    loadSkills()
-  }, [])
-
-  const tabs: { key: TabView; label: string; icon: string }[] = [
-    { key: 'installed', label: 'Installerede', icon: 'sparkle' },
-    { key: 'install', label: 'Installer', icon: 'upload' },
-    { key: 'search', label: 'ClawHub', icon: 'magnifying-glass' },
-  ]
-
-  const inputStyle: React.CSSProperties = {
-    background: 'rgba(255,255,255,0.06)',
-    border: '1px solid rgba(255,255,255,0.1)',
-    color: 'white',
-    borderRadius: '0.75rem',
-    padding: '0.625rem 0.875rem',
-    width: '100%',
-    fontSize: '0.875rem',
-    outline: 'none',
-  }
-
-  return (
-    <div className="h-full flex flex-col">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h1 className="page-title mb-1">Færdigheder</h1>
-          <p className="caption">{skills.length} installerede skills</p>
-        </div>
-        <button
-          onClick={loadSkills}
-          disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white transition-all"
-          style={{ background: 'rgba(0,122,255,0.2)', border: '1px solid rgba(0,122,255,0.3)' }}
-        >
-          <Icon name="restart" size={14} />
-          {loading ? 'Indlæser...' : 'Opdater'}
-        </button>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex gap-1 mb-4 p-1 rounded-xl w-fit" style={{ background: 'rgba(255,255,255,0.04)' }}>
-        {tabs.map(t => (
-          <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
-            className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all"
-            style={{
-              background: tab === t.key ? 'rgba(0,122,255,0.2)' : 'transparent',
-              color: tab === t.key ? '#5AC8FA' : 'rgba(255,255,255,0.4)',
-              border: tab === t.key ? '1px solid rgba(0,122,255,0.3)' : '1px solid transparent',
-            }}
-          >
-            <Icon name={t.icon} size={12} />
-            {t.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto">
-        {tab === 'installed' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {loading && <p className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>Indlæser...</p>}
-            {!loading && skills.length === 0 && (
-              <p className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>Ingen skills installeret</p>
-            )}
-            {skills.map(skill => (
-              <SkillCard key={skill.name} skill={skill} onClick={() => setSelectedSkill(skill)} />
+          <div className="flex items-center gap-2 mb-3">
+            <span className="w-2 h-2 rounded-full bg-blue-500" />
+            <h3 className="text-sm font-semibold text-white">System Skills</h3>
+            <span className="text-xs px-2 py-0.5 rounded-full" style={{ color: 'rgba(255,255,255,0.4)', background: 'rgba(255,255,255,0.06)' }}>{systemSkills.length}</span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {systemSkills.map(s => (
+              <div key={s.name} onClick={() => setSelectedSkill(s)} className="rounded-xl p-4 cursor-pointer transition-all duration-200"
+                style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.borderColor = 'rgba(0,122,255,0.2)' }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)' }}>
+                <div className="flex items-start justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Icon name="gear" size={16} className="text-white/40" />
+                    <h4 className="text-sm font-semibold text-white">{s.name}</h4>
+                  </div>
+                  <CategoryBadge category={s.category} />
+                </div>
+                <p className="text-xs line-clamp-2" style={{ color: 'rgba(255,255,255,0.4)' }}>{s.description}</p>
+              </div>
             ))}
           </div>
-        )}
+        </>
+      )}
 
-        {tab === 'install' && (
-          <div className="max-w-2xl">
-            <div
-              className="rounded-2xl p-6"
-              style={{
-                background: 'rgba(255,255,255,0.02)',
-                border: '1px solid rgba(255,255,255,0.06)',
-                backdropFilter: 'blur(40px)',
-              }}
-            >
-              <h3 className="text-lg font-semibold text-white mb-4">Installer fra URL</h3>
-              <p className="text-sm mb-4" style={{ color: 'rgba(255,255,255,0.6)' }}>
-                Indsæt URL til en skill repository eller ZIP-fil
-              </p>
-              <div className="flex gap-2">
-                <input
-                  value={installUrl}
-                  onChange={e => setInstallUrl(e.target.value)}
-                  placeholder="https://github.com/user/skill"
-                  style={inputStyle}
-                  onKeyDown={e => e.key === 'Enter' && handleInstallFromUrl()}
-                />
-                <button
-                  onClick={handleInstallFromUrl}
-                  disabled={!installUrl.trim() || installing === 'url'}
-                  className="px-5 py-2 rounded-xl font-semibold text-white text-sm transition-all"
-                  style={{
-                    background: installing === 'url' ? 'rgba(0,122,255,0.3)' : 'rgba(0,122,255,0.2)',
-                    border: '1px solid rgba(0,122,255,0.4)',
-                    opacity: !installUrl.trim() || installing === 'url' ? 0.6 : 1,
-                  }}
-                >
-                  {installing === 'url' ? 'Installerer...' : 'Installer'}
-                </button>
-              </div>
+      {tab === 'recommended' && (
+        <>
+          <div className="rounded-xl p-4 mb-5" style={{ background: 'rgba(0,122,255,0.05)', border: '1px solid rgba(0,122,255,0.15)' }}>
+            <div className="flex items-center gap-2 mb-2">
+              <Icon name="sparkle" size={16} className="text-blue-400" />
+              <h3 className="text-sm font-semibold text-blue-400">Anbefalede til dit setup</h3>
             </div>
+            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>
+              Baseret på dine projekter (FLOW, Mission Kontrol) og din tech stack (Supabase, Vercel, React).
+            </p>
           </div>
-        )}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {RECOMMENDED_SKILLS.map(s => (
+              <div key={s.name} className="rounded-xl p-4 transition-all duration-200"
+                style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                <div className="flex items-start justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Icon name="sparkle" size={16} className="text-yellow-400" />
+                    <h4 className="text-sm font-semibold text-white">{s.name}</h4>
+                  </div>
+                  <CategoryBadge category={s.category} />
+                </div>
+                <p className="text-xs mb-2" style={{ color: 'rgba(255,255,255,0.5)' }}>{s.description}</p>
+                <p className="text-[11px] mb-3" style={{ color: 'rgba(0,122,255,0.7)' }}>
+                  <Icon name="info-circle" size={11} className="inline mr-1" />
+                  {s.reason}
+                </p>
+                <button onClick={() => setInstalling(s.name)}
+                  className="text-xs px-3 py-1.5 rounded-lg font-medium transition-all"
+                  style={{ background: 'rgba(0,122,255,0.15)', border: '1px solid rgba(0,122,255,0.3)', color: '#007AFF' }}>
+                  {installing === s.name ? 'Installerer...' : 'Installer via ClawHub'}
+                </button>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
 
-        {tab === 'search' && (
-          <div className="max-w-3xl">
-            <div
-              className="rounded-2xl p-6 mb-4"
-              style={{
-                background: 'rgba(255,255,255,0.02)',
-                border: '1px solid rgba(255,255,255,0.06)',
-                backdropFilter: 'blur(40px)',
-              }}
-            >
-              <h3 className="text-lg font-semibold text-white mb-4">Søg ClawHub</h3>
+      {tab === 'browse' && (
+        <>
+          <div className="space-y-4 mb-6">
+            <div className="rounded-xl p-5" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <h3 className="text-sm font-semibold text-white mb-3">Installer fra URL</h3>
+              <p className="text-xs mb-3" style={{ color: 'rgba(255,255,255,0.4)' }}>Indsæt en URL til en GitHub repo eller skill-pakke</p>
               <div className="flex gap-2">
-                <input
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  placeholder="Søg efter skills..."
-                  style={inputStyle}
-                  onKeyDown={e => e.key === 'Enter' && handleSearch()}
-                />
-                <button
-                  onClick={handleSearch}
-                  disabled={!searchQuery.trim() || searching}
-                  className="px-5 py-2 rounded-xl font-semibold text-white text-sm transition-all"
-                  style={{
-                    background: searching ? 'rgba(0,122,255,0.3)' : 'rgba(0,122,255,0.2)',
-                    border: '1px solid rgba(0,122,255,0.4)',
-                    opacity: !searchQuery.trim() || searching ? 0.6 : 1,
-                  }}
-                >
-                  {searching ? 'Søger...' : 'Søg'}
+                <input type="url" value={installUrl} onChange={e => setInstallUrl(e.target.value)}
+                  placeholder="https://github.com/user/skill-name" className="input flex-1 text-sm" />
+                <button onClick={() => { if (installUrl) setInstalling('url') }}
+                  className="px-4 py-2 text-sm font-medium rounded-xl transition-all"
+                  style={{ background: 'rgba(0,122,255,0.15)', border: '1px solid rgba(0,122,255,0.3)', color: '#007AFF' }}>
+                  Installer
                 </button>
               </div>
             </div>
 
-            {searchResults.length > 0 && (
-              <div className="space-y-3">
-                <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.35)' }}>
-                  Søgeresultater ({searchResults.length})
-                </p>
-                {searchResults.map((result, idx) => (
-                  <SearchResultCard
-                    key={idx}
-                    result={result}
-                    onInstall={() => handleInstallFromHub(result.name)}
-                    installing={installing === result.name}
-                  />
+            <div className="rounded-xl p-5" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <h3 className="text-sm font-semibold text-white mb-3">Søg på ClawHub</h3>
+              <p className="text-xs mb-3" style={{ color: 'rgba(255,255,255,0.4)' }}>Find og installer skills fra clawhub.com</p>
+              <div className="flex gap-2">
+                <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+                  placeholder="Søg efter skills..." className="input flex-1 text-sm" />
+                <button className="px-4 py-2 text-sm font-medium rounded-xl transition-all"
+                  style={{ background: 'rgba(0,122,255,0.15)', border: '1px solid rgba(0,122,255,0.3)', color: '#007AFF' }}>
+                  Søg
+                </button>
+              </div>
+            </div>
+
+            <div className="rounded-xl p-5" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <h3 className="text-sm font-semibold text-white mb-2">Alle tilgængelige system skills</h3>
+              <p className="text-xs mb-3" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                53 skills tilgængelige i OpenClaw. Disse kan aktiveres via konfiguration.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {['1password','apple-notes','apple-reminders','bear-notes','blogwatcher','blucli','bluebubbles','camsnap','canvas','clawhub','coding-agent','discord','food-order','gemini','gifgrep','github','goplaces','healthcheck','himalaya','imsg','local-places','model-usage','nano-banana-pro','nano-pdf','notion','obsidian','openai-image-gen','openai-whisper','openai-whisper-api','openhue','oracle','peekaboo','session-logs','sherpa-onnx-tts','skill-creator','slack','songsee','sonoscli','spotify-player','summarize','things-mac','tmux','trello','video-frames','voice-call','wacli','weather'].map(name => (
+                  <span key={name} className="text-[11px] px-2 py-1 rounded-lg cursor-pointer transition-all"
+                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.5)' }}>
+                    {name}
+                  </span>
                 ))}
               </div>
-            )}
+            </div>
           </div>
-        )}
-      </div>
+        </>
+      )}
 
-      {/* Detail Modal */}
-      <SkillDetailModal skill={selectedSkill} onClose={() => setSelectedSkill(null)} />
-
-      {/* Toast */}
-      <Toast message={toast.message} visible={toast.visible} type={toast.type} />
+      {/* Skill Detail Modal */}
+      {selectedSkill && (
+        <>
+          <div className="fixed inset-0 z-50" style={{ background: 'rgba(0,0,0,0.85)' }} onClick={() => setSelectedSkill(null)} />
+          <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] z-50 p-6 rounded-2xl"
+            style={{ background: 'rgba(28,28,30,0.98)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(20px)' }}>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <Icon name="sparkle" size={24} className={selectedSkill.location === 'workspace' ? 'text-green-400' : 'text-blue-400'} />
+                <div>
+                  <h2 className="text-lg font-bold text-white">{selectedSkill.name}</h2>
+                  <CategoryBadge category={selectedSkill.category} />
+                </div>
+              </div>
+              <button onClick={() => setSelectedSkill(null)} className="w-8 h-8 flex items-center justify-center rounded-full"
+                style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.4)' }}>
+                <Icon name="xmark" size={14} />
+              </button>
+            </div>
+            <p className="text-sm mb-4" style={{ color: 'rgba(255,255,255,0.6)' }}>{selectedSkill.description}</p>
+            <div className="space-y-3">
+              <div className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.03)' }}>
+                <p className="text-[11px] uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.4)' }}>Placering</p>
+                <p className="text-xs font-mono text-white/70">{selectedSkill.path}</p>
+              </div>
+              <div className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.03)' }}>
+                <p className="text-[11px] uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.4)' }}>Type</p>
+                <p className="text-sm text-white">{selectedSkill.location === 'workspace' ? 'Bruger-installeret' : 'System skill'}</p>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   )
 }
