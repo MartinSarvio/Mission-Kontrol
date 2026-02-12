@@ -125,16 +125,48 @@ export async function fetchConfig(): Promise<Record<string, any>> {
   throw new Error('Ugyldigt config svar')
 }
 
+export interface AgentApi {
+  name: string
+  model: string
+  workspace?: string
+  skills?: string[]
+  channels?: string[]
+  cronJobs?: string[]
+  sessions?: string[]
+  contextTokens?: number
+  totalTokens?: number
+}
+
+export async function listAgents(): Promise<AgentApi[]> {
+  const data = await invokeToolRaw('agents_list', {}) as any
+  const text = data.result?.content?.[0]?.text
+  if (text) {
+    try {
+      const parsed = JSON.parse(text)
+      return parsed.agents || []
+    } catch { /* fall through */ }
+  }
+  if (data.result?.details?.agents) return data.result.details.agents
+  return []
+}
+
 export async function createAgent(config: {
   name: string
   task: string
   model?: string
   label?: string
+  skills?: string[]
+  channels?: string[]
+  workspace?: string
 }): Promise<any> {
-  return invokeToolRaw('sessions_spawn', {
-    task: config.task,
-    model: config.model,
-    label: config.label || config.name,
+  // Create as a real agent, not just a session
+  return invokeToolRaw('agents_create', {
+    name: config.name,
+    model: config.model || 'claude-sonnet-4-5',
+    workspace: config.workspace,
+    skills: config.skills,
+    channels: config.channels,
+    initialTask: config.task,
   })
 }
 
@@ -145,4 +177,22 @@ export async function testConnection(): Promise<{ ok: boolean; error?: string }>
   } catch (e: any) {
     return { ok: false, error: e.message }
   }
+}
+
+export async function listSkills(): Promise<any> {
+  return invokeToolRaw('exec', { 
+    command: 'ls /data/.openclaw/workspace/skills/ && for d in /data/.openclaw/workspace/skills/*/; do echo "---"; basename "$d"; cat "$d/SKILL.md" 2>/dev/null | head -5; done' 
+  })
+}
+
+export async function installSkill(name: string): Promise<any> {
+  return invokeToolRaw('exec', { 
+    command: `cd /data/.openclaw/workspace && clawhub install ${name}` 
+  })
+}
+
+export async function searchSkills(query: string): Promise<any> {
+  return invokeToolRaw('exec', { 
+    command: `clawhub search ${query}` 
+  })
 }

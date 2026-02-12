@@ -255,6 +255,12 @@ const icons: Record<string, (size: number) => JSX.Element> = {
       <rect x="2" y="3" width="20" height="18" rx="2" /><line x1="2" y1="9" x2="22" y2="9" /><circle cx="8" cy="15" r="2" /><circle cx="16" cy="15" r="2" />
     </svg>
   ),
+  sparkle: (s) => (
+    <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2l2.5 7.5L22 12l-7.5 2.5L12 22l-2.5-7.5L2 12l7.5-2.5L12 2z" />
+      <path d="M6 3l.5 1.5L8 5l-1.5.5L6 7l-.5-1.5L4 5l1.5-.5L6 3zM18 16l.5 1.5L20 18l-1.5.5L18 20l-.5-1.5L16 18l1.5-.5L18 16z" />
+    </svg>
+  ),
 }
 
 export default function Icon({ name, size = 16, className = '' }: IconProps) {

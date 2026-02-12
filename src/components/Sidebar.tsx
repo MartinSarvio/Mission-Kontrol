@@ -13,6 +13,7 @@ const nav = [
   { id: 'tasks', label: 'Opgaver', icon: 'checklist' },
   { id: 'documents', label: 'Dokumenter', icon: 'doc' },
   { id: 'agents', label: 'Agenter', icon: 'person-circle' },
+  { id: 'skills', label: 'Færdigheder', icon: 'sparkle' },
   { id: 'intelligence', label: 'Intelligens', icon: 'lightbulb' },
   { id: 'weekly', label: 'Ugerapport', icon: 'calendar-week' },
   { id: 'clients', label: 'Klienter', icon: 'people' },

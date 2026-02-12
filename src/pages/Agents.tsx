@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Modal from '../components/Modal'
 import Icon from '../components/Icon'
 import { useLiveData } from '../api/LiveDataContext'
-import { createAgent, ApiSession } from '../api/openclaw'
+import { createAgent, ApiSession, listAgents, AgentApi } from '../api/openclaw'
 
 /* ── Types ──────────────────────────────────────────────────── */
 type AgentStatus = 'online' | 'offline' | 'working' | 'completed' | 'not-created'
@@ -25,13 +25,16 @@ interface AgentEntry {
   session?: ApiSession
 }
 
-/* ── Static data ────────────────────────────────────────────── */
-const TEAM_AGENTS: AgentEntry[] = [
-  { id: 'team-designer', name: 'Designer', role: 'UI/UX Designer', directive: 'Design system konsistens, font hierarki, farvenuancer, layout, spacing og brugeroplevelse.', bio: 'Kreativ specialist med ansvar for visuelt design, wireframes, prototyper og den samlede brugeroplevelse.', status: 'not-created', model: 'claude-sonnet-4-5', icon: 'palette', iconBg: 'linear-gradient(135deg, #BF5AF2, #AF52DE)', category: 'team' },
-  { id: 'team-frontend', name: 'Frontend', role: 'Frontend Udvikler', directive: 'Implementerer designs, browser kompatibilitet, performance optimering, responsive design og component architecture.', bio: 'Teknisk specialist i React, TypeScript og moderne frontend-teknologier. Omsætter designs til pixel-perfekt kode.', status: 'not-created', model: 'claude-sonnet-4-5', icon: 'code', iconBg: 'linear-gradient(135deg, #FF6B35, #FF3B30)', category: 'team' },
-  { id: 'team-backend', name: 'Backend', role: 'Backend Udvikler & DBA', directive: 'Supabase database design, API endpoints, integrationer, logging struktur, data migration og sikkerhed.', bio: 'Database arkitekt og backend-specialist. Ansvarlig for serverlogik, API-design og dataintegritet.', status: 'not-created', model: 'claude-sonnet-4-5', icon: 'server', iconBg: 'linear-gradient(135deg, #30D158, #34C759)', category: 'team' },
-  { id: 'team-projektleder', name: 'Projektleder', role: 'Koordinering & QA', directive: 'Prioritering, koordinering af alle agents, kvalitetssikring, status rapportering og fejlfinding.', bio: 'Koordinator og kvalitetsansvarlig. Sikrer at alle opgaver leveres fejlfrit og til tiden.', status: 'not-created', model: 'claude-sonnet-4-5', icon: 'clipboard', iconBg: 'linear-gradient(135deg, #FF9F0A, #FF6B35)', category: 'team' },
-]
+/* ── Helper to map agent to icon ───────────────────────────── */
+function getAgentIcon(name: string): { icon: string; iconBg: string } {
+  const lower = name.toLowerCase()
+  if (lower.includes('design')) return { icon: 'palette', iconBg: 'linear-gradient(135deg, #BF5AF2, #AF52DE)' }
+  if (lower.includes('frontend') || lower.includes('ui')) return { icon: 'code', iconBg: 'linear-gradient(135deg, #FF6B35, #FF3B30)' }
+  if (lower.includes('backend') || lower.includes('db') || lower.includes('api')) return { icon: 'server', iconBg: 'linear-gradient(135deg, #30D158, #34C759)' }
+  if (lower.includes('projekt') || lower.includes('qa') || lower.includes('manager')) return { icon: 'clipboard', iconBg: 'linear-gradient(135deg, #FF9F0A, #FF6B35)' }
+  if (lower.includes('research') || lower.includes('analyst')) return { icon: 'search', iconBg: 'linear-gradient(135deg, #5AC8FA, #007AFF)' }
+  return { icon: 'robot', iconBg: 'linear-gradient(135deg, #636366, #48484A)' }
+}
 
 function buildMainAgent(sessions: ApiSession[]): AgentEntry {
   const mainSession = sessions.find(s => s.key === 'agent:main:main')
@@ -58,9 +61,36 @@ function buildMainAgent(sessions: ApiSession[]): AgentEntry {
   }
 }
 
+function buildTeamAgents(agents: AgentApi[], sessions: ApiSession[]): AgentEntry[] {
+  const now = Date.now()
+  return agents.filter(a => a.name !== 'main').map(a => {
+    const { icon, iconBg } = getAgentIcon(a.name)
+    // Find active session for this agent
+    const agentSessions = sessions.filter(s => s.label === a.name || s.key.includes(a.name))
+    const activeSession = agentSessions.find(s => now - s.updatedAt < 120000)
+    const hasSession = agentSessions.length > 0
+    const status: AgentStatus = activeSession ? 'working' : hasSession ? 'completed' : 'offline'
+    
+    return {
+      id: `agent-${a.name}`,
+      name: a.name,
+      role: a.skills?.join(', ') || 'Agent',
+      directive: `Model: ${a.model}${a.workspace ? `, Workspace: ${a.workspace}` : ''}`,
+      bio: `Skills: ${a.skills?.join(', ') || 'none'} | Channels: ${a.channels?.join(', ') || 'none'}`,
+      status,
+      model: a.model,
+      icon,
+      iconBg,
+      category: 'team' as AgentCategory,
+      contextPercent: activeSession?.contextTokens ? Math.min(100, Math.round((activeSession.contextTokens / 200000) * 100)) : undefined,
+      session: activeSession,
+    }
+  })
+}
+
 function buildSubAgents(sessions: ApiSession[]): AgentEntry[] {
   const now = Date.now()
-  return sessions.filter(s => s.key !== 'agent:main:main').map(s => {
+  return sessions.filter(s => s.key !== 'agent:main:main' && !s.key.startsWith('agent:') && s.key.includes('subagent')).map(s => {
     const label = s.label || s.key
     const isActive = now - s.updatedAt < 120000
     return {
@@ -205,11 +235,50 @@ function AgentDetail({ agent, onCreateTeamAgent }: { agent: AgentEntry; onCreate
             <p className="text-[11px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.35)' }}>Session ID</p>
             <p className="font-mono text-xs break-all" style={{ color: 'rgba(255,255,255,0.5)' }}>{agent.session.sessionId}</p>
           </div>
+          {agent.session.totalTokens !== undefined && (
+            <>
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.35)' }}>Total Tokens</p>
+                <p className="font-mono text-sm text-white">{agent.session.totalTokens.toLocaleString()}</p>
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.35)' }}>Context Tokens</p>
+                <p className="font-mono text-sm text-white">{agent.session.contextTokens?.toLocaleString() || '0'}</p>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Skills and Channels (if parsed from bio) */}
+      {agent.bio && agent.bio.includes('Skills:') && (
+        <div className="mb-5">
+          <p className="text-[11px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'rgba(255,255,255,0.35)' }}>Skills & Kanaler</p>
+          <div className="flex flex-wrap gap-2">
+            {agent.bio.split('|').map((part, i) => {
+              const trimmed = part.trim()
+              if (!trimmed || trimmed.includes(':')) {
+                const [label, value] = trimmed.split(':').map(s => s.trim())
+                if (label && value) {
+                  return value.split(',').map((item, j) => (
+                    <span key={`${i}-${j}`} className="px-2.5 py-1 rounded-lg text-xs font-medium" style={{
+                      background: label === 'Skills' ? 'rgba(0,122,255,0.15)' : 'rgba(48,209,88,0.15)',
+                      border: `1px solid ${label === 'Skills' ? 'rgba(0,122,255,0.3)' : 'rgba(48,209,88,0.3)'}`,
+                      color: label === 'Skills' ? '#5AC8FA' : '#30D158',
+                    }}>
+                      {item.trim()}
+                    </span>
+                  ))
+                }
+              }
+              return null
+            })}
+          </div>
         </div>
       )}
 
       {/* Create button for planned team agents */}
-      {agent.status === 'not-created' && (
+      {agent.status === 'offline' && agent.category === 'team' && !agent.session && (
         <button
           onClick={() => onCreateTeamAgent(agent)}
           className="w-full py-3 rounded-xl font-semibold text-white text-sm transition-all mt-2"
@@ -258,10 +327,16 @@ function CreateAgentModal({ open, onClose, onCreated, prefill }: { open: boolean
         directive && `Missions direktiv: ${directive}`,
         role && `Rolle: ${role}`,
         priority !== 'Normal' && `Prioritet: ${priority}`,
-        skills.length > 0 && `Skills: ${skills.join(', ')}`,
         firstTask && `Første opgave: ${firstTask}`,
       ].filter(Boolean).join('\n\n')
-      await createAgent({ name: name.trim(), task: task || `Agent: ${name}`, model, label: name.trim().toLowerCase().replace(/\s+/g, '-') })
+      await createAgent({ 
+        name: name.trim(), 
+        task: task || `Agent: ${name}`, 
+        model, 
+        label: name.trim().toLowerCase().replace(/\s+/g, '-'),
+        skills: skills.length > 0 ? skills : undefined,
+        workspace: '/data/.openclaw/workspace',
+      })
       onCreated(name); onClose()
       setName(''); setRole(''); setDirective(''); setModel(MODEL_OPTIONS[0]); setSkills([]); setPriority('Normal'); setAutoStart(true); setFirstTask('')
     } catch (e: any) { setError(e.message || 'Kunne ikke oprette agent') } finally { setCreating(false) }
@@ -270,7 +345,7 @@ function CreateAgentModal({ open, onClose, onCreated, prefill }: { open: boolean
   const inputStyle: React.CSSProperties = { background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', borderRadius: '0.75rem', padding: '0.625rem 0.875rem', width: '100%', fontSize: '0.875rem', outline: 'none' }
 
   // Suppress unused var warnings
-  void autoStart; void prefillId
+  void autoStart; void prefillId; void priority
 
   return (
     <Modal open={open} onClose={onClose} title="Opret Ny Agent">
@@ -360,15 +435,36 @@ export default function Agents() {
   const [showCreate, setShowCreate] = useState(false)
   const [prefillAgent, setPrefillAgent] = useState<AgentEntry | null>(null)
   const [toast, setToast] = useState({ message: '', visible: false })
+  const [apiAgents, setApiAgents] = useState<AgentApi[]>([])
+  const [loading, setLoading] = useState(true)
+
+  // Fetch agents from API
+  useEffect(() => {
+    if (!isConnected) return
+    const fetchAgents = async () => {
+      try {
+        const agents = await listAgents()
+        setApiAgents(agents)
+      } catch (e) {
+        console.error('Failed to fetch agents:', e)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchAgents()
+    const interval = setInterval(fetchAgents, 5000) // Refresh every 5 seconds
+    return () => clearInterval(interval)
+  }, [isConnected])
 
   const mainAgent = buildMainAgent(isConnected ? sessions : [])
+  const teamAgents = buildTeamAgents(apiAgents, isConnected ? sessions : [])
   const subAgents = buildSubAgents(isConnected ? sessions : [])
-  const allAgents: AgentEntry[] = [mainAgent, ...TEAM_AGENTS, ...subAgents]
+  const allAgents: AgentEntry[] = [mainAgent, ...teamAgents, ...subAgents]
 
   const selected = allAgents.find(a => a.id === selectedId) || mainAgent
 
   const filteredAgents = (() => {
-    if (tab === 'team') return TEAM_AGENTS
+    if (tab === 'team') return teamAgents
     if (tab === 'sub') return subAgents
     return allAgents
   })()
@@ -388,6 +484,9 @@ export default function Agents() {
     { key: 'team', label: 'Team' },
     { key: 'sub', label: 'Sub-Agenter' },
   ]
+
+  // Suppress unused var
+  void loading
 
   return (
     <div className="h-full flex flex-col">
@@ -440,8 +539,12 @@ export default function Agents() {
               <RosterItem agent={mainAgent} selected={selectedId === mainAgent.id} onClick={() => setSelectedId(mainAgent.id)} />
 
               {/* Team */}
-              <p className="text-[9px] font-bold uppercase tracking-[0.15em] mb-2 mt-4 px-1" style={{ color: 'rgba(175,82,222,0.6)' }}>Team Agenter</p>
-              {TEAM_AGENTS.map(a => <RosterItem key={a.id} agent={a} selected={selectedId === a.id} onClick={() => setSelectedId(a.id)} />)}
+              {teamAgents.length > 0 && (
+                <>
+                  <p className="text-[9px] font-bold uppercase tracking-[0.15em] mb-2 mt-4 px-1" style={{ color: 'rgba(175,82,222,0.6)' }}>Team Agenter</p>
+                  {teamAgents.map(a => <RosterItem key={a.id} agent={a} selected={selectedId === a.id} onClick={() => setSelectedId(a.id)} />)}
+                </>
+              )}
 
               {/* Sub-agents */}
               {subAgents.length > 0 && (

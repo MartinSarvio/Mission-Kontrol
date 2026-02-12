@@ -5,6 +5,7 @@ import Dashboard from './pages/Dashboard'
 import Journal from './pages/Journal'
 import Documents from './pages/Documents'
 import Agents from './pages/Agents'
+import Skills from './pages/Skills'
 import Intelligence from './pages/Intelligence'
 import Tasks from './pages/Tasks'
 import WeeklyRecap from './pages/WeeklyRecap'
@@ -22,6 +23,7 @@ const pages: Record<string, () => JSX.Element> = {
   tasks: Tasks,
   documents: Documents,
   agents: Agents,
+  skills: Skills,
   intelligence: Intelligence,
   weekly: WeeklyRecap,
   clients: Clients,
