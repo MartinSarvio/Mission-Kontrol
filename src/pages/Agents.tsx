@@ -61,26 +61,31 @@ function buildMainAgent(sessions: ApiSession[]): AgentEntry {
   }
 }
 
-function buildTeamAgents(agents: AgentApi[], sessions: ApiSession[]): AgentEntry[] {
+const TEAM_AGENTS = [
+  { id: 'designer', name: 'Designer', role: 'UI/UX Design', directive: 'Wireframes, prototyper, visuelt design. Apple HIG-inspireret dark mode.', bio: 'UI/UX designer med fokus på glassmorphism, SF Symbol ikoner og responsive layouts.', model: 'sonnet', comm: 'Via Projektleder' },
+  { id: 'frontend', name: 'Frontend', role: 'React Udvikling', directive: 'React + TypeScript + Tailwind CSS implementering.', bio: 'Frontend-udvikler. Bygger komponenter, håndterer state og API-integration.', model: 'sonnet', comm: 'Direkte til Martin' },
+  { id: 'backend', name: 'Backend', role: 'API & Database', directive: 'Supabase, PostgreSQL, Docker, server-administration.', bio: 'Backend-udvikler og DBA. API design, database modellering, integrationer.', model: 'sonnet', comm: 'Via Projektleder' },
+  { id: 'projektleder', name: 'Projektleder', role: 'Koordinering & QA', directive: 'Prioritering, QA, koordinering mellem agents. Finder fejl FØR Martin.', bio: 'Projektleder der sikrer kvalitet, overholder deadlines og koordinerer teamet.', model: 'sonnet', comm: 'Direkte til Martin' },
+  { id: 'marketing', name: 'Marketing', role: 'Marketing & Strategi', directive: 'Senior marketing-strateg. OrderFlow restaurant SaaS kontekst.', bio: 'Marketing-specialist med fokus på restaurationsbranchen, content og growth.', model: 'sonnet', comm: 'Via Projektleder' },
+]
+
+function buildTeamAgents(_agents: AgentApi[], sessions: ApiSession[]): AgentEntry[] {
   const now = Date.now()
-  return agents.filter(a => a.name !== 'main').map(a => {
+  return TEAM_AGENTS.map(a => {
     const { icon, iconBg } = getAgentIcon(a.name)
-    // Find active session for this agent
-    const agentSessions = sessions.filter(s => s.label === a.name || s.key.includes(a.name))
+    const agentSessions = sessions.filter(s => {
+      const label = (s.label || '').toLowerCase()
+      const display = (s.displayName || '').toLowerCase()
+      return label.includes(a.id) || display.includes(a.id)
+    })
     const activeSession = agentSessions.find(s => now - s.updatedAt < 120000)
     const hasSession = agentSessions.length > 0
     const status: AgentStatus = activeSession ? 'working' : hasSession ? 'completed' : 'offline'
     
     return {
-      id: `agent-${a.name}`,
-      name: a.name,
-      role: a.skills?.join(', ') || 'Agent',
-      directive: `Model: ${a.model}${a.workspace ? `, Workspace: ${a.workspace}` : ''}`,
-      bio: `Skills: ${a.skills?.join(', ') || 'none'} | Channels: ${a.channels?.join(', ') || 'none'}`,
-      status,
-      model: a.model,
-      icon,
-      iconBg,
+      id: `agent-${a.id}`, name: a.name, role: a.role,
+      directive: a.directive, bio: a.bio,
+      status, model: a.model, icon, iconBg,
       category: 'team' as AgentCategory,
       contextPercent: activeSession?.contextTokens ? Math.min(100, Math.round((activeSession.contextTokens / 200000) * 100)) : undefined,
       session: activeSession,
@@ -90,7 +95,7 @@ function buildTeamAgents(agents: AgentApi[], sessions: ApiSession[]): AgentEntry
 
 function buildSubAgents(sessions: ApiSession[]): AgentEntry[] {
   const now = Date.now()
-  return sessions.filter(s => s.key !== 'agent:main:main' && !s.key.startsWith('agent:') && s.key.includes('subagent')).map(s => {
+  return sessions.filter(s => s.key.includes('subagent')).map(s => {
     const label = s.label || s.key
     const isActive = now - s.updatedAt < 120000
     return {
