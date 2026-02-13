@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { LiveDataProvider } from './api/LiveDataContext'
 import Layout from './components/Layout'
+import UpdateBanner from './components/UpdateBanner'
 import Dashboard from './pages/Dashboard'
 import Journal from './pages/Journal'
 import Documents from './pages/Documents'
@@ -41,6 +42,7 @@ export default function App() {
 
   return (
     <LiveDataProvider>
+      <UpdateBanner />
       <Layout activePage={page} onNavigate={setPage}>
         <Page />
       </Layout>
