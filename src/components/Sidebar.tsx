@@ -56,10 +56,9 @@ export default function Sidebar({ active, onNavigate, isOpen, onClose }: Sidebar
         height: '100vh',
         width: 240,
         zIndex: 50,
-        transform: isOpen ? 'translateX(0)' : 'translateX(-100%)',
         transition: 'transform 200ms ease-in-out',
       }}
-      className="glass-sidebar text-white/70 flex flex-col lg:!transform-none"
+      className={`glass-sidebar text-white/70 flex flex-col lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
     >
       <div className="px-5 py-6">
         <div 
