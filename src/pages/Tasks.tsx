@@ -685,6 +685,25 @@ export default function Tasks() {
     }
   }
 
+  const queuedFiltered = queued.filter(t => 
+    !search.trim() || 
+    t.title.toLowerCase().includes(search.toLowerCase()) || 
+    t.agent.toLowerCase().includes(search.toLowerCase()) || 
+    (t.firstMessage || '').toLowerCase().includes(search.toLowerCase())
+  )
+  const activeFiltered = active.filter(t => 
+    !search.trim() || 
+    t.title.toLowerCase().includes(search.toLowerCase()) || 
+    t.agent.toLowerCase().includes(search.toLowerCase()) || 
+    (t.firstMessage || '').toLowerCase().includes(search.toLowerCase())
+  )
+  const completedFiltered = completed.filter(t => 
+    !search.trim() || 
+    t.title.toLowerCase().includes(search.toLowerCase()) || 
+    t.agent.toLowerCase().includes(search.toLowerCase()) || 
+    (t.firstMessage || '').toLowerCase().includes(search.toLowerCase())
+  )
+
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
@@ -730,57 +749,79 @@ export default function Tasks() {
         )}
       </div>
 
-      {/* 4 Stat Boxes */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <StatBox label="I Kø" value={queued.length} color="#FF9F0A" icon="clock" onClick={() => setStatusPopup('queued')} />
-        <StatBox label="Aktive" value={active.length} color="#007AFF" icon="bolt" onClick={() => setStatusPopup('active')} />
-        <StatBox label="Afsluttede" value={completed.length} color="#30D158" icon="checkmark-circle" onClick={() => setStatusPopup('completed')} />
-        <div className="rounded-xl p-5" style={{ background: 'rgba(255,255,255,0.03)' }}>
-          <div className="flex items-center justify-between mb-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(175,82,222,0.1)' }}>
-              <Icon name="gauge" size={18} style={{ color: '#AF52DE' }} />
-            </div>
-            <span className="text-3xl font-bold text-white">{bandwidth}%</span>
+      {/* 3-Column Kanban */}
+      <div className="flex-1 overflow-hidden grid grid-cols-3 gap-4">
+        {/* I KØ */}
+        <div className="flex flex-col">
+          <div className="flex items-center gap-2 mb-4 px-2">
+            <div className="w-3 h-3 rounded-full" style={{ background: '#FF9F0A' }} />
+            <h2 className="text-sm font-bold text-white uppercase tracking-wide">I Kø</h2>
+            <span className="text-xs font-mono px-2 py-0.5 rounded" style={{ background: 'rgba(255,159,10,0.1)', color: '#FF9F0A' }}>
+              {queuedFiltered.length}
+            </span>
           </div>
-          <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.4)' }}>Bandwidth</p>
-          <div className="w-full h-1.5 rounded-full overflow-hidden mt-2" style={{ background: 'rgba(255,255,255,0.06)' }}>
-            <div className="h-full rounded-full transition-all" style={{ 
-              width: `${bandwidth}%`,
-              background: bandwidth > 80 ? '#FF453A' : bandwidth > 50 ? '#FF9F0A' : '#AF52DE',
-            }} />
+          <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+            {queuedFiltered.length === 0 ? (
+              <div className="text-center py-8">
+                <Icon name="clock" size={24} className="mx-auto mb-2" style={{ color: 'rgba(255,159,10,0.2)' }} />
+                <p className="text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>Ingen i kø</p>
+              </div>
+            ) : (
+              queuedFiltered.map(t => (
+                <TaskMiniCard key={t.id} task={t} onSelect={() => setSelectedTask(t)} onStart={() => handleStartTask(t)} />
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* AKTIVE */}
+        <div className="flex flex-col">
+          <div className="flex items-center gap-2 mb-4 px-2">
+            <div className="w-3 h-3 rounded-full" style={{ background: '#007AFF' }} />
+            <h2 className="text-sm font-bold text-white uppercase tracking-wide">Aktive</h2>
+            <span className="text-xs font-mono px-2 py-0.5 rounded" style={{ background: 'rgba(0,122,255,0.1)', color: '#007AFF' }}>
+              {activeFiltered.length}
+            </span>
+          </div>
+          <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+            {activeFiltered.length === 0 ? (
+              <div className="text-center py-8">
+                <Icon name="bolt" size={24} className="mx-auto mb-2" style={{ color: 'rgba(0,122,255,0.2)' }} />
+                <p className="text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>Ingen aktive</p>
+              </div>
+            ) : (
+              activeFiltered.map(t => (
+                <TaskMiniCard key={t.id} task={t} onSelect={() => setSelectedTask(t)} />
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* AFSLUTTET */}
+        <div className="flex flex-col">
+          <div className="flex items-center gap-2 mb-4 px-2">
+            <div className="w-3 h-3 rounded-full" style={{ background: '#30D158' }} />
+            <h2 className="text-sm font-bold text-white uppercase tracking-wide">Afsluttet</h2>
+            <span className="text-xs font-mono px-2 py-0.5 rounded" style={{ background: 'rgba(48,209,88,0.1)', color: '#30D158' }}>
+              {completedFiltered.length}
+            </span>
+          </div>
+          <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+            {completedFiltered.length === 0 ? (
+              <div className="text-center py-8">
+                <Icon name="checkmark-circle" size={24} className="mx-auto mb-2" style={{ color: 'rgba(48,209,88,0.2)' }} />
+                <p className="text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>Ingen afsluttede</p>
+              </div>
+            ) : (
+              completedFiltered.map(t => (
+                <TaskMiniCard key={t.id} task={t} onSelect={() => setSelectedTask(t)} />
+              ))
+            )}
           </div>
         </div>
       </div>
 
-      {/* Task list (filtered) */}
-      <div className="flex-1 overflow-y-auto space-y-2">
-        {filteredTasks.length === 0 ? (
-          <div className="text-center py-12">
-            <Icon name="checklist" size={32} className="mx-auto mb-2" style={{ color: 'rgba(255,255,255,0.08)' }} />
-            <p className="text-sm" style={{ color: 'rgba(255,255,255,0.3)' }}>
-              {search ? 'Ingen resultater' : 'Ingen opgaver endnu'}
-            </p>
-          </div>
-        ) : (
-          filteredTasks.slice(0, 50).map(t => (
-            <TaskMiniCard key={t.id} task={t} onSelect={() => setSelectedTask(t)} />
-          ))
-        )}
-      </div>
-
       {/* Popups */}
-      {statusPopup === 'queued' && (
-        <StatusListPopup title="I Kø" tasks={queued} color="#FF9F0A" 
-          onClose={() => setStatusPopup(null)} onSelectTask={setSelectedTask} onStartTask={handleStartTask} />
-      )}
-      {statusPopup === 'active' && (
-        <StatusListPopup title="Aktive" tasks={active} color="#007AFF" 
-          onClose={() => setStatusPopup(null)} onSelectTask={setSelectedTask} />
-      )}
-      {statusPopup === 'completed' && (
-        <StatusListPopup title="Afsluttede" tasks={completed} color="#30D158" 
-          onClose={() => setStatusPopup(null)} onSelectTask={setSelectedTask} />
-      )}
       {selectedTask && <DetailPanel task={selectedTask} onClose={() => setSelectedTask(null)} />}
       <CreateModal open={showCreate} onClose={() => setShowCreate(false)} />
     </div>

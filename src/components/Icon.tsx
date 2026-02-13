@@ -58,6 +58,11 @@ const icons: Record<string, (size: number) => JSX.Element> = {
       <circle cx="9" cy="8" r="3.5" /><circle cx="17" cy="8" r="2.5" /><path d="M2 21v-1a5 5 0 0114 0v1" /><path d="M16 21v-1a4 4 0 014-4" />
     </svg>
   ),
+  folder: (s) => (
+    <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" />
+    </svg>
+  ),
   clock: (s) => (
     <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />

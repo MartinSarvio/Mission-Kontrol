@@ -34,7 +34,13 @@ export default {
         'glass': '0 8px 32px rgba(0,0,0,0.3)',
       },
       borderRadius: {
-        'card': '16px',
+        'sm': '2px',
+        'DEFAULT': '4px',
+        'md': '4px',
+        'lg': '6px',
+        'xl': '6px',
+        '2xl': '8px',
+        'card': '6px',
       }
     },
   },
