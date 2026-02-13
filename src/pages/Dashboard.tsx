@@ -130,22 +130,74 @@ export default function Dashboard() {
       ) : (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            <Card>
+            <Card style={{ 
+              position: 'relative',
+              overflow: 'visible'
+            }}>
+              <div style={{
+                position: 'absolute',
+                bottom: '-10px',
+                left: '20%',
+                right: '20%',
+                height: '40px',
+                background: 'radial-gradient(ellipse, rgba(0, 122, 255, 0.3) 0%, transparent 70%)',
+                filter: 'blur(20px)',
+                zIndex: -1
+              }} />
               <p className="caption">Aktive Sessioner</p>
               <p className="text-2xl font-bold mt-1">{sessions.length}</p>
               <p className="caption mt-1">{runningCount} aktive, {completedCount} afsluttet</p>
             </Card>
-            <Card>
+            <Card style={{ 
+              position: 'relative',
+              overflow: 'visible'
+            }}>
+              <div style={{
+                position: 'absolute',
+                bottom: '-10px',
+                left: '20%',
+                right: '20%',
+                height: '40px',
+                background: 'radial-gradient(ellipse, rgba(48, 209, 88, 0.3) 0%, transparent 70%)',
+                filter: 'blur(20px)',
+                zIndex: -1
+              }} />
               <p className="caption">Tokens i Session</p>
               <p className="text-2xl font-bold mt-1">{tokensValue}</p>
               <p className="caption mt-1">{parsedStatus.tokens || 'Ingen data'}</p>
             </Card>
-            <Card>
+            <Card style={{ 
+              position: 'relative',
+              overflow: 'visible'
+            }}>
+              <div style={{
+                position: 'absolute',
+                bottom: '-10px',
+                left: '20%',
+                right: '20%',
+                height: '40px',
+                background: 'radial-gradient(ellipse, rgba(175, 82, 222, 0.3) 0%, transparent 70%)',
+                filter: 'blur(20px)',
+                zIndex: -1
+              }} />
               <p className="caption">Model</p>
               <p className="text-2xl font-bold mt-1">{parsedStatus.model || 'N/A'}</p>
               <p className="caption mt-1">{parsedStatus.context || 'Anthropic API'}</p>
             </Card>
-            <Card>
+            <Card style={{ 
+              position: 'relative',
+              overflow: 'visible'
+            }}>
+              <div style={{
+                position: 'absolute',
+                bottom: '-10px',
+                left: '20%',
+                right: '20%',
+                height: '40px',
+                background: 'radial-gradient(ellipse, rgba(255, 159, 10, 0.3) 0%, transparent 70%)',
+                filter: 'blur(20px)',
+                zIndex: -1
+              }} />
               <p className="caption">Planlagte Jobs</p>
               <p className="text-2xl font-bold mt-1">{cronActiveCount} aktive</p>
               <p className="caption mt-1">{cronJobs.length} total</p>

@@ -17,12 +17,39 @@ export default function Layout({ children, activePage, onNavigate }: LayoutProps
   }
 
   return (
-    <div style={{ background: '#0a0a0f', minHeight: '100vh' }}>
+    <div style={{ 
+      background: 'linear-gradient(135deg, #08080c 0%, #10101a 50%, #0c0c14 100%)', 
+      minHeight: '100vh',
+      position: 'relative'
+    }}>
+      {/* Ambient glow effects */}
+      <div style={{
+        position: 'fixed',
+        top: '20%',
+        right: '10%',
+        width: '500px',
+        height: '500px',
+        background: 'radial-gradient(circle, rgba(0, 122, 255, 0.08) 0%, transparent 70%)',
+        filter: 'blur(60px)',
+        pointerEvents: 'none',
+        zIndex: 0
+      }} />
+      <div style={{
+        position: 'fixed',
+        bottom: '10%',
+        left: '15%',
+        width: '400px',
+        height: '400px',
+        background: 'radial-gradient(circle, rgba(175, 82, 222, 0.06) 0%, transparent 70%)',
+        filter: 'blur(60px)',
+        pointerEvents: 'none',
+        zIndex: 0
+      }} />
+
       {/* Mobile overlay backdrop */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 z-40 lg:hidden"
-          style={{ background: 'rgba(0,0,0,0.6)' }}
+          className="glass-overlay fixed inset-0 z-40 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -52,9 +79,17 @@ export default function Layout({ children, activePage, onNavigate }: LayoutProps
       )}
 
       {/* Main content - offset by sidebar width on desktop only */}
-      <div className="lg:pl-60" style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #0a0a0f 0%, #12121a 50%, #0e0e16 100%)' }}>
+      <div className="lg:pl-60" style={{ minHeight: '100vh', position: 'relative', zIndex: 1 }}>
         {/* Mobile header */}
-        <header className="lg:hidden sticky top-0 z-30 flex items-center h-14 px-4 border-b border-white/10" style={{ background: '#0a0a0f' }}>
+        <header 
+          className="lg:hidden sticky top-0 z-30 flex items-center h-14 px-4 border-b"
+          style={{ 
+            backdropFilter: 'blur(40px)',
+            WebkitBackdropFilter: 'blur(40px)',
+            background: 'rgba(8, 8, 12, 0.8)',
+            borderColor: 'rgba(255, 255, 255, 0.08)'
+          }}
+        >
           <button
             onClick={() => setSidebarOpen(true)}
             className="p-2 -ml-2 rounded-lg active:bg-white/10"
