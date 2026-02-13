@@ -1,7 +1,16 @@
 // OpenClaw Gateway API Client
+import { fetch as tauriFetch } from '@tauri-apps/plugin-http'
 
 const STORAGE_KEY_URL = 'openclaw-gateway-url'
 const STORAGE_KEY_TOKEN = 'openclaw-gateway-token'
+
+// Use Tauri's fetch in desktop app (bypasses CORS/cert issues), native fetch in browser
+function smartFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  if (typeof window !== 'undefined' && '__TAURI__' in window) {
+    return tauriFetch(input, init)
+  }
+  return fetch(input, init)
+}
 
 function getDefaultUrl(): string {
   if (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app')) {
@@ -39,7 +48,7 @@ async function invokeToolRaw(tool: string, args: Record<string, unknown>): Promi
   const token = getGatewayToken()
   if (!token) throw new Error('Ingen auth token konfigureret')
 
-  const res = await fetch(`${url}/tools/invoke`, {
+  const res = await smartFetch(`${url}/tools/invoke`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
