@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import Icon from './Icon'
 
-const CURRENT_VERSION = '1.1.0'
+const CURRENT_VERSION = '1.1.1'
 const GITHUB_REPO = 'MartinSarvio/Mission-Kontrol'
 const CHECK_INTERVAL = 30 * 60 * 1000 // 30 min
 const DISMISS_KEY = 'openclaw-update-dismissed'
