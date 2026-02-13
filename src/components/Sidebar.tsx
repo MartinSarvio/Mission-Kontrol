@@ -31,22 +31,14 @@ const nav = [
 export default function Sidebar({ active, onNavigate, isOpen, onClose, onMaisonClick }: SidebarProps) {
   const { isConnected, lastUpdated, isLoading, sessions } = useLiveData()
   const [pulse, setPulse] = useState(true)
-  const [lastBeat, setLastBeat] = useState(new Date().toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' }))
 
   useEffect(() => {
     const interval = setInterval(() => setPulse(p => !p), 1500)
     return () => clearInterval(interval)
   }, [])
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setLastBeat(new Date().toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' }))
-    }, 3600000)
-    return () => clearInterval(interval)
-  }, [])
+  const now = new Date().toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' })
 
-  // On desktop (lg+), sidebar is always visible. On mobile, controlled by isOpen.
-  // We use fixed positioning on all screens, with transform to slide on mobile.
   return (
     <aside
       style={{
@@ -60,41 +52,42 @@ export default function Sidebar({ active, onNavigate, isOpen, onClose, onMaisonC
       }}
       className={`glass-sidebar text-white/70 flex flex-col lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
     >
-      <div className="px-5 py-6">
-        <div 
-          className="flex items-center justify-between p-3 -mx-2 mb-2 rounded-2xl"
-          style={{ 
-            background: 'linear-gradient(135deg, rgba(0, 122, 255, 0.05) 0%, rgba(175, 82, 222, 0.05) 100%)',
-            border: '1px solid rgba(255, 255, 255, 0.06)'
-          }}
-        >
-          <h1 className="text-lg font-bold text-white tracking-tight">
-            Mission Kontrol
-          </h1>
+      {/* Maison — top of sidebar */}
+      <div className="px-4 pt-6 pb-3">
+        <div className="flex items-center justify-between">
+          <div 
+            className="flex items-center gap-3 flex-1 cursor-pointer rounded-xl px-3 py-3 transition-all duration-200 hover:bg-white/[0.04]"
+            style={{ background: 'rgba(255,255,255,0.02)' }}
+            onClick={onMaisonClick}
+          >
+            <div 
+              className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+              style={{ 
+                background: 'linear-gradient(135deg, #007AFF, #AF52DE)',
+                boxShadow: '0 2px 8px rgba(0, 122, 255, 0.25)'
+              }}
+            >
+              <Icon name="brain" size={16} className="text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-semibold text-white">Maison</p>
+                <span className={`w-2 h-2 rounded-full transition-opacity duration-700 ${pulse ? 'opacity-100' : 'opacity-40'}`} 
+                      style={{ background: '#30D158' }} />
+              </div>
+              <p className="text-[10px] text-white/30">{now} · aktiv</p>
+            </div>
+            <Icon name="chevron-right" size={10} className="text-white/15" />
+          </div>
+
           {/* Close button - mobile only */}
           <button
             onClick={onClose}
-            className="lg:hidden"
+            className="lg:hidden ml-2"
             style={{ padding: 8 }}
           >
             <Icon name="xmark" size={18} className="text-white/50" />
           </button>
-        </div>
-      </div>
-
-      <div className="px-5 pb-4">
-        <div 
-          className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-200 hover:bg-white/[0.04]"
-          style={{ background: 'rgba(255,255,255,0.02)' }}
-          onClick={onMaisonClick}
-        >
-          <span className={`w-2 h-2 rounded-full transition-opacity duration-700 ${pulse ? 'opacity-100' : 'opacity-40'}`} 
-                style={{ background: '#30D158' }} />
-          <div className="flex-1 min-w-0">
-            <p className="text-[11px] text-white/70 font-medium tracking-wide">Maison</p>
-            <p className="text-[10px] text-white/30">{lastBeat} · aktiv</p>
-          </div>
-          <Icon name="chevron-right" size={10} className="text-white/15" />
         </div>
       </div>
 
@@ -110,6 +103,7 @@ export default function Sidebar({ active, onNavigate, isOpen, onClose, onMaisonC
           </div>
         ))}
       </nav>
+
       <div className="px-5 py-4 border-t border-white/10 space-y-2">
         <div className="flex items-center gap-2">
           <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-[#34C759]' : 'bg-[#FF3B30]'} ${isLoading ? 'animate-pulse' : ''}`} />
@@ -120,7 +114,7 @@ export default function Sidebar({ active, onNavigate, isOpen, onClose, onMaisonC
             )}
           </span>
         </div>
-        <p className="text-[11px] text-white/30">v2026.2.9 — Bygget med OpenClaw</p>
+        <p className="text-[10px] text-white/25">Mission Kontrol v2026.2.9</p>
       </div>
     </aside>
   )

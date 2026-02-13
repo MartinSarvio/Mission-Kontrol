@@ -102,8 +102,7 @@ export default function Layout({ children, activePage, onNavigate }: LayoutProps
           >
             <Icon name="menu" size={22} className="text-white/80" />
           </button>
-          <span className="ml-3 font-semibold text-white text-sm flex items-center gap-2">
-            <Icon name="control-panel" size={16} className="text-white/60" />
+          <span className="ml-3 font-semibold text-white text-sm">
             Mission Kontrol
           </span>
         </header>

@@ -53,7 +53,7 @@ function resolveApiUrl(base: string): string {
   return base
 }
 
-async function invokeToolRaw(tool: string, args: Record<string, unknown>): Promise<unknown> {
+export async function invokeToolRaw(tool: string, args: Record<string, unknown>): Promise<unknown> {
   const url = resolveApiUrl(getGatewayUrl())
   const token = getGatewayToken()
   if (!token) throw new Error('Ingen auth token konfigureret')
