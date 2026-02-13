@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import Icon from '../components/Icon'
 import { useLiveData } from '../api/LiveDataContext'
-import { createAgent, ApiSession, listAgents, AgentApi } from '../api/openclaw'
+import { createAgent, ApiSession, listAgents, AgentApi, fetchAllSessions, TranscriptSession, readTranscriptMessages, DetailedSessionMessage } from '../api/openclaw'
 
 /* ── Types ──────────────────────────────────────────────────── */
 type AgentStatus = 'online' | 'offline' | 'working'
@@ -507,12 +507,171 @@ function CreateModal({ open, onClose }: { open: boolean; onClose: () => void }) 
   )
 }
 
+/* ── Communication View ──────────────────────────────────────── */
+function CommunicationView() {
+  const [allSessions, setAllSessions] = useState<TranscriptSession[]>([])
+  const [selectedSession, setSelectedSession] = useState<TranscriptSession | null>(null)
+  const [messages, setMessages] = useState<DetailedSessionMessage[]>([])
+  const [loadingMessages, setLoadingMessages] = useState(false)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const cached = localStorage.getItem('openclaw-comm-sessions')
+    if (cached) {
+      try { setAllSessions(JSON.parse(cached)); setLoading(false) } catch {}
+    }
+    fetchAllSessions().then(sessions => {
+      const subagentSessions = sessions
+        .filter(s => s.spawnedBy || s.agent !== 'main')
+        .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
+      setAllSessions(subagentSessions)
+      localStorage.setItem('openclaw-comm-sessions', JSON.stringify(subagentSessions))
+      setLoading(false)
+    }).catch(() => setLoading(false))
+  }, [])
+
+  useEffect(() => {
+    if (!selectedSession) { setMessages([]); return }
+    setLoadingMessages(true)
+    readTranscriptMessages(selectedSession.agent, selectedSession.sessionId, 100)
+      .then(msgs => setMessages(msgs))
+      .catch(() => setMessages([]))
+      .finally(() => setLoadingMessages(false))
+  }, [selectedSession])
+
+  function timeAgo(ts: number) {
+    const mins = Math.floor((Date.now() - ts) / 60000)
+    if (mins < 1) return 'lige nu'
+    if (mins < 60) return `${mins}m siden`
+    const hours = Math.floor(mins / 60)
+    if (hours < 24) return `${hours}t siden`
+    return `${Math.floor(hours / 24)}d siden`
+  }
+
+  if (loading) {
+    return <div className="text-center py-12" style={{ color: 'rgba(255,255,255,0.4)' }}>Henter kommunikation...</div>
+  }
+
+  if (allSessions.length === 0) {
+    return (
+      <div className="text-center py-16">
+        <Icon name="chat" size={48} className="mx-auto mb-4 opacity-20" />
+        <p className="text-base font-medium" style={{ color: 'rgba(255,255,255,0.4)' }}>Ingen agent-kommunikation endnu</p>
+        <p className="text-sm mt-2" style={{ color: 'rgba(255,255,255,0.25)' }}>Når agenter får opgaver, vises samtaler her</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex flex-col lg:flex-row gap-4" style={{ minHeight: '500px' }}>
+      {/* Session list */}
+      <div className="w-full lg:w-80 flex-shrink-0 space-y-2 overflow-y-auto" style={{ maxHeight: '70vh' }}>
+        {allSessions.map(s => (
+          <div
+            key={s.sessionId}
+            onClick={() => setSelectedSession(s)}
+            className="rounded-2xl p-4 cursor-pointer transition-all duration-200"
+            style={{
+              background: selectedSession?.sessionId === s.sessionId ? 'rgba(0,122,255,0.1)' : 'rgba(255,255,255,0.03)',
+              border: selectedSession?.sessionId === s.sessionId ? '1px solid rgba(0,122,255,0.3)' : '1px solid transparent',
+            }}
+            onMouseEnter={e => { if (selectedSession?.sessionId !== s.sessionId) e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }}
+            onMouseLeave={e => { if (selectedSession?.sessionId !== s.sessionId) e.currentTarget.style.background = 'rgba(255,255,255,0.03)' }}
+          >
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(175,82,222,0.15)' }}>
+                <Icon name="chat" size={14} style={{ color: '#AF52DE' }} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-white truncate">{s.label || s.sessionId.slice(0, 8)}</p>
+                <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                  {s.agent} · {s.messageCount} beskeder
+                </p>
+              </div>
+              <span className={`w-2 h-2 rounded-full flex-shrink-0`} style={{ background: s.status === 'active' ? '#30D158' : '#636366' }} />
+            </div>
+            {s.firstMessage && (
+              <p className="text-xs truncate" style={{ color: 'rgba(255,255,255,0.35)' }}>{s.firstMessage}</p>
+            )}
+            <p className="text-[10px] mt-1" style={{ color: 'rgba(255,255,255,0.25)' }}>
+              {s.updatedAt ? timeAgo(s.updatedAt) : s.startedAt?.slice(0, 10) || ''}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      {/* Chat view */}
+      <div className="flex-1 rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
+        {!selectedSession ? (
+          <div className="flex items-center justify-center h-full py-16">
+            <div className="text-center">
+              <Icon name="chat" size={32} className="mx-auto mb-3 opacity-20" />
+              <p className="text-sm" style={{ color: 'rgba(255,255,255,0.3)' }}>Vælg en samtale</p>
+            </div>
+          </div>
+        ) : loadingMessages ? (
+          <div className="flex items-center justify-center h-full py-16">
+            <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : (
+          <div className="p-6 overflow-y-auto" style={{ maxHeight: '70vh' }}>
+            <div className="mb-4 pb-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+              <h3 className="text-base font-bold text-white">{selectedSession.label || selectedSession.sessionId.slice(0, 8)}</h3>
+              <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                Agent: {selectedSession.agent} · Model: {selectedSession.model || '?'} · {messages.length} beskeder
+              </p>
+            </div>
+            <div className="space-y-4">
+              {messages.map((msg, idx) => {
+                const isUser = msg.role === 'user'
+                const text = msg.text || ''
+                if (!text && (!msg.toolCalls || msg.toolCalls.length === 0)) return null
+                return (
+                  <div key={idx} className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-[85%]`}>
+                      <p className={`text-[10px] mb-1 ${isUser ? 'text-right' : 'text-left'}`} style={{ color: 'rgba(255,255,255,0.3)' }}>
+                        {isUser ? 'Maison' : selectedSession.agent}
+                      </p>
+                      {text && (
+                        <div className="rounded-2xl px-4 py-2.5" style={{
+                          background: isUser ? '#007AFF' : 'rgba(255,255,255,0.06)',
+                          color: isUser ? '#fff' : 'rgba(255,255,255,0.85)',
+                        }}>
+                          <p className="text-sm whitespace-pre-wrap break-words">{text.slice(0, 2000)}{text.length > 2000 ? '...' : ''}</p>
+                        </div>
+                      )}
+                      {msg.toolCalls && msg.toolCalls.length > 0 && (
+                        <div className="mt-2 space-y-1">
+                          {msg.toolCalls.map((tc, tIdx) => (
+                            <div key={tIdx} className="flex items-center gap-2 px-3 py-1.5 rounded-xl" style={{ background: 'rgba(255,149,0,0.08)' }}>
+                              <Icon name="wrench" size={12} className="text-orange-400" />
+                              <span className="text-xs text-orange-300">{tc.tool}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+              {messages.length === 0 && (
+                <p className="text-center text-sm py-8" style={{ color: 'rgba(255,255,255,0.3)' }}>Ingen beskeder i denne samtale</p>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 /* ── Main Page ──────────────────────────────────────────────── */
 export default function Agents() {
   const { sessions } = useLiveData()
   const [selectedAgent, setSelectedAgent] = useState<AgentEntry | null>(null)
   const [showCreate, setShowCreate] = useState(false)
   const [apiAgents, setApiAgents] = useState<AgentApi[]>([])
+  const [tab, setTab] = useState<'team' | 'kommunikation'>('team')
 
   useEffect(() => {
     listAgents()
@@ -524,6 +683,11 @@ export default function Agents() {
   const teamAgents = buildTeamAgents(apiAgents, sessions)
   const subAgents = buildSubAgents(sessions)
   const allAgents = [mainAgent, ...teamAgents, ...subAgents]
+
+  const tabs: { key: typeof tab; label: string; icon: string }[] = [
+    { key: 'team', label: 'Team', icon: 'person' },
+    { key: 'kommunikation', label: 'Kommunikation', icon: 'chat' },
+  ]
 
   return (
     <div className="h-full flex flex-col">
@@ -547,31 +711,55 @@ export default function Agents() {
         </button>
       </div>
 
-      {/* Hero Card */}
-      <HeroCard agent={mainAgent} onClick={() => setSelectedAgent(mainAgent)} />
+      {/* Tabs */}
+      <div className="flex gap-1 p-1 rounded-xl w-fit mb-6" style={{ background: 'rgba(255,255,255,0.04)' }}>
+        {tabs.map(t => (
+          <button
+            key={t.key}
+            onClick={() => setTab(t.key)}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all"
+            style={{
+              background: tab === t.key ? 'rgba(0,122,255,0.2)' : 'transparent',
+              color: tab === t.key ? '#5AC8FA' : 'rgba(255,255,255,0.4)',
+            }}
+          >
+            <Icon name={t.icon} size={14} />
+            {t.label}
+          </button>
+        ))}
+      </div>
 
-      {/* Team Agents */}
-      {teamAgents.length > 0 && (
-        <div className="mt-8">
-          <h2 className="text-lg font-bold text-white mb-4">Team Agenter</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {teamAgents.map(agent => (
-              <AgentCard key={agent.id} agent={agent} onClick={() => setSelectedAgent(agent)} />
-            ))}
-          </div>
-        </div>
-      )}
+      {tab === 'team' ? (
+        <>
+          {/* Hero Card */}
+          <HeroCard agent={mainAgent} onClick={() => setSelectedAgent(mainAgent)} />
 
-      {/* Sub Agents */}
-      {subAgents.length > 0 && (
-        <div className="mt-8">
-          <h2 className="text-lg font-bold text-white mb-4">Sub-Agenter</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            {subAgents.map(agent => (
-              <AgentCard key={agent.id} agent={agent} onClick={() => setSelectedAgent(agent)} />
-            ))}
-          </div>
-        </div>
+          {/* Team Agents */}
+          {teamAgents.length > 0 && (
+            <div className="mt-8">
+              <h2 className="text-lg font-bold text-white mb-4">Team Agenter</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {teamAgents.map(agent => (
+                  <AgentCard key={agent.id} agent={agent} onClick={() => setSelectedAgent(agent)} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Sub Agents */}
+          {subAgents.length > 0 && (
+            <div className="mt-8">
+              <h2 className="text-lg font-bold text-white mb-4">Sub-Agenter</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {subAgents.map(agent => (
+                  <AgentCard key={agent.id} agent={agent} onClick={() => setSelectedAgent(agent)} />
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      ) : (
+        <CommunicationView />
       )}
 
       {selectedAgent && <DetailPanel agent={selectedAgent} onClose={() => setSelectedAgent(null)} />}
