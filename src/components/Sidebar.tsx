@@ -7,6 +7,7 @@ interface SidebarProps {
   onNavigate: (page: string) => void
   isOpen: boolean
   onClose: () => void
+  onMaisonClick: () => void
 }
 
 const nav = [
@@ -27,11 +28,10 @@ const nav = [
   { id: 'settings', label: 'Indstillinger', icon: 'gear' },
 ]
 
-export default function Sidebar({ active, onNavigate, isOpen, onClose }: SidebarProps) {
+export default function Sidebar({ active, onNavigate, isOpen, onClose, onMaisonClick }: SidebarProps) {
   const { isConnected, lastUpdated, isLoading, sessions } = useLiveData()
   const [pulse, setPulse] = useState(true)
   const [lastBeat, setLastBeat] = useState(new Date().toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' }))
-  const [showHeartbeat, setShowHeartbeat] = useState(false)
 
   useEffect(() => {
     const interval = setInterval(() => setPulse(p => !p), 1500)
@@ -68,8 +68,8 @@ export default function Sidebar({ active, onNavigate, isOpen, onClose }: Sidebar
             border: '1px solid rgba(255, 255, 255, 0.06)'
           }}
         >
-          <h1 className="text-lg font-bold text-white tracking-tight flex items-center gap-2.5">
-            <Icon name="control-panel" size={20} className="text-white/80" /> Mission Kontrol
+          <h1 className="text-lg font-bold text-white tracking-tight">
+            Mission Kontrol
           </h1>
           {/* Close button - mobile only */}
           <button
@@ -80,14 +80,13 @@ export default function Sidebar({ active, onNavigate, isOpen, onClose }: Sidebar
             <Icon name="xmark" size={18} className="text-white/50" />
           </button>
         </div>
-        <p className="text-[11px] text-white/40 mt-1 px-1">OpenClaw Operationscenter</p>
       </div>
 
       <div className="px-5 pb-4">
         <div 
           className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-200 hover:bg-white/[0.04]"
           style={{ background: 'rgba(255,255,255,0.02)' }}
-          onClick={() => setShowHeartbeat(!showHeartbeat)}
+          onClick={onMaisonClick}
         >
           <span className={`w-2 h-2 rounded-full transition-opacity duration-700 ${pulse ? 'opacity-100' : 'opacity-40'}`} 
                 style={{ background: '#30D158' }} />
@@ -95,65 +94,8 @@ export default function Sidebar({ active, onNavigate, isOpen, onClose }: Sidebar
             <p className="text-[11px] text-white/70 font-medium tracking-wide">Maison</p>
             <p className="text-[10px] text-white/30">{lastBeat} · aktiv</p>
           </div>
-          <Icon name="chevron-down" size={10} className="text-white/15" />
+          <Icon name="chevron-right" size={10} className="text-white/15" />
         </div>
-        
-        {showHeartbeat && (
-          <div className="mt-2 p-3 space-y-2 rounded-xl" style={{ background: 'rgba(255,255,255,0.04)', border: 'none' }}>
-            <div className="flex items-center gap-3 mb-2">
-              <div 
-                className="w-10 h-10 rounded-xl flex items-center justify-center" 
-                style={{ 
-                  background: 'linear-gradient(135deg, #007AFF, #AF52DE)',
-                  boxShadow: '0 4px 16px rgba(0, 122, 255, 0.3)'
-                }}
-              >
-                <Icon name="brain" size={20} className="text-white" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-white">Maison</p>
-                <p className="text-[10px] text-white/40">System Orkestrering</p>
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <div className="flex justify-between text-[10px]">
-                <span className="text-white/40">Model</span>
-                <span className="font-mono text-white/70">Claude Opus 4.6</span>
-              </div>
-              <div className="flex justify-between text-[10px]">
-                <span className="text-white/40">Status</span>
-                <span className="text-[#30D158] font-semibold">Online</span>
-              </div>
-              <div className="flex justify-between text-[10px]">
-                <span className="text-white/40">Sessions</span>
-                <span className="font-mono text-white/70">{sessions.length}</span>
-              </div>
-              {sessions[0]?.contextTokens && (
-                <>
-                  <div className="flex justify-between text-[10px]">
-                    <span className="text-white/40">Context</span>
-                    <span className="font-mono text-white/70">{Math.round(sessions[0].contextTokens / 1000)}K / 200K</span>
-                  </div>
-                  <div className="w-full h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
-                    <div className="h-full rounded-full" style={{ 
-                      width: `${Math.min(100, Math.round((sessions[0].contextTokens / 200000) * 100))}%`,
-                      background: sessions[0].contextTokens > 160000 ? '#FF453A' : sessions[0].contextTokens > 100000 ? '#FF9F0A' : '#30D158',
-                      boxShadow: `0 0 8px ${sessions[0].contextTokens > 160000 ? 'rgba(255, 69, 58, 0.5)' : sessions[0].contextTokens > 100000 ? 'rgba(255, 159, 10, 0.5)' : 'rgba(48, 209, 88, 0.5)'}`
-                    }} />
-                  </div>
-                </>
-              )}
-              <div className="flex justify-between text-[10px]">
-                <span className="text-white/40">Kanal</span>
-                <span className="font-mono text-white/70">Telegram</span>
-              </div>
-              <div className="flex justify-between text-[10px]">
-                <span className="text-white/40">Hjerterytme</span>
-                <span className="font-mono text-white/70">Hvert 60 min</span>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
       <nav className="flex-1 px-2 space-y-0.5 overflow-y-auto">

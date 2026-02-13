@@ -1,6 +1,7 @@
 import { ReactNode, useState } from 'react'
 import Sidebar from './Sidebar'
 import Icon from './Icon'
+import MaisonFlyout from './MaisonFlyout'
 
 interface LayoutProps {
   children: ReactNode
@@ -10,6 +11,7 @@ interface LayoutProps {
 
 export default function Layout({ children, activePage, onNavigate }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [maisonOpen, setMaisonOpen] = useState(false)
 
   const handleNavigate = (page: string) => {
     onNavigate(page)
@@ -60,7 +62,11 @@ export default function Layout({ children, activePage, onNavigate }: LayoutProps
         onNavigate={handleNavigate}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
+        onMaisonClick={() => setMaisonOpen(true)}
       />
+
+      {/* Maison Flyout */}
+      <MaisonFlyout isOpen={maisonOpen} onClose={() => setMaisonOpen(false)} />
 
       {/* Tauri drag region - allows window to be moved on desktop app */}
       {'__TAURI__' in (typeof window !== 'undefined' ? window : {}) && (
