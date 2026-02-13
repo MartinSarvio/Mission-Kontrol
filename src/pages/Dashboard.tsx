@@ -261,7 +261,7 @@ export default function Dashboard() {
                     <div key={i} className="flex items-center justify-between py-2 glass-row">
                       <div>
                         <p className="text-sm font-medium">{job.name || job.label || 'Unavngiven job'}</p>
-                        <p className="caption">{job.schedule || 'Ukendt tidsplan'}</p>
+                        <p className="caption">{typeof job.schedule === 'object' ? (job.schedule?.expr || job.schedule?.kind || 'Planlagt') : (job.schedule || 'Ukendt tidsplan')}</p>
                       </div>
                       <StatusBadge status={job.enabled === false ? 'paused' : 'active'} />
                     </div>
