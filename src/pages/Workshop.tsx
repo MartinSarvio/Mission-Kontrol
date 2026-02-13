@@ -74,8 +74,8 @@ export default function Workshop() {
   if (isLoading) {
     return (
       <div>
-        <h1 className="text-xl sm:text-2xl font-bold mb-1">Værksted</h1>
-        <p className="caption mb-6">Indlæser...</p>
+        <h1 className="text-xl sm:text-2xl font-bold mb-1" style={{ color: 'rgba(255,255,255,0.92)' }}>Værksted</h1>
+        <p className="mb-6" style={{ color: 'rgba(255,255,255,0.3)', fontSize: '13px' }}>Indlæser...</p>
         <Card>
           <p className="text-center py-8" style={{ color: 'rgba(255,255,255,0.4)' }}>Indlæser data...</p>
         </Card>
@@ -85,8 +85,8 @@ export default function Workshop() {
 
   return (
     <div>
-      <h1 className="text-xl sm:text-2xl font-bold mb-1">Værksted</h1>
-      <p className="caption mb-6">Prompt-legeplads og workflow-test</p>
+      <h1 className="text-xl sm:text-2xl font-bold mb-1" style={{ color: 'rgba(255,255,255,0.92)' }}>Værksted</h1>
+      <p className="caption mb-6" style={{ color: 'rgba(255,255,255,0.3)' }}>Prompt-legeplads og workflow-test</p>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <div className="col-span-1 lg:col-span-2 space-y-4">
@@ -95,7 +95,8 @@ export default function Workshop() {
               value={prompt}
               onChange={e => setPrompt(e.target.value)}
               placeholder="Skriv din prompt her... Sub-agent spawnes og kører opgaven."
-              className="w-full h-64 input resize-none font-mono text-sm"
+              className="w-full h-64 resize-none font-mono text-sm"
+              style={{ background: 'rgba(255,255,255,0.06)', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '12px' }}
               disabled={isRunning}
             />
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mt-4">
@@ -115,17 +116,17 @@ export default function Workshop() {
                 value={selectedModel}
                 onChange={e => setSelectedModel(e.target.value)}
                 className="input text-sm" 
-                style={{ minHeight: '44px' }}
+                style={{ minHeight: '44px', background: 'rgba(255,255,255,0.06)', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
                 disabled={isRunning}
               >
                 {availableModels.map((m: any) => (
-                  <option key={m} value={m}>{m}</option>
+                  <option key={m} value={m} style={{ background: '#1a1a2e', color: '#fff' }}>{m}</option>
                 ))}
               </select>
 
               <button 
                 onClick={() => setPrompt('')}
-                style={{ minHeight: '44px', background: 'rgba(0,122,255,0.1)', color: '#007AFF', padding: '8px 16px', borderRadius: '12px', fontSize: '14px', fontWeight: 500, border: '1px solid rgba(0,122,255,0.2)', cursor: 'pointer' }}
+                style={{ minHeight: '44px', background: 'rgba(0,122,255,0.15)', color: '#007AFF', padding: '8px 16px', borderRadius: '12px', fontSize: '14px', fontWeight: 500, border: '1px solid rgba(0,122,255,0.3)', cursor: 'pointer', opacity: isRunning ? 0.5 : 1 }}
                 disabled={isRunning}
               >
                 Nulstil
@@ -167,8 +168,8 @@ export default function Workshop() {
                     cursor: isRunning ? 'not-allowed' : 'pointer'
                   }}
                 >
-                  <p className="text-sm font-medium">{t.name}</p>
-                  <p className="caption mt-1">Klik for at indsætte</p>
+                  <p className="text-sm font-medium" style={{ color: 'rgba(255,255,255,0.92)' }}>{t.name}</p>
+                  <p className="mt-1" style={{ color: 'rgba(255,255,255,0.3)', fontSize: '13px' }}>Klik for at indsætte</p>
                 </div>
               ))}
             </div>
@@ -182,7 +183,7 @@ export default function Workshop() {
               ].map((s, i) => (
                 <div key={i} className="flex flex-col gap-1 py-2 glass-row text-sm">
                   <div className="flex items-center justify-between">
-                    <span className="font-medium font-mono">{s.name}</span>
+                    <span className="font-medium font-mono" style={{ color: 'rgba(255,255,255,0.92)' }}>{s.name}</span>
                     <span 
                       className="px-2 py-0.5 rounded-lg text-[11px]" 
                       style={{ background: 'rgba(52,199,89,0.1)', color: '#34C759' }}
@@ -190,7 +191,7 @@ export default function Workshop() {
                       {s.status}
                     </span>
                   </div>
-                  <p className="caption">{s.desc}</p>
+                  <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '13px' }}>{s.desc}</p>
                 </div>
               ))}
             </div>
