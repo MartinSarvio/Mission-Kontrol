@@ -85,16 +85,17 @@ export default function Sidebar({ active, onNavigate, isOpen, onClose }: Sidebar
 
       <div className="px-5 pb-4">
         <div 
-          className="glass-heartbeat flex items-center gap-2 px-3 py-2 cursor-pointer"
+          className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-200 hover:bg-white/[0.04]"
+          style={{ background: 'rgba(255,255,255,0.02)' }}
           onClick={() => setShowHeartbeat(!showHeartbeat)}
         >
-          <span className={`w-2.5 h-2.5 rounded-full bg-[#30D158] transition-opacity duration-700 ${pulse ? 'opacity-100' : 'opacity-30'}`} 
-                style={{ boxShadow: pulse ? '0 0 8px rgba(48, 209, 88, 0.5)' : 'none' }} />
-          <div className="flex-1">
-            <p className="text-[11px] text-white/60 font-medium">Maison</p>
-            <p className="text-[10px] text-white/30">Sidst: {lastBeat} · <span className="text-[#30D158]">aktiv</span></p>
+          <span className={`w-2 h-2 rounded-full transition-opacity duration-700 ${pulse ? 'opacity-100' : 'opacity-40'}`} 
+                style={{ background: '#30D158' }} />
+          <div className="flex-1 min-w-0">
+            <p className="text-[11px] text-white/70 font-medium tracking-wide">Maison</p>
+            <p className="text-[10px] text-white/30">{lastBeat} · aktiv</p>
           </div>
-          <Icon name="chevron-down" size={10} className="text-white/20" />
+          <Icon name="chevron-down" size={10} className="text-white/15" />
         </div>
         
         {showHeartbeat && (
