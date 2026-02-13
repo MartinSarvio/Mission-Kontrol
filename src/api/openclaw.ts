@@ -1,12 +1,12 @@
 // OpenClaw Gateway API Client
-import { fetch as tauriFetch } from '@tauri-apps/plugin-http'
 
 const STORAGE_KEY_URL = 'openclaw-gateway-url'
 const STORAGE_KEY_TOKEN = 'openclaw-gateway-token'
 
 // Use Tauri's fetch in desktop app (bypasses CORS/cert issues), native fetch in browser
-function smartFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+async function smartFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
   if (typeof window !== 'undefined' && '__TAURI__' in window) {
+    const { fetch: tauriFetch } = await import('@tauri-apps/plugin-http')
     return tauriFetch(input, init)
   }
   return fetch(input, init)
