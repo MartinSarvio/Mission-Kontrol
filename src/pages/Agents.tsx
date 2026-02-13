@@ -80,7 +80,7 @@ function buildTeamAgents(_agents: AgentApi[], sessions: ApiSession[]): AgentEntr
     })
     const activeSession = agentSessions.find(s => now - s.updatedAt < 120000)
     const hasSession = agentSessions.length > 0
-    const status: AgentStatus = activeSession ? 'working' : hasSession ? 'completed' : 'offline'
+    const status: AgentStatus = activeSession ? getAgentStatus(activeSession, sessions, now) : hasSession ? 'completed' : 'offline'
     
     return {
       id: `agent-${a.id}`, name: a.name, role: a.role,
@@ -122,6 +122,27 @@ function statusGlow(s: AgentStatus) {
   return 'none'
 }
 
+/* ── Budget & Pricing ────────────────────────────────────────── */
+function estimatePrice(model: string, totalTokens?: number): number {
+  if (!totalTokens) return 0
+  const pricePerMillion = model.includes('opus') ? 15 : model.includes('sonnet') ? 3 : model.includes('haiku') ? 0.25 : 3
+  return (totalTokens / 1_000_000) * pricePerMillion
+}
+
+function formatPrice(price: number): string {
+  if (price < 0.01) return '<$0.01'
+  return `$${price.toFixed(2)}`
+}
+
+function getAgentStatus(session: ApiSession | undefined, allSessions: ApiSession[], now: number): AgentStatus {
+  if (!session) return 'offline'
+  const isRecent = now - session.updatedAt < 120000 // 2 min
+  const hasSubAgents = allSessions.some(s => s.key.includes('subagent') && s.key.includes(session.key.split(':')[1]))
+  if (isRecent && hasSubAgents) return 'working'
+  if (isRecent) return 'online'
+  return 'offline'
+}
+
 /* ── Small components ───────────────────────────────────────── */
 function StatusBadge({ status }: { status: AgentStatus }) {
   return (
@@ -136,6 +157,210 @@ function ProgressBar({ value, color = '#007AFF' }: { value: number; color?: stri
   return (
     <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
       <div className="h-full rounded-full transition-all duration-700" style={{ width: `${value}%`, background: color }} />
+    </div>
+  )
+}
+
+/* ── Org Chart View ─────────────────────────────────────────── */
+function OrgChartView({ mainAgent, teamAgents, onSelectAgent }: { mainAgent: AgentEntry; teamAgents: AgentEntry[]; onSelectAgent: (id: string) => void }) {
+  return (
+    <div className="relative py-8 px-4 overflow-x-auto">
+      {/* Main Agent (top) */}
+      <div className="flex justify-center mb-12">
+        <div 
+          onClick={() => onSelectAgent(mainAgent.id)}
+          className="relative cursor-pointer transition-all duration-300 hover:scale-105"
+          style={{ width: '200px' }}
+        >
+          <div className="rounded-2xl p-5 text-center" style={{
+            background: 'rgba(0,122,255,0.08)',
+            border: '2px solid rgba(0,122,255,0.3)',
+            backdropFilter: 'blur(20px)',
+            boxShadow: '0 8px 32px rgba(0,122,255,0.2)',
+          }}>
+            <div className="mx-auto w-16 h-16 rounded-2xl flex items-center justify-center mb-3" style={{
+              background: mainAgent.iconBg,
+              boxShadow: '0 4px 16px rgba(0,122,255,0.3)',
+            }}>
+              <Icon name={mainAgent.icon} size={28} className="text-white" />
+            </div>
+            <h3 className="text-base font-bold text-white mb-1">{mainAgent.name}</h3>
+            <p className="text-[10px] mb-3" style={{ color: 'rgba(255,255,255,0.5)' }}>{mainAgent.role}</p>
+            <div className="flex items-center justify-center gap-1.5">
+              <span 
+                className="w-2.5 h-2.5 rounded-full animate-pulse" 
+                style={{ background: statusColor(mainAgent.status), boxShadow: statusGlow(mainAgent.status) }} 
+              />
+              <span className="text-[9px] font-semibold uppercase" style={{ color: statusColor(mainAgent.status) }}>
+                {statusLabel(mainAgent.status)}
+              </span>
+            </div>
+            {mainAgent.session && mainAgent.session.totalTokens && (
+              <div className="mt-3 pt-3 border-t border-white/10">
+                <p className="text-[9px] mb-1" style={{ color: 'rgba(255,255,255,0.4)' }}>Budget brugt</p>
+                <p className="text-xs font-bold text-white">{formatPrice(estimatePrice(mainAgent.model, mainAgent.session.totalTokens))}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Connection Lines */}
+      {teamAgents.length > 0 && (
+        <svg className="absolute top-0 left-0 w-full h-full pointer-events-none" style={{ zIndex: 0 }}>
+          <defs>
+            <linearGradient id="lineGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" style={{ stopColor: 'rgba(0,122,255,0.4)', stopOpacity: 1 }} />
+              <stop offset="100%" style={{ stopColor: 'rgba(175,82,222,0.4)', stopOpacity: 1 }} />
+            </linearGradient>
+          </defs>
+          {teamAgents.map((_, i) => {
+            const totalWidth = teamAgents.length * 240
+            const startX = window.innerWidth < 768 ? '50%' : '50%'
+            const startY = 160
+            const endY = 320
+            const spacing = 240
+            const offset = -(totalWidth / 2) + (i * spacing) + 120
+            return (
+              <g key={i}>
+                <line
+                  x1={startX}
+                  y1={startY}
+                  x2={`calc(50% + ${offset}px)`}
+                  y2={endY}
+                  stroke="url(#lineGradient)"
+                  strokeWidth="2"
+                  strokeDasharray="4 4"
+                  opacity="0.6"
+                />
+              </g>
+            )
+          })}
+        </svg>
+      )}
+
+      {/* Team Agents (bottom) */}
+      {teamAgents.length > 0 && (
+        <div className="flex flex-wrap justify-center gap-6" style={{ position: 'relative', zIndex: 1 }}>
+          {teamAgents.map(agent => (
+            <div 
+              key={agent.id}
+              onClick={() => onSelectAgent(agent.id)}
+              className="cursor-pointer transition-all duration-300 hover:scale-105"
+              style={{ width: '180px' }}
+            >
+              <div className="rounded-xl p-4 text-center" style={{
+                background: 'rgba(255,255,255,0.03)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                backdropFilter: 'blur(20px)',
+              }}>
+                <div className="mx-auto w-14 h-14 rounded-xl flex items-center justify-center mb-2.5" style={{
+                  background: agent.iconBg,
+                }}>
+                  <Icon name={agent.icon} size={22} className="text-white" />
+                </div>
+                <h4 className="text-sm font-bold text-white mb-1">{agent.name}</h4>
+                <p className="text-[9px] mb-2" style={{ color: 'rgba(255,255,255,0.4)' }}>{agent.role}</p>
+                <div className="flex items-center justify-center gap-1">
+                  <span 
+                    className="w-2 h-2 rounded-full" 
+                    style={{ background: statusColor(agent.status), boxShadow: statusGlow(agent.status) }} 
+                  />
+                  <span className="text-[8px] font-semibold uppercase" style={{ color: statusColor(agent.status) }}>
+                    {statusLabel(agent.status)}
+                  </span>
+                </div>
+                {agent.contextPercent !== undefined && agent.contextPercent > 0 && (
+                  <div className="mt-2.5">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[8px]" style={{ color: 'rgba(255,255,255,0.3)' }}>Kontekst</span>
+                      <span className="text-[8px] font-mono" style={{ color: 'rgba(255,255,255,0.4)' }}>{agent.contextPercent}%</span>
+                    </div>
+                    <ProgressBar 
+                      value={agent.contextPercent} 
+                      color={agent.contextPercent > 80 ? '#FF453A' : agent.contextPercent > 50 ? '#FF9F0A' : '#30D158'} 
+                    />
+                  </div>
+                )}
+                {agent.session?.totalTokens && (
+                  <p className="text-[9px] font-mono mt-2" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                    {formatPrice(estimatePrice(agent.model, agent.session.totalTokens))}
+                  </p>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/* ── Communication Tab ───────────────────────────────────────── */
+function CommunicationTab({ sessions }: { sessions: ApiSession[] }) {
+  const messages = sessions
+    .filter(s => s.label && s.displayName)
+    .sort((a, b) => b.updatedAt - a.updatedAt)
+    .slice(0, 20)
+
+  return (
+    <div className="space-y-3">
+      <p className="text-[11px] font-semibold uppercase tracking-wider mb-4" style={{ color: 'rgba(255,255,255,0.35)' }}>
+        Agent-til-Agent Kommunikation
+      </p>
+      {messages.length === 0 ? (
+        <div className="text-center py-12">
+          <div style={{ color: 'rgba(255,255,255,0.2)' }}>
+            <Icon name="sparkle" size={32} className="mx-auto mb-3" />
+          </div>
+          <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>Ingen beskeder endnu</p>
+        </div>
+      ) : (
+        messages.map(s => (
+          <div key={s.key} className="rounded-xl p-4" style={{
+            background: 'rgba(255,255,255,0.03)',
+            border: '1px solid rgba(255,255,255,0.06)',
+          }}>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{
+                background: getAgentIcon(s.displayName || '').iconBg,
+              }}>
+                <Icon name={getAgentIcon(s.displayName || '').icon} size={14} className="text-white" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-white">{s.displayName || s.label}</p>
+                <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                  {new Date(s.updatedAt).toLocaleString('da-DK', { 
+                    day: '2-digit', 
+                    month: 'short', 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                  })}
+                </p>
+              </div>
+              <span className="text-[9px] px-2 py-0.5 rounded font-mono" style={{
+                background: 'rgba(255,255,255,0.06)',
+                color: 'rgba(255,255,255,0.4)',
+              }}>
+                {s.model}
+              </span>
+            </div>
+            <p className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.6)' }}>
+              Session: {s.key}
+            </p>
+            {s.totalTokens && (
+              <div className="flex items-center gap-3 mt-3 pt-3 border-t border-white/5">
+                <span className="text-[9px]" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                  Tokens: {s.totalTokens.toLocaleString()}
+                </span>
+                <span className="text-[9px] font-mono" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                  {formatPrice(estimatePrice(s.model, s.totalTokens))}
+                </span>
+              </div>
+            )}
+          </div>
+        ))
+      )}
     </div>
   )
 }
@@ -229,29 +454,77 @@ function AgentDetail({ agent, onCreateTeamAgent }: { agent: AgentEntry; onCreate
         )}
       </div>
 
+      {/* Budget Info */}
+      {agent.session && agent.session.totalTokens && (
+        <div className="rounded-xl p-4 mb-5" style={{ 
+          background: 'rgba(0,122,255,0.04)', 
+          border: '1px solid rgba(0,122,255,0.15)' 
+        }}>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <span style={{ color: '#007AFF' }}>
+                <Icon name="zap" size={14} />
+              </span>
+              <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                Budget Forbrug
+              </p>
+            </div>
+            <span className="text-sm font-bold text-white">
+              {formatPrice(estimatePrice(agent.model, agent.session.totalTokens))}
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-3 text-xs">
+            <div>
+              <p className="text-[10px] mb-1" style={{ color: 'rgba(255,255,255,0.4)' }}>Total Tokens</p>
+              <p className="font-mono font-semibold text-white">{agent.session.totalTokens.toLocaleString()}</p>
+            </div>
+            <div>
+              <p className="text-[10px] mb-1" style={{ color: 'rgba(255,255,255,0.4)' }}>Context Tokens</p>
+              <p className="font-mono font-semibold text-white">{agent.session.contextTokens?.toLocaleString() || '0'}</p>
+            </div>
+          </div>
+          {agent.contextPercent !== undefined && (
+            <div className="mt-3">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.4)' }}>Budget Ramme (200k tokens)</span>
+                <span className="text-[10px] font-mono font-semibold" style={{ 
+                  color: agent.contextPercent > 80 ? '#FF453A' : agent.contextPercent > 50 ? '#FF9F0A' : '#30D158' 
+                }}>
+                  {agent.contextPercent}%
+                </span>
+              </div>
+              <ProgressBar 
+                value={agent.contextPercent} 
+                color={agent.contextPercent > 80 ? '#FF453A' : agent.contextPercent > 50 ? '#FF9F0A' : '#30D158'} 
+              />
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Session info */}
       {agent.session && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm mb-5">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.35)' }}>Kanal</p>
-            <p className="font-medium text-white">{agent.session.lastChannel}</p>
+            <p className="font-medium text-white">{agent.session.lastChannel || 'N/A'}</p>
           </div>
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.35)' }}>Session ID</p>
             <p className="font-mono text-xs break-all" style={{ color: 'rgba(255,255,255,0.5)' }}>{agent.session.sessionId}</p>
           </div>
-          {agent.session.totalTokens !== undefined && (
-            <>
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.35)' }}>Total Tokens</p>
-                <p className="font-mono text-sm text-white">{agent.session.totalTokens.toLocaleString()}</p>
-              </div>
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.35)' }}>Context Tokens</p>
-                <p className="font-mono text-sm text-white">{agent.session.contextTokens?.toLocaleString() || '0'}</p>
-              </div>
-            </>
-          )}
+          <div className="sm:col-span-2">
+            <p className="text-[11px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.35)' }}>Sidst Opdateret</p>
+            <p className="font-medium text-white text-xs">
+              {new Date(agent.session.updatedAt).toLocaleString('da-DK', {
+                day: '2-digit',
+                month: 'long',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+            </p>
+          </div>
         </div>
       )}
 
@@ -431,13 +704,15 @@ function Toast({ message, visible }: { message: string; visible: boolean }) {
 }
 
 /* ── Tab type ────────────────────────────────────────────────── */
-type TabFilter = 'alle' | 'team' | 'sub'
+type TabFilter = 'alle' | 'team' | 'sub' | 'kommunikation'
+type ViewMode = 'org-chart' | 'list'
 
 /* ── Main Page ──────────────────────────────────────────────── */
 export default function Agents() {
   const { isConnected, sessions } = useLiveData()
   const [selectedId, setSelectedId] = useState<string>('main')
   const [tab, setTab] = useState<TabFilter>('alle')
+  const [viewMode, setViewMode] = useState<ViewMode>('org-chart')
   const [showCreate, setShowCreate] = useState(false)
   const [prefillAgent, setPrefillAgent] = useState<AgentEntry | null>(null)
   const [toast, setToast] = useState({ message: '', visible: false })
@@ -489,6 +764,7 @@ export default function Agents() {
     { key: 'alle', label: 'Alle' },
     { key: 'team', label: 'Team' },
     { key: 'sub', label: 'Sub-Agenter' },
+    { key: 'kommunikation', label: 'Kommunikation' },
   ]
 
   // Suppress unused var
@@ -513,78 +789,154 @@ export default function Agents() {
         </button>
       </div>
 
-      {/* Tabs */}
-      <div className="overflow-x-auto mb-4">
-        <div className="flex gap-1 p-1 rounded-xl w-fit min-w-full sm:min-w-0" style={{ background: 'rgba(255,255,255,0.04)' }}>
-          {tabs.map(t => (
-            <button key={t.key} onClick={() => setTab(t.key)}
-              className="px-4 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all whitespace-nowrap"
-              style={{
-                background: tab === t.key ? 'rgba(0,122,255,0.2)' : 'transparent',
-                color: tab === t.key ? '#5AC8FA' : 'rgba(255,255,255,0.4)',
-                border: tab === t.key ? '1px solid rgba(0,122,255,0.3)' : '1px solid transparent',
-                minHeight: '44px',
-              }}>
-              {t.label}
-            </button>
-          ))}
+      {/* Tabs & View Toggle */}
+      <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between mb-4">
+        <div className="overflow-x-auto">
+          <div className="flex gap-1 p-1 rounded-xl w-fit min-w-full sm:min-w-0" style={{ background: 'rgba(255,255,255,0.04)' }}>
+            {tabs.map(t => (
+              <button key={t.key} onClick={() => setTab(t.key)}
+                className="px-4 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all whitespace-nowrap"
+                style={{
+                  background: tab === t.key ? 'rgba(0,122,255,0.2)' : 'transparent',
+                  color: tab === t.key ? '#5AC8FA' : 'rgba(255,255,255,0.4)',
+                  border: tab === t.key ? '1px solid rgba(0,122,255,0.3)' : '1px solid transparent',
+                  minHeight: '44px',
+                }}>
+                {t.label}
+              </button>
+            ))}
+          </div>
         </div>
+        
+        {tab !== 'kommunikation' && (
+          <div className="flex gap-1 p-1 rounded-xl w-fit" style={{ background: 'rgba(255,255,255,0.04)' }}>
+            <button
+              onClick={() => setViewMode('org-chart')}
+              className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-2"
+              style={{
+                background: viewMode === 'org-chart' ? 'rgba(0,122,255,0.2)' : 'transparent',
+                color: viewMode === 'org-chart' ? '#5AC8FA' : 'rgba(255,255,255,0.4)',
+                border: viewMode === 'org-chart' ? '1px solid rgba(0,122,255,0.3)' : '1px solid transparent',
+                minHeight: '44px',
+              }}
+            >
+              <Icon name="chart-bar" size={14} />
+              <span className="hidden sm:inline">Diagram</span>
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-2"
+              style={{
+                background: viewMode === 'list' ? 'rgba(0,122,255,0.2)' : 'transparent',
+                color: viewMode === 'list' ? '#5AC8FA' : 'rgba(255,255,255,0.4)',
+                border: viewMode === 'list' ? '1px solid rgba(0,122,255,0.3)' : '1px solid transparent',
+                minHeight: '44px',
+              }}
+            >
+              <Icon name="list" size={14} />
+              <span className="hidden sm:inline">Liste</span>
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* Two-column layout */}
-      <div className="flex flex-col lg:flex-row gap-4 flex-1 min-h-0">
-        {/* Left Panel — Roster */}
-        <div className="w-full lg:w-[300px] flex-shrink-0 rounded-2xl p-4 overflow-y-auto max-h-[400px] lg:max-h-none" style={{
+      {/* Content Area */}
+      {tab === 'kommunikation' ? (
+        <div className="rounded-2xl p-6 overflow-y-auto flex-1" style={{
           background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)',
           backdropFilter: 'blur(40px)', WebkitBackdropFilter: 'blur(40px)',
         }}>
-          <p className="text-[10px] font-bold uppercase tracking-[0.2em] mb-4 px-1" style={{ color: 'rgba(255,255,255,0.25)' }}>
-            Agent Roster
-          </p>
-
-          {/* Show by category when 'alle' */}
-          {tab === 'alle' ? (
-            <>
-              {/* Hovedagent */}
-              <p className="text-[9px] font-bold uppercase tracking-[0.15em] mb-2 mt-2 px-1" style={{ color: 'rgba(0,122,255,0.6)' }}>Hovedagent</p>
-              <RosterItem agent={mainAgent} selected={selectedId === mainAgent.id} onClick={() => setSelectedId(mainAgent.id)} />
-
-              {/* Team */}
-              {teamAgents.length > 0 && (
-                <>
-                  <p className="text-[9px] font-bold uppercase tracking-[0.15em] mb-2 mt-4 px-1" style={{ color: 'rgba(175,82,222,0.6)' }}>Team Agenter</p>
-                  {teamAgents.map(a => <RosterItem key={a.id} agent={a} selected={selectedId === a.id} onClick={() => setSelectedId(a.id)} />)}
-                </>
-              )}
-
-              {/* Sub-agents */}
-              {subAgents.length > 0 && (
-                <>
-                  <p className="text-[9px] font-bold uppercase tracking-[0.15em] mb-2 mt-4 px-1" style={{ color: 'rgba(99,99,102,0.8)' }}>Sub-Agenter</p>
-                  {subAgents.map(a => <RosterItem key={a.id} agent={a} selected={selectedId === a.id} onClick={() => setSelectedId(a.id)} />)}
-                </>
-              )}
-            </>
-          ) : (
-            <>
-              {filteredAgents.length === 0 && (
-                <p className="text-xs text-center py-8" style={{ color: 'rgba(255,255,255,0.3)' }}>
-                  {tab === 'sub' ? 'Ingen aktive sub-agenter' : 'Ingen agenter'}
-                </p>
-              )}
-              {filteredAgents.map(a => <RosterItem key={a.id} agent={a} selected={selectedId === a.id} onClick={() => setSelectedId(a.id)} />)}
-            </>
-          )}
+          <CommunicationTab sessions={isConnected ? sessions : []} />
         </div>
+      ) : viewMode === 'org-chart' && tab === 'alle' ? (
+        <div className="flex flex-col gap-4 flex-1 min-h-0">
+          <div className="rounded-2xl overflow-y-auto flex-1" style={{
+            background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)',
+            backdropFilter: 'blur(40px)', WebkitBackdropFilter: 'blur(40px)',
+          }}>
+            <OrgChartView 
+              mainAgent={mainAgent} 
+              teamAgents={teamAgents} 
+              onSelectAgent={setSelectedId}
+            />
+          </div>
+          
+          {/* Selected Agent Detail (below org chart on mobile, side panel on desktop) */}
+          <div className="lg:hidden rounded-2xl p-6 overflow-y-auto" style={{
+            background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)',
+            backdropFilter: 'blur(40px)', WebkitBackdropFilter: 'blur(40px)',
+          }}>
+            <AgentDetail agent={selected} onCreateTeamAgent={handleCreateTeamAgent} />
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-col lg:flex-row gap-4 flex-1 min-h-0">
+          {/* Left Panel — Roster */}
+          <div className="w-full lg:w-[300px] flex-shrink-0 rounded-2xl p-4 overflow-y-auto max-h-[400px] lg:max-h-none" style={{
+            background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)',
+            backdropFilter: 'blur(40px)', WebkitBackdropFilter: 'blur(40px)',
+          }}>
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] mb-4 px-1" style={{ color: 'rgba(255,255,255,0.25)' }}>
+              Agent Roster
+            </p>
 
-        {/* Right Panel — Detail */}
-        <div className="flex-1 rounded-2xl p-6 overflow-y-auto" style={{
-          background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)',
-          backdropFilter: 'blur(40px)', WebkitBackdropFilter: 'blur(40px)',
+            {/* Show by category when 'alle' */}
+            {tab === 'alle' ? (
+              <>
+                {/* Hovedagent */}
+                <p className="text-[9px] font-bold uppercase tracking-[0.15em] mb-2 mt-2 px-1" style={{ color: 'rgba(0,122,255,0.6)' }}>Hovedagent</p>
+                <RosterItem agent={mainAgent} selected={selectedId === mainAgent.id} onClick={() => setSelectedId(mainAgent.id)} />
+
+                {/* Team */}
+                {teamAgents.length > 0 && (
+                  <>
+                    <p className="text-[9px] font-bold uppercase tracking-[0.15em] mb-2 mt-4 px-1" style={{ color: 'rgba(175,82,222,0.6)' }}>Team Agenter</p>
+                    {teamAgents.map(a => <RosterItem key={a.id} agent={a} selected={selectedId === a.id} onClick={() => setSelectedId(a.id)} />)}
+                  </>
+                )}
+
+                {/* Sub-agents */}
+                {subAgents.length > 0 && (
+                  <>
+                    <p className="text-[9px] font-bold uppercase tracking-[0.15em] mb-2 mt-4 px-1" style={{ color: 'rgba(99,99,102,0.8)' }}>Sub-Agenter</p>
+                    {subAgents.map(a => <RosterItem key={a.id} agent={a} selected={selectedId === a.id} onClick={() => setSelectedId(a.id)} />)}
+                  </>
+                )}
+              </>
+            ) : (
+              <>
+                {filteredAgents.length === 0 && (
+                  <p className="text-xs text-center py-8" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                    {tab === 'sub' ? 'Ingen aktive sub-agenter' : 'Ingen agenter'}
+                  </p>
+                )}
+                {filteredAgents.map(a => <RosterItem key={a.id} agent={a} selected={selectedId === a.id} onClick={() => setSelectedId(a.id)} />)}
+              </>
+            )}
+          </div>
+
+          {/* Right Panel — Detail */}
+          <div className="flex-1 rounded-2xl p-6 overflow-y-auto" style={{
+            background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)',
+            backdropFilter: 'blur(40px)', WebkitBackdropFilter: 'blur(40px)',
+          }}>
+            <AgentDetail agent={selected} onCreateTeamAgent={handleCreateTeamAgent} />
+          </div>
+        </div>
+      )}
+      
+      {/* Desktop: side detail panel for org-chart */}
+      {viewMode === 'org-chart' && tab === 'alle' && (
+        <div className="hidden lg:block fixed right-6 top-24 w-[360px] max-h-[calc(100vh-120px)] rounded-2xl p-6 overflow-y-auto" style={{
+          background: 'rgba(10,10,15,0.95)', 
+          border: '1px solid rgba(255,255,255,0.1)',
+          backdropFilter: 'blur(40px)', 
+          WebkitBackdropFilter: 'blur(40px)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
         }}>
           <AgentDetail agent={selected} onCreateTeamAgent={handleCreateTeamAgent} />
         </div>
-      </div>
+      )}
 
       {/* Create Modal */}
       <CreateAgentModal open={showCreate} onClose={() => { setShowCreate(false); setPrefillAgent(null) }}

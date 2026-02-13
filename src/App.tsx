@@ -40,7 +40,7 @@ export default function App() {
   const Page = pages[page] || Dashboard
 
   return (
-    <LiveDataProvider pollInterval={page === 'dashboard' ? 10000 : 30000}>
+    <LiveDataProvider>
       <Layout activePage={page} onNavigate={setPage}>
         <Page />
       </Layout>

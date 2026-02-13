@@ -91,6 +91,7 @@ export interface ApiSession {
   abortedLastRun?: boolean
   lastChannel: string
   transcriptPath: string
+  lastMessages?: SessionMessage[]
 }
 
 export interface SessionsResponse {
@@ -123,6 +124,36 @@ export interface SessionWithMessages extends ApiSession {
 
 export async function fetchSessionHistory(sessionKey: string, limit = 5): Promise<SessionMessage[]> {
   const data = await invokeToolRaw('sessions_history', { sessionKey, limit, includeTools: false }) as any
+  const text = data.result?.content?.[0]?.text
+  if (text) {
+    try {
+      const parsed = JSON.parse(text)
+      return parsed.messages || parsed || []
+    } catch { /* fall through */ }
+  }
+  if (data.result?.details?.messages) return data.result.details.messages
+  return []
+}
+
+// Ny funktion til fuld session historik med tool calls
+export interface ToolCall {
+  tool: string
+  args: Record<string, any>
+  result?: any
+  timestamp?: number
+}
+
+export interface DetailedSessionMessage extends SessionMessage {
+  toolCalls?: ToolCall[]
+}
+
+export async function getSessionHistory(sessionKey: string): Promise<DetailedSessionMessage[]> {
+  const data = await invokeToolRaw('sessions_history', { 
+    sessionKey, 
+    includeTools: true, 
+    limit: 50 
+  }) as any
+  
   const text = data.result?.content?.[0]?.text
   if (text) {
     try {

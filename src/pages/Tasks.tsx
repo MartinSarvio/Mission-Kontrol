@@ -1,7 +1,8 @@
-import { useState, useMemo, useEffect, useRef } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import Icon from '../components/Icon'
+import LiveFeed from '../components/LiveFeed'
 import { useLiveData } from '../api/LiveDataContext'
-import { createAgent, ApiSession, fetchSessionHistory, SessionMessage } from '../api/openclaw'
+import { createAgent, ApiSession, getSessionHistory, DetailedSessionMessage, ToolCall } from '../api/openclaw'
 
 /* ── Types ───────────────────────────────────── */
 interface Task {
@@ -20,20 +21,6 @@ interface Task {
   label?: string
 }
 
-interface AgentActivity {
-  agentName: string
-  sessionKey: string
-  status: 'working' | 'idle' | 'done'
-  currentTask: string
-  lastAction: string
-  model: string
-  progress: number
-  plan: string[]
-  channel: string
-  updatedAt: Date
-  tokens: number
-}
-
 /* ── Helpers ─────────────────────────────────── */
 function timeAgo(date: Date): string {
   const mins = Math.floor((Date.now() - date.getTime()) / 60000)
@@ -42,27 +29,6 @@ function timeAgo(date: Date): string {
   const hours = Math.floor(mins / 60)
   if (hours < 24) return `${hours}t siden`
   return `${Math.floor(hours / 24)}d siden`
-}
-
-function timeSince(date: Date): string {
-  const secs = Math.floor((Date.now() - date.getTime()) / 1000)
-  if (secs < 60) return `${secs}s`
-  const mins = Math.floor(secs / 60)
-  if (mins < 60) return `${mins}m`
-  return `${Math.floor(mins / 60)}t ${mins % 60}m`
-}
-
-function extractLastMessage(session: any): string {
-  if (session.lastMessages && session.lastMessages.length > 0) {
-    const msg = session.lastMessages[session.lastMessages.length - 1]
-    const text = msg.text || msg.content || ''
-    if (typeof text === 'string') return text.slice(0, 200)
-    if (Array.isArray(text)) {
-      const t = text.find((c: any) => c.type === 'text')
-      return t?.text?.slice(0, 200) || ''
-    }
-  }
-  return ''
 }
 
 function sessionToTask(s: any): Task {
@@ -94,10 +60,16 @@ function sessionToTask(s: any): Task {
   }
 }
 
+function getAgentIcon(kind: string): string {
+  if (kind === 'main') return 'robot'
+  if (kind === 'subagent') return 'person'
+  return 'sparkle'
+}
+
 /* ── Sub-components ──────────────────────────── */
 function StatusDot({ status, size = 8 }: { status: string; size?: number }) {
-  const color = status === 'active' || status === 'working' ? 'bg-blue-500' : status === 'completed' || status === 'done' ? 'bg-green-500' : status === 'idle' ? 'bg-yellow-500' : 'bg-gray-500'
-  return <span className={`rounded-full flex-shrink-0 ${color} ${status === 'active' || status === 'working' ? 'animate-pulse' : ''}`} style={{ width: size, height: size }} />
+  const color = status === 'active' ? 'bg-blue-500 animate-pulse' : status === 'completed' ? 'bg-green-500' : 'bg-yellow-500'
+  return <span className={`rounded-full flex-shrink-0 ${color}`} style={{ width: size, height: size }} />
 }
 
 function KindBadge({ kind }: { kind: string }) {
@@ -110,36 +82,121 @@ function KindBadge({ kind }: { kind: string }) {
   return <span className="text-[10px] font-medium px-2 py-0.5 rounded-full" style={{ background: c.bg, color: c.color }}>{c.label}</span>
 }
 
+/* ── Tool Call Card ──────────────────────────── */
+function ToolCallCard({ toolCall }: { toolCall: ToolCall }) {
+  const [isExpanded, setIsExpanded] = useState(false)
+  
+  return (
+    <div className="rounded-xl overflow-hidden" style={{ background: 'rgba(255,149,0,0.05)', border: '1px solid rgba(255,149,0,0.15)' }}>
+      <div 
+        className="flex items-center justify-between p-3 cursor-pointer"
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
+        <div className="flex items-center gap-2">
+          <Icon name="wrench" size={14} className="text-orange-400" />
+          <span className="text-sm font-medium text-orange-300">{toolCall.tool}</span>
+        </div>
+        <Icon name={isExpanded ? 'chevron-down' : 'chevron-right'} size={14} className="text-white/30" />
+      </div>
+      
+      {isExpanded && (
+        <div className="px-3 pb-3 space-y-2">
+          {/* Arguments */}
+          <div>
+            <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>
+              Argumenter
+            </p>
+            <pre className="text-[11px] p-2 rounded overflow-x-auto" style={{ background: 'rgba(0,0,0,0.2)', color: 'rgba(255,255,255,0.6)' }}>
+              {String(JSON.stringify(toolCall.args || {}, null, 2))}
+            </pre>
+          </div>
+          
+          {/* Result */}
+          {toolCall.result && (
+            <div>
+              <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                Resultat
+              </p>
+              <pre className="text-[11px] p-2 rounded overflow-x-auto max-h-40" style={{ background: 'rgba(0,0,0,0.2)', color: 'rgba(255,255,255,0.6)' }}>
+                {typeof toolCall.result === 'string' ? toolCall.result : String(JSON.stringify((toolCall.result as any) || {}, null, 2))}
+              </pre>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/* ── Message Bubble ──────────────────────────── */
+function MessageBubble({ message }: { message: DetailedSessionMessage }) {
+  const isUser = message.role === 'user'
+  const isAssistant = message.role === 'assistant'
+  
+  let text = ''
+  const msgText = message.text as any
+  const msgContent = message.content as any
+  
+  if (typeof msgText === 'string') {
+    text = msgText
+  } else if (typeof msgContent === 'string') {
+    text = msgContent
+  } else if (Array.isArray(msgText)) {
+    const textBlock = msgText.find((c: any) => c.type === 'text')
+    text = textBlock?.text || ''
+  } else if (Array.isArray(msgContent)) {
+    const textBlock = msgContent.find((c: any) => c.type === 'text')
+    text = textBlock?.text || ''
+  }
+  
+  if (!text && !message.toolCalls) return null
+  
+  return (
+    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-3`}>
+      <div className={`max-w-[85%] ${isUser ? 'order-2' : 'order-1'}`}>
+        {/* Role label */}
+        <div className={`text-[10px] mb-1 ${isUser ? 'text-right' : 'text-left'}`} style={{ color: 'rgba(255,255,255,0.3)' }}>
+          {isUser ? 'Bruger' : isAssistant ? 'Agent' : message.role}
+        </div>
+        
+        {/* Message content */}
+        {text && (
+          <div 
+            className="rounded-2xl px-4 py-2.5"
+            style={{ 
+              background: isUser ? '#007AFF' : 'rgba(255,255,255,0.06)',
+              color: isUser ? '#fff' : 'rgba(255,255,255,0.85)',
+            }}
+          >
+            <p className="text-sm whitespace-pre-wrap break-words">{text}</p>
+          </div>
+        )}
+        
+        {/* Tool calls */}
+        {message.toolCalls && message.toolCalls.length > 0 && (
+          <div className="space-y-2 mt-2">
+            {message.toolCalls.map((tc, idx) => (
+              <ToolCallCard key={idx} toolCall={tc} />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 /* ── Main Component ──────────────────────────── */
 export default function Tasks() {
-  const { sessions, isLoading, isConnected } = useLiveData()
-  const [viewMode, setViewMode] = useState<'kanban' | 'livefeed' | 'historik' | 'visuel'>('kanban')
+  const { sessions, isLoading, isConnected, pollingSpeed } = useLiveData()
+  const [viewMode, setViewMode] = useState<'sessions' | 'livefeed'>('sessions')
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
+  const [sessionHistory, setSessionHistory] = useState<DetailedSessionMessage[]>([])
+  const [loadingHistory, setLoadingHistory] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [filterKind, setFilterKind] = useState('')
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [createForm, setCreateForm] = useState({ name: '', task: '', model: 'anthropic/claude-sonnet-4-5' })
   const [isCreating, setIsCreating] = useState(false)
-  const [sessionDetails, setSessionDetails] = useState<Record<string, SessionMessage[]>>({})
-  const [tick, setTick] = useState(0)
-
-  // Live tick — hurtigere når der er aktive sessions, langsommere ellers
-  useEffect(() => {
-    const hasActive = sessions.some(s => Date.now() - s.updatedAt < 120000 && s.key.includes('subagent'))
-    const interval = setInterval(() => setTick(t => t + 1), hasActive ? 2000 : 8000)
-    return () => clearInterval(interval)
-  }, [sessions])
-
-  // Fetch detailed history for active sub-agents
-  useEffect(() => {
-    const subagents = sessions.filter(s => s.kind === 'subagent')
-    subagents.forEach(async (s) => {
-      try {
-        const msgs = await fetchSessionHistory(s.key, 3)
-        setSessionDetails(prev => ({ ...prev, [s.key]: msgs }))
-      } catch { /* ignore */ }
-    })
-  }, [sessions, tick])
 
   const tasks: Task[] = useMemo(() => {
     return sessions.map(sessionToTask).sort((a, b) => b.updated.getTime() - a.updated.getTime())
@@ -152,59 +209,25 @@ export default function Tasks() {
     return true
   })
 
-  const queued = filtered.filter(t => t.status === 'queued')
   const active = filtered.filter(t => t.status === 'active')
   const completed = filtered.filter(t => t.status === 'completed')
 
-  // Build agent activities for visual view
-  const agentActivities: AgentActivity[] = useMemo(() => {
-    return sessions.map(s => {
-      const updatedAt = new Date(s.updatedAt)
-      const isRecent = updatedAt > new Date(Date.now() - 5 * 60 * 1000)
-      const lastMsg = extractLastMessage(s)
-      const details = sessionDetails[s.key] || []
-      const lastDetail = details.length > 0 ? details[details.length - 1] : null
-      
-      let currentTask = s.label || s.displayName || 'Ukendt opgave'
-      if (s.kind === 'main') currentTask = 'Telegram samtale med Martin'
-      
-      let lastAction = lastMsg || 'Venter...'
-      if (lastDetail) {
-        const detailText = lastDetail.text || lastDetail.content || ''
-        if (typeof detailText === 'string' && detailText.length > 0) lastAction = detailText.slice(0, 150)
-      }
-      
-      // Generate a simulated plan based on session kind
-      let plan: string[] = []
-      if (s.kind === 'subagent') {
-        plan = ['Analysér opgave', 'Læs relevante filer', 'Implementér ændringer', 'Test og verificér', 'Commit og push']
-      } else if (s.kind === 'main') {
-        plan = ['Modtag besked', 'Analysér forespørgsel', 'Udfør handling', 'Svar til Martin']
-      }
-
-      const progress = s.contextTokens && s.totalTokens 
-        ? Math.min(Math.round((s.contextTokens / s.totalTokens) * 100), 100)
-        : isRecent ? 50 : 100
-
-      return {
-        agentName: s.kind === 'main' ? 'Maison (Hoved)' : s.label || s.displayName || 'Sub-agent',
-        sessionKey: s.key,
-        status: s.kind === 'main' ? 'working' : isRecent ? 'working' : 'done',
-        currentTask,
-        lastAction,
-        model: s.model,
-        progress,
-        plan,
-        channel: s.lastChannel || s.channel,
-        updatedAt,
-        tokens: s.contextTokens || 0,
-      } as AgentActivity
-    }).sort((a, b) => {
-      if (a.status === 'working' && b.status !== 'working') return -1
-      if (b.status === 'working' && a.status !== 'working') return 1
-      return b.updatedAt.getTime() - a.updatedAt.getTime()
-    })
-  }, [sessions, sessionDetails, tick])
+  // Load session history when task is selected
+  useEffect(() => {
+    if (!selectedTask) {
+      setSessionHistory([])
+      return
+    }
+    
+    setLoadingHistory(true)
+    getSessionHistory(selectedTask.sessionKey)
+      .then(msgs => setSessionHistory(msgs))
+      .catch(err => {
+        console.error('Failed to load history:', err)
+        setSessionHistory([])
+      })
+      .finally(() => setLoadingHistory(false))
+  }, [selectedTask])
 
   async function handleCreateTask() {
     if (!createForm.name || !createForm.task) return
@@ -220,154 +243,70 @@ export default function Tasks() {
     }
   }
 
-  /* ── Task Card ─────────── */
-  const TaskCard = ({ task }: { task: Task }) => {
+  /* ── Session Card ─────────── */
+  const SessionCard = ({ task }: { task: Task }) => {
     const progress = task.contextTokens && task.totalTokens 
       ? Math.min(Math.round((task.contextTokens / task.totalTokens) * 100), 100) : undefined
-    const lastMsg = extractLastMessage(task)
 
     return (
-      <div onClick={() => setSelectedTask(task)} className="rounded-2xl p-4 cursor-pointer transition-all duration-200 group"
-        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
-        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.07)'; e.currentTarget.style.borderColor = 'rgba(0,122,255,0.3)' }}
-        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)' }}>
-        <div className="flex items-start justify-between mb-2">
-          <div className="flex items-center gap-2 flex-1 min-w-0">
-            <StatusDot status={task.status} />
-            <h4 className="text-sm font-semibold text-white truncate">{task.title}</h4>
+      <div 
+        onClick={() => setSelectedTask(task)} 
+        className="rounded-2xl p-4 cursor-pointer transition-all duration-200"
+        style={{ 
+          background: task.status === 'active' ? 'rgba(0,122,255,0.04)' : 'rgba(255,255,255,0.02)', 
+          border: task.status === 'active' ? '1px solid rgba(0,122,255,0.15)' : '1px solid rgba(255,255,255,0.06)',
+        }}
+        onMouseEnter={e => {
+          e.currentTarget.style.background = task.status === 'active' ? 'rgba(0,122,255,0.08)' : 'rgba(255,255,255,0.04)'
+          e.currentTarget.style.borderColor = 'rgba(0,122,255,0.3)'
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.background = task.status === 'active' ? 'rgba(0,122,255,0.04)' : 'rgba(255,255,255,0.02)'
+          e.currentTarget.style.borderColor = task.status === 'active' ? 'rgba(0,122,255,0.15)' : 'rgba(255,255,255,0.06)'
+        }}
+      >
+        {/* Header */}
+        <div className="flex items-start justify-between mb-3">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+              style={{ background: task.status === 'active' ? 'rgba(0,122,255,0.15)' : 'rgba(255,255,255,0.06)' }}>
+              <Icon name={getAgentIcon(task.kind)} size={18} className={task.status === 'active' ? 'text-blue-400' : 'text-white/40'} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <StatusDot status={task.status} size={6} />
+                <h4 className="text-sm font-semibold text-white truncate">{task.title}</h4>
+              </div>
+              <div className="flex items-center gap-2">
+                <KindBadge kind={task.kind} />
+                <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.3)' }}>·</span>
+                <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.35)' }}>{task.channel}</span>
+              </div>
+            </div>
           </div>
-          <KindBadge kind={task.kind} />
         </div>
-        {lastMsg && (
-          <p className="text-[11px] mb-2 line-clamp-2" style={{ color: 'rgba(255,255,255,0.4)' }}>
-            {lastMsg}
-          </p>
-        )}
-        <div className="flex items-center gap-2 mb-2">
-          <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.35)' }}>{task.channel}</span>
-          <span style={{ color: 'rgba(255,255,255,0.15)' }}>·</span>
-          <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.35)' }}>{task.model.split('/').pop()}</span>
-        </div>
+
+        {/* Progress */}
         {task.status === 'active' && progress !== undefined && (
-          <div className="mb-1">
+          <div className="mb-3">
+            <div className="flex justify-between mb-1">
+              <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.4)' }}>Fremskridt</span>
+              <span className="text-[10px] font-bold" style={{ color: '#007AFF' }}>{progress}%</span>
+            </div>
             <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(0,122,255,0.1)' }}>
               <div className="h-full rounded-full transition-all duration-1000" style={{ width: `${progress}%`, background: 'linear-gradient(90deg, #007AFF, #5AC8FA)' }} />
             </div>
           </div>
         )}
-        <div className="flex items-center justify-between mt-2">
+
+        {/* Footer */}
+        <div className="flex items-center justify-between pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
           <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.3)' }}>{timeAgo(task.updated)}</span>
-          {task.contextTokens && <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.25)' }}>{(task.contextTokens / 1000).toFixed(0)}K tok</span>}
-        </div>
-      </div>
-    )
-  }
-
-  /* ── Column ─────────── */
-  const Column = ({ title, count, color, tasks: items }: { title: string; count: number; color: string; tasks: Task[] }) => (
-    <div className="flex-1 min-w-[280px] sm:min-w-[300px]">
-      <div className="flex items-center gap-2 mb-4 px-1">
-        <span className={`w-2.5 h-2.5 rounded-full ${color}`} />
-        <h3 className="text-sm font-semibold text-white">{title}</h3>
-        <span className="text-xs px-2 py-0.5 rounded-full" style={{ color: 'rgba(255,255,255,0.4)', background: 'rgba(255,255,255,0.06)' }}>{count}</span>
-      </div>
-      <div className="space-y-3 min-h-[200px] p-2 rounded-2xl" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}>
-        {items.map(t => <TaskCard key={t.id} task={t} />)}
-        {items.length === 0 && <div className="text-center py-8 text-sm" style={{ color: 'rgba(255,255,255,0.2)' }}>Ingen opgaver</div>}
-      </div>
-    </div>
-  )
-
-  /* ── Visual Agent Card ─────────── */
-  const AgentVisualCard = ({ agent }: { agent: AgentActivity }) => {
-    const isWorking = agent.status === 'working'
-    const planStep = isWorking ? Math.floor((agent.progress / 100) * agent.plan.length) : agent.plan.length
-
-    return (
-      <div className="rounded-2xl p-5 transition-all duration-300"
-        style={{ 
-          background: isWorking ? 'rgba(0,122,255,0.04)' : 'rgba(255,255,255,0.02)',
-          border: isWorking ? '1px solid rgba(0,122,255,0.2)' : '1px solid rgba(255,255,255,0.06)',
-          boxShadow: isWorking ? '0 0 30px rgba(0,122,255,0.05)' : 'none'
-        }}>
-        {/* Header */}
-        <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" 
-              style={{ background: isWorking ? 'rgba(0,122,255,0.15)' : 'rgba(255,255,255,0.06)' }}>
-              <Icon name="person" size={20} className={isWorking ? 'text-blue-400' : 'text-white/40'} />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm font-bold text-white">{agent.agentName}</h3>
-                <StatusDot status={agent.status} size={6} />
-              </div>
-              <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.4)' }}>{agent.model.split('/').pop()} · {agent.channel}</p>
-            </div>
-          </div>
-          <div className="text-right">
-            <p className="text-[11px] font-medium" style={{ color: isWorking ? '#007AFF' : 'rgba(52,199,89,0.8)' }}>
-              {isWorking ? 'Arbejder' : 'Færdig'}
-            </p>
-            <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.3)' }}>{timeSince(agent.updatedAt)}</p>
-          </div>
-        </div>
-
-        {/* Current Task */}
-        <div className="rounded-xl p-3 mb-3" style={{ background: 'rgba(255,255,255,0.03)' }}>
-          <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Nuværende opgave</p>
-          <p className="text-sm text-white font-medium">{agent.currentTask}</p>
-        </div>
-
-        {/* Last Action */}
-        <div className="rounded-xl p-3 mb-3" style={{ background: 'rgba(255,255,255,0.02)' }}>
-          <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Seneste handling</p>
-          <p className="text-xs line-clamp-3" style={{ color: 'rgba(255,255,255,0.6)' }}>{agent.lastAction}</p>
-        </div>
-
-        {/* Progress */}
-        <div className="mb-3">
-          <div className="flex justify-between mb-1">
-            <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.4)' }}>Fremskridt</span>
-            <span className="text-[10px] font-bold" style={{ color: '#007AFF' }}>{agent.progress}%</span>
-          </div>
-          <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: 'rgba(0,122,255,0.08)' }}>
-            <div className="h-full rounded-full transition-all duration-1000" 
-              style={{ width: `${agent.progress}%`, background: 'linear-gradient(90deg, #007AFF, #5AC8FA)' }} />
-          </div>
-        </div>
-
-        {/* Plan Steps */}
-        <div>
-          <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: 'rgba(255,255,255,0.3)' }}>Plan</p>
-          <div className="space-y-1.5">
-            {agent.plan.map((step, i) => {
-              const isDone = i < planStep
-              const isCurrent = i === planStep && isWorking
-              return (
-                <div key={i} className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0"
-                    style={{ 
-                      background: isDone ? 'rgba(52,199,89,0.15)' : isCurrent ? 'rgba(0,122,255,0.15)' : 'rgba(255,255,255,0.04)',
-                      border: isCurrent ? '1px solid rgba(0,122,255,0.4)' : '1px solid transparent'
-                    }}>
-                    {isDone && <Icon name="checkmark" size={8} className="text-green-400" />}
-                    {isCurrent && <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />}
-                  </div>
-                  <span className={`text-xs ${isDone ? 'text-green-400/70 line-through' : isCurrent ? 'text-blue-400 font-medium' : 'text-white/30'}`}>
-                    {step}
-                  </span>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* Tokens */}
-        <div className="mt-3 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-          <div className="flex items-center justify-between">
-            <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.3)' }}>Token forbrug</span>
-            <span className="text-[10px] font-medium text-white/50">{(agent.tokens / 1000).toFixed(1)}K</span>
+            {task.contextTokens && <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.25)' }}>{(task.contextTokens / 1000).toFixed(0)}K tok</span>}
+            <span className="text-[11px] font-medium" style={{ color: task.status === 'active' ? '#007AFF' : 'rgba(52,199,89,0.8)' }}>
+              {task.status === 'active' ? 'Aktiv' : 'Afsluttet'}
+            </span>
           </div>
         </div>
       </div>
@@ -375,15 +314,15 @@ export default function Tasks() {
   }
 
   /* ── Tab Button ─────────── */
-  const TabBtn = ({ id, label }: { id: typeof viewMode; label: string }) => (
+  const TabBtn = ({ id, label, icon }: { id: typeof viewMode; label: string; icon: string }) => (
     <button onClick={() => setViewMode(id)}
-      className="px-4 py-2 text-sm font-medium rounded-lg transition-all whitespace-nowrap"
+      className="px-4 py-2 text-sm font-medium rounded-lg transition-all whitespace-nowrap flex items-center gap-2"
       style={{
         background: viewMode === id ? '#007AFF' : 'transparent',
         color: viewMode === id ? '#fff' : 'rgba(255,255,255,0.5)',
-        border: viewMode === id ? 'none' : '1px solid transparent',
         minHeight: '44px'
       }}>
+      <Icon name={icon} size={14} />
       {label}
     </button>
   )
@@ -393,8 +332,8 @@ export default function Tasks() {
     return (
       <div className="relative">
         <h1 className="text-xl sm:text-2xl font-bold text-white">Opgaver</h1>
-        <p className="text-sm mb-5" style={{ color: 'rgba(255,255,255,0.5)' }}>Opgavestyring og realtidsoverblik</p>
-        <div className="card text-center py-12">
+        <p className="text-sm mb-5" style={{ color: 'rgba(255,255,255,0.5)' }}>Session historik og live aktivitet</p>
+        <div className="rounded-2xl p-8 text-center" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
           <Icon name="exclamation-triangle" size={48} className="text-yellow-400 mx-auto mb-4" />
           <h3 className="text-lg font-semibold mb-2">Ingen forbindelse til Gateway</h3>
           <p className="text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>Gå til Indstillinger for at konfigurere</p>
@@ -414,21 +353,28 @@ export default function Tasks() {
           </button>
           <div className="overflow-x-auto">
             <div className="flex items-center gap-1 p-1 rounded-xl min-w-max" style={{ background: 'rgba(255,255,255,0.04)' }}>
-              <TabBtn id="kanban" label="Kanban" />
-              <TabBtn id="livefeed" label="Live Feed" />
-              <TabBtn id="historik" label="Historik" />
-              <TabBtn id="visuel" label="Visuel" />
+              <TabBtn id="sessions" label="Sessions" icon="list" />
+              <TabBtn id="livefeed" label="Live Feed" icon="zap" />
             </div>
           </div>
         </div>
       </div>
-      <p className="text-sm mb-5" style={{ color: 'rgba(255,255,255,0.5)' }}>
-        {tasks.length} sessions · {active.length} aktive · live opdatering
-        {isLoading && <span className="ml-2 text-blue-400">synkroniserer...</span>}
-      </p>
+      <div className="flex items-center gap-3 mb-5">
+        <p className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>
+          {tasks.length} sessions · {active.length} aktive
+        </p>
+        {/* Polling speed indicator */}
+        <div className="flex items-center gap-1.5 px-2 py-1 rounded-full" style={{ background: 'rgba(0,122,255,0.08)' }}>
+          <span className={`w-1.5 h-1.5 rounded-full ${pollingSpeed === 'fast' ? 'bg-green-400 animate-pulse' : pollingSpeed === 'normal' ? 'bg-blue-400' : 'bg-yellow-400'}`} />
+          <span className="text-[10px] font-medium" style={{ color: 'rgba(255,255,255,0.6)' }}>
+            {pollingSpeed === 'fast' ? 'Hurtig opdatering' : pollingSpeed === 'normal' ? 'Normal opdatering' : 'Langsom opdatering'}
+          </span>
+        </div>
+        {isLoading && <span className="text-xs text-blue-400">synkroniserer...</span>}
+      </div>
 
-      {/* ── Kanban View ─────────── */}
-      {viewMode === 'kanban' && (
+      {/* ── Sessions View ─────────── */}
+      {viewMode === 'sessions' && (
         <>
           <div className="flex items-center gap-3 mb-5 flex-wrap">
             <select value={filterKind} onChange={e => setFilterKind(e.target.value)} className="input text-xs py-1.5">
@@ -440,111 +386,47 @@ export default function Tasks() {
               <input type="text" placeholder="Søg..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="input text-xs py-1.5 w-48 pl-8" />
             </div>
           </div>
-          <div className="flex gap-5 overflow-x-auto pb-4">
-            <Column title="Kø" count={queued.length} color="bg-yellow-400" tasks={queued} />
-            <Column title="Aktiv" count={active.length} color="bg-blue-500" tasks={active} />
-            <Column title="Afsluttet" count={completed.length} color="bg-green-500" tasks={completed} />
-          </div>
+          
+          {/* Active sessions */}
+          {active.length > 0 && (
+            <>
+              <h3 className="text-xs uppercase tracking-wider font-semibold mb-3" style={{ color: 'rgba(0,122,255,0.7)' }}>
+                Aktive ({active.length})
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                {active.map(t => <SessionCard key={t.id} task={t} />)}
+              </div>
+            </>
+          )}
+          
+          {/* Completed sessions */}
+          {completed.length > 0 && (
+            <>
+              <h3 className="text-xs uppercase tracking-wider font-semibold mb-3" style={{ color: 'rgba(52,199,89,0.7)' }}>
+                Afsluttet ({completed.length})
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {completed.map(t => <SessionCard key={t.id} task={t} />)}
+              </div>
+            </>
+          )}
+          
+          {filtered.length === 0 && (
+            <div className="text-center py-12 text-sm" style={{ color: 'rgba(255,255,255,0.3)' }}>Ingen sessions matchede filtrene</div>
+          )}
         </>
       )}
 
-      {/* ── Live Feed ─────────── */}
+      {/* ── Live Feed View ─────────── */}
       {viewMode === 'livefeed' && (
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-            <span className="text-xs font-medium text-white/60">Live — opdateres automatisk</span>
-          </div>
-          {tasks.map(task => {
-            const lastMsg = extractLastMessage(task)
-            return (
-              <div key={task.id} onClick={() => setSelectedTask(task)}
-                className="flex items-center gap-4 px-4 py-3 cursor-pointer rounded-xl transition-all"
-                style={{ background: 'rgba(255,255,255,0.02)' }}
-                onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
-                onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.02)'}>
-                <StatusDot status={task.status} />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-white truncate">{task.title}</span>
-                    <KindBadge kind={task.kind} />
-                  </div>
-                  {lastMsg && <p className="text-[11px] truncate mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>{lastMsg}</p>}
-                </div>
-                <div className="text-right flex-shrink-0">
-                  <p className="text-[11px] font-medium" style={{ color: task.status === 'active' ? '#007AFF' : 'rgba(52,199,89,0.8)' }}>
-                    {task.status === 'active' ? 'Aktiv' : 'Afsluttet'}
-                  </p>
-                  <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.25)' }}>{timeAgo(task.updated)}</p>
-                </div>
-              </div>
-            )
-          })}
-          {tasks.length === 0 && (
-            <div className="text-center py-12 text-sm" style={{ color: 'rgba(255,255,255,0.3)' }}>Ingen sessions</div>
-          )}
-        </div>
-      )}
-
-      {/* ── Historik ─────────── */}
-      {viewMode === 'historik' && (
-        <div className="space-y-2">
-          {completed.length > 0 ? completed.map(task => (
-            <div key={task.id} onClick={() => setSelectedTask(task)}
-              className="flex items-center gap-4 px-4 py-3 cursor-pointer rounded-xl transition-all"
-              style={{ background: 'rgba(255,255,255,0.02)' }}
-              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
-              onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.02)'}>
-              <StatusDot status="completed" />
-              <div className="flex-1 min-w-0">
-                <span className="text-sm font-medium text-white truncate">{task.title}</span>
-                <p className="text-[11px] mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>{task.model.split('/').pop()}</p>
-              </div>
-              <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.25)' }}>{timeAgo(task.updated)}</span>
+        <div className="max-w-4xl mx-auto">
+          <div className="rounded-2xl p-6" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
+            <div className="flex items-center gap-2 mb-4">
+              <Icon name="zap" size={18} className="text-blue-400" />
+              <h2 className="text-lg font-bold text-white">Live Aktivitet</h2>
             </div>
-          )) : (
-            <div className="text-center py-12 text-sm" style={{ color: 'rgba(255,255,255,0.3)' }}>Ingen afsluttede opgaver</div>
-          )}
-        </div>
-      )}
-
-      {/* ── Visuel View ─────────── */}
-      {viewMode === 'visuel' && (
-        <div className="space-y-4">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-            <span className="text-xs font-medium text-white/60">
-              {agentActivities.filter(a => a.status === 'working').length} agenter arbejder — live visning
-            </span>
+            <LiveFeed maxEntries={100} />
           </div>
-          
-          {/* Working agents first, large cards */}
-          {agentActivities.filter(a => a.status === 'working').length > 0 && (
-            <>
-              <h3 className="text-xs uppercase tracking-wider font-semibold" style={{ color: 'rgba(0,122,255,0.7)' }}>Arbejder nu</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {agentActivities.filter(a => a.status === 'working').map(agent => (
-                  <AgentVisualCard key={agent.sessionKey} agent={agent} />
-                ))}
-              </div>
-            </>
-          )}
-
-          {/* Completed agents, smaller */}
-          {agentActivities.filter(a => a.status === 'done').length > 0 && (
-            <>
-              <h3 className="text-xs uppercase tracking-wider font-semibold mt-6" style={{ color: 'rgba(52,199,89,0.7)' }}>Afsluttet</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {agentActivities.filter(a => a.status === 'done').map(agent => (
-                  <AgentVisualCard key={agent.sessionKey} agent={agent} />
-                ))}
-              </div>
-            </>
-          )}
-
-          {agentActivities.length === 0 && (
-            <div className="text-center py-12 text-sm" style={{ color: 'rgba(255,255,255,0.3)' }}>Ingen agent-aktivitet</div>
-          )}
         </div>
       )}
 
@@ -595,56 +477,77 @@ export default function Tasks() {
         </>
       )}
 
-      {/* ── Detail Panel ─────────── */}
+      {/* ── Detail Panel (Session History) ─────────── */}
       {selectedTask && (
         <>
           <div className="fixed inset-0 z-50" style={{ background: 'rgba(0,0,0,0.85)' }} onClick={() => setSelectedTask(null)} />
-          <div className="fixed bottom-0 left-0 right-0 sm:right-0 sm:top-0 sm:left-auto sm:bottom-auto h-[85vh] sm:h-full w-full sm:w-[480px] z-50 overflow-y-auto rounded-t-2xl sm:rounded-none"
+          <div className="fixed bottom-0 left-0 right-0 sm:right-0 sm:top-0 sm:left-auto sm:bottom-auto h-[85vh] sm:h-full w-full sm:w-[600px] z-50 overflow-y-auto rounded-t-2xl sm:rounded-none flex flex-col"
             style={{ background: 'rgba(20,20,24,0.98)', borderLeft: '1px solid rgba(255,255,255,0.1)' }}>
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-base sm:text-lg font-bold text-white truncate pr-2">{selectedTask.title}</h2>
+            
+            {/* Header */}
+            <div className="p-6 border-b" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
+                    style={{ background: selectedTask.status === 'active' ? 'rgba(0,122,255,0.15)' : 'rgba(255,255,255,0.06)' }}>
+                    <Icon name={getAgentIcon(selectedTask.kind)} size={20} className={selectedTask.status === 'active' ? 'text-blue-400' : 'text-white/40'} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h2 className="text-base sm:text-lg font-bold text-white truncate mb-1">{selectedTask.title}</h2>
+                    <div className="flex items-center gap-2">
+                      <StatusDot status={selectedTask.status} size={6} />
+                      <span className="text-xs" style={{ color: selectedTask.status === 'active' ? '#007AFF' : 'rgba(52,199,89,0.8)' }}>
+                        {selectedTask.status === 'active' ? 'Aktiv' : 'Afsluttet'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
                 <button onClick={() => setSelectedTask(null)} className="w-11 h-11 sm:w-8 sm:h-8 flex-shrink-0 flex items-center justify-center rounded-full"
                   style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.4)' }}>
                   <Icon name="xmark" size={14} />
                 </button>
               </div>
-              <div className="space-y-3">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.03)' }}>
-                    <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Status</p>
-                    <div className="flex items-center gap-2"><StatusDot status={selectedTask.status} size={6} /><span className="text-sm text-white">{selectedTask.status === 'active' ? 'Aktiv' : selectedTask.status === 'completed' ? 'Afsluttet' : 'I kø'}</span></div>
-                  </div>
-                  <div className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.03)' }}>
-                    <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Type</p>
-                    <KindBadge kind={selectedTask.kind} />
-                  </div>
-                  <div className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.03)' }}>
-                    <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Model</p>
-                    <p className="text-sm text-white">{selectedTask.model.split('/').pop()}</p>
-                  </div>
-                  <div className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.03)' }}>
-                    <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Kanal</p>
-                    <p className="text-sm text-white">{selectedTask.channel}</p>
-                  </div>
+              
+              {/* Meta info */}
+              <div className="grid grid-cols-2 gap-2">
+                <div className="rounded-lg p-2" style={{ background: 'rgba(255,255,255,0.03)' }}>
+                  <p className="text-[9px] uppercase tracking-wider mb-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>Type</p>
+                  <KindBadge kind={selectedTask.kind} />
                 </div>
-                {selectedTask.contextTokens && (
-                  <div className="rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.03)' }}>
-                    <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: 'rgba(255,255,255,0.3)' }}>Token Forbrug</p>
-                    <p className="text-2xl font-bold text-white">{(selectedTask.contextTokens / 1000).toFixed(1)}K</p>
-                  </div>
-                )}
-                {extractLastMessage(selectedTask) && (
-                  <div className="rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.03)' }}>
-                    <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: 'rgba(255,255,255,0.3)' }}>Seneste aktivitet</p>
-                    <p className="text-xs" style={{ color: 'rgba(255,255,255,0.6)' }}>{extractLastMessage(selectedTask)}</p>
-                  </div>
-                )}
-                <div className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.03)' }}>
-                  <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Session</p>
-                  <p className="text-xs font-mono text-white/50">{selectedTask.sessionId}</p>
+                <div className="rounded-lg p-2" style={{ background: 'rgba(255,255,255,0.03)' }}>
+                  <p className="text-[9px] uppercase tracking-wider mb-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>Kanal</p>
+                  <p className="text-xs text-white">{selectedTask.channel}</p>
+                </div>
+                <div className="rounded-lg p-2" style={{ background: 'rgba(255,255,255,0.03)' }}>
+                  <p className="text-[9px] uppercase tracking-wider mb-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>Model</p>
+                  <p className="text-xs text-white">{selectedTask.model.split('/').pop()}</p>
+                </div>
+                <div className="rounded-lg p-2" style={{ background: 'rgba(255,255,255,0.03)' }}>
+                  <p className="text-[9px] uppercase tracking-wider mb-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>Tokens</p>
+                  <p className="text-xs text-white">{selectedTask.contextTokens ? `${(selectedTask.contextTokens / 1000).toFixed(1)}K` : 'N/A'}</p>
                 </div>
               </div>
+            </div>
+
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto p-6">
+              {loadingHistory ? (
+                <div className="text-center py-12">
+                  <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                  <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>Indlæser historik...</p>
+                </div>
+              ) : sessionHistory.length > 0 ? (
+                <div className="space-y-1">
+                  {sessionHistory.map((msg, idx) => (
+                    <MessageBubble key={idx} message={msg} />
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <Icon name="doc-text" size={32} className="mx-auto mb-2 opacity-20" />
+                  <p className="text-sm" style={{ color: 'rgba(255,255,255,0.3)' }}>Ingen beskeder i denne session</p>
+                </div>
+              )}
             </div>
           </div>
         </>

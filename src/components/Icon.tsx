@@ -2,6 +2,7 @@ interface IconProps {
   name: string
   size?: number
   className?: string
+  style?: React.CSSProperties
 }
 
 const icons: Record<string, (size: number) => JSX.Element> = {
@@ -294,8 +295,8 @@ const icons: Record<string, (size: number) => JSX.Element> = {
   ),
 }
 
-export default function Icon({ name, size = 16, className = '' }: IconProps) {
+export default function Icon({ name, size = 16, className = '', style }: IconProps) {
   const render = icons[name]
   if (!render) return null
-  return <span className={`inline-flex items-center justify-center flex-shrink-0 ${className}`}>{render(size)}</span>
+  return <span className={`inline-flex items-center justify-center flex-shrink-0 ${className}`} style={style}>{render(size)}</span>
 }
