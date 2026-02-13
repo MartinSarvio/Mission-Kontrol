@@ -153,7 +153,6 @@ function TaskCard({ task, onClick }: { task: Task; onClick: () => void }) {
       className="rounded-2xl p-4 cursor-pointer transition-all duration-200"
       style={{
         background: 'rgba(255,255,255,0.03)',
-        borderLeft: `3px solid ${color}`,
       }}
       onMouseEnter={e => {
         e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
