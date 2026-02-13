@@ -99,7 +99,7 @@ export default function Sidebar({ active, onNavigate, isOpen, onClose }: Sidebar
         </div>
         
         {showHeartbeat && (
-          <div className="mt-2 glass-heartbeat p-3 space-y-2">
+          <div className="mt-2 p-3 space-y-2 rounded-xl" style={{ background: 'rgba(255,255,255,0.04)', border: 'none' }}>
             <div className="flex items-center gap-3 mb-2">
               <div 
                 className="w-10 h-10 rounded-xl flex items-center justify-center" 
