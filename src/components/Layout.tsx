@@ -35,6 +35,22 @@ export default function Layout({ children, activePage, onNavigate }: LayoutProps
         onClose={() => setSidebarOpen(false)}
       />
 
+      {/* Tauri drag region - allows window to be moved on desktop app */}
+      {'__TAURI__' in (typeof window !== 'undefined' ? window : {}) && (
+        <div
+          data-tauri-drag-region
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 28,
+            zIndex: 100,
+            WebkitAppRegion: 'drag',
+          } as React.CSSProperties}
+        />
+      )}
+
       {/* Main content - offset by sidebar width on desktop only */}
       <div className="lg:pl-60" style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #0a0a0f 0%, #12121a 50%, #0e0e16 100%)' }}>
         {/* Mobile header */}
