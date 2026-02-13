@@ -436,7 +436,7 @@ export default function Skills() {
       {selectedSkill && (
         <>
           <div className="fixed inset-0 z-50" style={{ background: 'rgba(0,0,0,0.85)' }} onClick={() => setSelectedSkill(null)} />
-          <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-2rem)] sm:w-[500px] max-w-[500px] z-50 p-4 sm:p-6 rounded-2xl max-h-[90vh] overflow-y-auto"
+          <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-2rem)] sm:w-[500px] max-w-[500px] z-50 p-4 sm:p-6 rounded-xl max-h-[90vh] overflow-y-auto"
             style={{ background: 'rgba(28,28,30,0.98)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(20px)' }}>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">

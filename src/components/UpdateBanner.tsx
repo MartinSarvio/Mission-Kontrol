@@ -68,7 +68,7 @@ export default function UpdateBanner() {
 
   return (
     <div
-      className="fixed top-4 right-4 z-[200] max-w-sm rounded-2xl p-4 animate-fadeIn"
+      className="fixed top-4 right-4 z-[200] max-w-sm rounded-xl p-4 animate-fadeIn"
       style={{
         background: 'rgba(0,122,255,0.12)',
         backdropFilter: 'blur(40px)',

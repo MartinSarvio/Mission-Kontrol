@@ -3,193 +3,238 @@ import Card from '../components/Card'
 import SearchBar from '../components/SearchBar'
 import Modal from '../components/Modal'
 import Icon from '../components/Icon'
-import { useLiveData } from '../api/LiveDataContext'
 
-interface ChannelInfo {
+interface Project {
   id: string
   name: string
-  type: string
-  status: 'active' | 'inactive' | 'error'
-  config: Record<string, any>
+  description: string
+  status: 'active' | 'paused' | 'planning'
+  techStack: string[]
+  color: string
+  icon: string
+}
+
+const PROJECTS: Project[] = [
+  {
+    id: 'mission-kontrol',
+    name: 'Mission Kontrol',
+    description: 'AI-assisteret dashboard og kontrolpanel til OpenClaw Gateway. React + TypeScript + Tailwind med live data streaming.',
+    status: 'active',
+    techStack: ['React', 'TypeScript', 'Tailwind CSS', 'Vite', 'Vercel'],
+    color: '#007AFF',
+    icon: 'chart-bar',
+  },
+  {
+    id: 'flow',
+    name: 'Flow',
+    description: 'Alt-i-én restaurationsplatform med bordreservationer, online ordering, marketing automation og gæsteanalyse.',
+    status: 'paused',
+    techStack: ['Vanilla JS', 'Supabase', 'Vite', 'PostgreSQL'],
+    color: '#FF6B35',
+    icon: 'utensils',
+  },
+]
+
+const statusLabels: Record<string, string> = {
+  active: 'Aktiv',
+  paused: 'På pause',
+  planning: 'Planlægning',
+}
+
+const statusColors: Record<string, { bg: string; text: string }> = {
+  active: { bg: 'rgba(52,199,89,0.1)', text: '#34C759' },
+  paused: { bg: 'rgba(255,159,10,0.1)', text: '#FF9F0A' },
+  planning: { bg: 'rgba(0,122,255,0.1)', text: '#007AFF' },
 }
 
 export default function Clients() {
-  const { isConnected, gatewayConfig, isLoading } = useLiveData()
   const [search, setSearch] = useState('')
-  const [selected, setSelected] = useState<ChannelInfo | null>(null)
-
-  const channels = useMemo(() => {
-    if (!gatewayConfig?.channels) return []
-    
-    const result: ChannelInfo[] = []
-    const channelsObj = gatewayConfig.channels
-
-    Object.keys(channelsObj).forEach(key => {
-      const config = channelsObj[key]
-      if (!config || typeof config !== 'object') return
-
-      const isActive = config.enabled !== false && config.token
-      result.push({
-        id: key,
-        name: config.name || key,
-        type: key,
-        status: isActive ? 'active' : 'inactive',
-        config,
-      })
-    })
-
-    return result
-  }, [gatewayConfig])
+  const [selected, setSelected] = useState<Project | null>(null)
 
   const filtered = useMemo(() => {
-    if (!search) return channels
+    if (!search) return PROJECTS
     const q = search.toLowerCase()
-    return channels.filter(c => 
-      c.name.toLowerCase().includes(q) || 
-      c.type.toLowerCase().includes(q)
+    return PROJECTS.filter(p => 
+      p.name.toLowerCase().includes(q) || 
+      p.description.toLowerCase().includes(q) ||
+      p.techStack.some(t => t.toLowerCase().includes(q))
     )
-  }, [channels, search])
+  }, [search])
 
   return (
     <div>
-      <h1 className="text-xl sm:text-2xl font-bold mb-1">Brugere & Kanaler</h1>
+      <h1 className="text-xl sm:text-2xl font-bold mb-1">Projekter</h1>
       <p className="caption mb-6">
-        {isLoading ? 'Indlæser...' : `${channels.length} ${channels.length === 1 ? 'kanal' : 'kanaler'} konfigureret`}
-        {!isConnected && <span className="ml-2 text-orange-400">(offline)</span>}
+        Projekter du bygger med Mission Kontrol
       </p>
 
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-6">
         <div className="flex-1">
-          <SearchBar value={search} onChange={setSearch} placeholder="Søg kanaler..." />
+          <SearchBar value={search} onChange={setSearch} placeholder="Søg projekter..." />
         </div>
       </div>
 
-      {isLoading ? (
-        <Card>
-          <div className="text-center py-12">
-            <div className="inline-block animate-spin text-white/30 mb-3">
-              <Icon name="clock" size={32} />
-            </div>
-            <p className="caption">Indlæser kanalkonfiguration...</p>
-          </div>
-        </Card>
-      ) : channels.length === 0 ? (
-        <Card>
-          <div className="text-center py-16 px-4">
-            <Icon name="person" size={40} className="text-white/30 mx-auto mb-4" />
-            <p className="text-lg font-medium mb-2" style={{ color: 'rgba(255,255,255,0.7)' }}>
-              Ingen kanaler konfigureret
-            </p>
-            <p className="caption max-w-md mx-auto">
-              Konfigurer kanaler i Gateway indstillinger for at forbinde til Telegram, Discord eller andre platforme.
-            </p>
-          </div>
-        </Card>
-      ) : (
-        <div className="space-y-3">
-          {filtered.map(channel => (
-            <Card key={channel.id}>
-              <div 
-                className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 cursor-pointer"
-                onClick={() => setSelected(channel)}
-              >
-                <div className="flex items-center gap-4">
-                  <div style={{
-                    width: '40px',
-                    height: '40px',
-                    borderRadius: '10px',
-                    background: channel.status === 'active' 
-                      ? 'rgba(52,199,89,0.15)' 
-                      : 'rgba(255,255,255,0.06)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}>
-                    <Icon 
-                      name={channel.status === 'active' ? 'checkmark-circle' : 'xmark'} 
-                      size={20} 
-                      className={channel.status === 'active' ? 'text-[#34C759]' : 'text-white/30'}
-                    />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">{channel.name}</p>
-                    <p className="caption capitalize">{channel.type}</p>
-                  </div>
+      <div className="space-y-3">
+        {filtered.map(project => (
+          <Card key={project.id}>
+            <div 
+              className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 cursor-pointer"
+              onClick={() => setSelected(project)}
+            >
+              <div className="flex items-start gap-4">
+                <div style={{
+                  width: '48px',
+                  height: '48px',
+                  borderRadius: '12px',
+                  background: `${project.color}15`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}>
+                  <Icon 
+                    name={project.icon} 
+                    size={24} 
+                    style={{ color: project.color }}
+                  />
                 </div>
-                <div className="flex items-center gap-4">
-                  <span 
-                    className="text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap"
-                    style={{
-                      background: channel.status === 'active' 
-                        ? 'rgba(52,199,89,0.1)' 
-                        : 'rgba(255,255,255,0.06)',
-                      color: channel.status === 'active' ? '#34C759' : 'rgba(255,255,255,0.5)',
-                    }}
-                  >
-                    {channel.status === 'active' ? 'Aktiv' : 'Inaktiv'}
-                  </span>
-                  <Icon name="chevron-right" size={16} className="text-white/30" />
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <p className="text-base font-semibold">{project.name}</p>
+                    <span 
+                      className="text-xs font-medium px-2 py-0.5 rounded-full"
+                      style={{
+                        background: statusColors[project.status].bg,
+                        color: statusColors[project.status].text,
+                      }}
+                    >
+                      {statusLabels[project.status]}
+                    </span>
+                  </div>
+                  <p className="caption mb-2 leading-relaxed">{project.description}</p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {project.techStack.map(tech => (
+                      <span 
+                        key={tech}
+                        className="text-[10px] font-medium px-2 py-0.5 rounded"
+                        style={{ 
+                          background: 'rgba(255,255,255,0.06)',
+                          color: 'rgba(255,255,255,0.5)',
+                        }}
+                      >
+                        {tech}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               </div>
-            </Card>
-          ))}
-        </div>
+              <Icon name="chevron-right" size={16} className="text-white/30 flex-shrink-0" />
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      {filtered.length === 0 && (
+        <Card>
+          <div className="text-center py-16 px-4">
+            <Icon name="folder" size={40} className="text-white/30 mx-auto mb-4" />
+            <p className="text-lg font-medium mb-2" style={{ color: 'rgba(255,255,255,0.7)' }}>
+              Ingen projekter fundet
+            </p>
+            <p className="caption max-w-md mx-auto">
+              Prøv en anden søgning
+            </p>
+          </div>
+        </Card>
       )}
 
       <Modal open={!!selected} onClose={() => setSelected(null)} title={selected?.name || ''}>
         {selected && (
-          <div className="space-y-4 text-sm">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <p className="caption">Type</p>
-                <p className="font-medium capitalize">{selected.type}</p>
+          <div className="space-y-5">
+            <div className="flex items-center gap-4">
+              <div style={{
+                width: '64px',
+                height: '64px',
+                borderRadius: '16px',
+                background: `${selected.color}15`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <Icon 
+                  name={selected.icon} 
+                  size={32} 
+                  style={{ color: selected.color }}
+                />
               </div>
               <div>
-                <p className="caption">Status</p>
+                <h3 className="text-xl font-bold text-white mb-1">{selected.name}</h3>
                 <span 
                   className="text-xs font-medium px-2.5 py-1 rounded-full inline-block"
                   style={{
-                    background: selected.status === 'active' 
-                      ? 'rgba(52,199,89,0.1)' 
-                      : 'rgba(255,255,255,0.06)',
-                    color: selected.status === 'active' ? '#34C759' : 'rgba(255,255,255,0.5)',
+                    background: statusColors[selected.status].bg,
+                    color: statusColors[selected.status].text,
                   }}
                 >
-                  {selected.status === 'active' ? 'Aktiv' : 'Inaktiv'}
+                  {statusLabels[selected.status]}
                 </span>
               </div>
-              {selected.config.token && (
-                <div className="sm:col-span-2">
-                  <p className="caption">Token</p>
-                  <p className="font-mono text-xs px-2 py-1 rounded-lg break-all" style={{ background: 'rgba(255,255,255,0.06)' }}>
-                    {selected.config.token.slice(0, 20)}...
-                  </p>
-                </div>
-              )}
-              {selected.config.dmPolicy && (
-                <div>
-                  <p className="caption">DM Policy</p>
-                  <p className="font-medium capitalize">{selected.config.dmPolicy}</p>
-                </div>
-              )}
-              {selected.config.enabled !== undefined && (
-                <div>
-                  <p className="caption">Enabled</p>
-                  <p className="font-medium">{selected.config.enabled ? 'Ja' : 'Nej'}</p>
-                </div>
-              )}
             </div>
 
-            {Object.keys(selected.config).length > 0 && (
-              <div>
-                <p className="caption mb-2">Fuld Konfiguration</p>
-                <pre className="text-xs p-3 rounded-lg overflow-x-auto" style={{ 
-                  background: 'rgba(255,255,255,0.03)',
-                  border: '1px solid rgba(255,255,255,0.06)',
-                  color: 'rgba(255,255,255,0.6)',
-                }}>
-                  {JSON.stringify(selected.config, null, 2)}
-                </pre>
+            <div>
+              <p className="caption mb-2">Beskrivelse</p>
+              <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.7)' }}>
+                {selected.description}
+              </p>
+            </div>
+
+            <div>
+              <p className="caption mb-2">Tech Stack</p>
+              <div className="flex items-center gap-2 flex-wrap">
+                {selected.techStack.map(tech => (
+                  <span 
+                    key={tech}
+                    className="text-xs font-medium px-3 py-1.5 rounded-lg"
+                    style={{ 
+                      background: 'rgba(255,255,255,0.06)',
+                      color: 'rgba(255,255,255,0.8)',
+                    }}
+                  >
+                    {tech}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {selected.id === 'mission-kontrol' && (
+              <div className="rounded-lg p-4" style={{ background: 'rgba(0,122,255,0.08)', border: '1px solid rgba(0,122,255,0.2)' }}>
+                <div className="flex items-start gap-3">
+                  <Icon name="info-circle" size={16} style={{ color: '#007AFF', marginTop: '2px' }} />
+                  <div>
+                    <p className="text-xs font-semibold mb-1" style={{ color: '#5AC8FA' }}>
+                      Live projekt
+                    </p>
+                    <p className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                      Dette dashboard du bruger lige nu. Deployed på Vercel med automatisk CI/CD fra GitHub.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {selected.id === 'flow' && (
+              <div className="rounded-lg p-4" style={{ background: 'rgba(255,159,10,0.08)', border: '1px solid rgba(255,159,10,0.2)' }}>
+                <div className="flex items-start gap-3">
+                  <Icon name="pause-circle" size={16} style={{ color: '#FF9F0A', marginTop: '2px' }} />
+                  <div>
+                    <p className="text-xs font-semibold mb-1" style={{ color: '#FF9F0A' }}>
+                      På pause
+                    </p>
+                    <p className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                      Udviklingen er sat på pause mens Mission Kontrol bygges. Genoptages senere i 2026.
+                    </p>
+                  </div>
+                </div>
               </div>
             )}
           </div>

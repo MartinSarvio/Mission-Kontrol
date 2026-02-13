@@ -96,7 +96,7 @@ export default function Workshop() {
               onChange={e => setPrompt(e.target.value)}
               placeholder="Skriv din prompt her... Sub-agent spawnes og kører opgaven."
               className="w-full h-64 resize-none font-mono text-sm"
-              style={{ background: 'rgba(255,255,255,0.06)', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '12px' }}
+              style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.9)', border: 'none', borderRadius: '12px', padding: '12px', outline: 'none' }}
               disabled={isRunning}
             />
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mt-4">
@@ -115,12 +115,12 @@ export default function Workshop() {
               <select 
                 value={selectedModel}
                 onChange={e => setSelectedModel(e.target.value)}
-                className="input text-sm" 
-                style={{ minHeight: '44px', background: 'rgba(255,255,255,0.06)', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
+                className="text-sm" 
+                style={{ minHeight: '44px', background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.9)', border: 'none', borderRadius: '12px', padding: '8px 16px', outline: 'none', cursor: 'pointer' }}
                 disabled={isRunning}
               >
                 {availableModels.map((m: any) => (
-                  <option key={m} value={m} style={{ background: '#1a1a2e', color: '#fff' }}>{m}</option>
+                  <option key={m} value={m} style={{ background: '#0a0a0f', color: 'rgba(255,255,255,0.9)' }}>{m}</option>
                 ))}
               </select>
 

@@ -170,7 +170,7 @@ function HeroCard({ agent, onClick }: { agent: AgentEntry; onClick: () => void }
   return (
     <div
       onClick={onClick}
-      className="rounded-2xl p-8 cursor-pointer transition-all duration-300"
+      className="rounded-xl p-8 cursor-pointer transition-all duration-300"
       style={{
         background: 'linear-gradient(135deg, rgba(0,122,255,0.08), rgba(175,82,222,0.08))',
         border: '1px solid rgba(0,122,255,0.2)',
@@ -244,7 +244,7 @@ function AgentCard({ agent, onClick }: { agent: AgentEntry; onClick: () => void 
   return (
     <div
       onClick={onClick}
-      className="rounded-2xl p-6 cursor-pointer transition-all duration-300 text-center"
+      className="rounded-xl p-6 cursor-pointer transition-all duration-300 text-center"
       style={{
         background: 'rgba(255,255,255,0.03)',
         border: '1px solid rgba(255,255,255,0.08)',
@@ -262,7 +262,7 @@ function AgentCard({ agent, onClick }: { agent: AgentEntry; onClick: () => void 
       }}
     >
       <div 
-        className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
+        className="w-16 h-16 rounded-xl flex items-center justify-center mx-auto mb-4"
         style={{ background: agent.iconBg }}
       >
         <Icon name={agent.icon} size={28} className="text-white" />
@@ -321,7 +321,7 @@ function DetailPanel({ agent, onClose }: { agent: AgentEntry; onClose: () => voi
         
         <div className="flex items-center gap-4 mb-6">
           <div 
-            className="w-20 h-20 rounded-2xl flex items-center justify-center flex-shrink-0"
+            className="w-20 h-20 rounded-xl flex items-center justify-center flex-shrink-0"
             style={{ background: agent.iconBg }}
           >
             <Icon name={agent.icon} size={36} className="text-white" />
@@ -455,7 +455,7 @@ function CreateModal({ open, onClose }: { open: boolean; onClose: () => void }) 
     <>
       <div className="fixed inset-0 z-50" style={{ background: 'rgba(0,0,0,0.85)' }} onClick={onClose} />
       <div 
-        className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md z-50 p-6 rounded-2xl"
+        className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md z-50 p-6 rounded-xl"
         style={{ background: 'rgba(20,20,24,0.98)', border: '1px solid rgba(255,255,255,0.1)' }}
       >
         <div className="flex items-center justify-between mb-6">
@@ -570,7 +570,7 @@ function CommunicationView() {
           <div
             key={s.sessionId}
             onClick={() => setSelectedSession(s)}
-            className="rounded-2xl p-4 cursor-pointer transition-all duration-200"
+            className="rounded-xl p-4 cursor-pointer transition-all duration-200"
             style={{
               background: selectedSession?.sessionId === s.sessionId ? 'rgba(0,122,255,0.1)' : 'rgba(255,255,255,0.03)',
               border: selectedSession?.sessionId === s.sessionId ? '1px solid rgba(0,122,255,0.3)' : '1px solid transparent',
@@ -601,7 +601,7 @@ function CommunicationView() {
       </div>
 
       {/* Chat view */}
-      <div className="flex-1 rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
+      <div className="flex-1 rounded-xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
         {!selectedSession ? (
           <div className="flex items-center justify-center h-full py-16">
             <div className="text-center">
@@ -633,7 +633,7 @@ function CommunicationView() {
                         {isUser ? 'Maison' : selectedSession.agent}
                       </p>
                       {text && (
-                        <div className="rounded-2xl px-4 py-2.5" style={{
+                        <div className="rounded-xl px-4 py-2.5" style={{
                           background: isUser ? '#007AFF' : 'rgba(255,255,255,0.06)',
                           color: isUser ? '#fff' : 'rgba(255,255,255,0.85)',
                         }}>

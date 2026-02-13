@@ -120,7 +120,7 @@ export default function Documents() {
         </Card>
       )}
 
-      <div className="mt-6 border-2 border-dashed rounded-2xl p-8 sm:p-12 text-center transition-colors" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
+      <div className="mt-6 border-2 border-dashed rounded-xl p-8 sm:p-12 text-center transition-colors" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
         <Icon name="upload" size={24} className="text-white/30 mx-auto mb-2" />
         <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>Upload funktion kommer snart</p>
         <p className="caption mt-1">PDF, Markdown, CSV, Excel, SQL</p>

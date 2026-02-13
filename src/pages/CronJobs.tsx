@@ -20,17 +20,32 @@ export default function CronJobs() {
   const [loadingRuns, setLoadingRuns] = useState(false)
 
   async function viewJobRuns(jobId: string) {
-    setSelectedJobId(jobId)
-    setLoadingRuns(true)
     try {
-      const runsData = await fetchCronRuns(jobId)
-      setRuns(runsData || [])
+      setSelectedJobId(jobId)
+      setLoadingRuns(true)
+      try {
+        const runsData = await fetchCronRuns(jobId)
+        setRuns(runsData || [])
+      } catch (err) {
+        console.error('Failed to load cron runs:', err)
+        setRuns([])
+      } finally {
+        setLoadingRuns(false)
+      }
     } catch (err) {
-      console.error('Failed to load cron runs:', err)
+      console.error('Failed to view job runs:', err)
       setRuns([])
-    } finally {
       setLoadingRuns(false)
     }
+  }
+  
+  function formatSchedule(schedule: any): string {
+    if (!schedule) return 'Ukendt'
+    if (typeof schedule === 'string') return schedule
+    if (typeof schedule === 'object') {
+      return schedule.expr || schedule.kind || JSON.stringify(schedule)
+    }
+    return String(schedule)
   }
 
   const selectedJob = cronJobs.find(j => j.id === selectedJobId)
@@ -94,7 +109,7 @@ export default function CronJobs() {
                   <StatusBadge status={job.enabled !== false ? 'active' : 'paused'} />
                   <div>
                     <p className="text-sm font-medium">{job.name || job.id}</p>
-                    <p className="caption font-mono">{typeof job.schedule === 'object' ? (job.schedule?.expr || job.schedule?.kind || 'Planlagt') : (job.schedule || 'Ukendt')}</p>
+                    <p className="caption font-mono">{formatSchedule(job.schedule)}</p>
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-4 sm:gap-6 text-sm">
@@ -137,7 +152,7 @@ export default function CronJobs() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <p className="caption">Schedule</p>
-                <p className="font-mono text-xs">{typeof selectedJob.schedule === 'object' ? (selectedJob.schedule?.expr || selectedJob.schedule?.kind || 'Planlagt') : (selectedJob.schedule || 'Ukendt')}</p>
+                <p className="font-mono text-xs">{formatSchedule(selectedJob.schedule)}</p>
               </div>
               <div>
                 <p className="caption">Status</p>

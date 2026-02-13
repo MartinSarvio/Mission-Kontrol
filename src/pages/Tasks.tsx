@@ -136,7 +136,7 @@ function StatBox({ label, value, color, icon, onClick }: {
 }) {
   return (
     <div 
-      className="rounded-2xl p-5 cursor-pointer transition-all duration-200"
+      className="rounded-xl p-5 cursor-pointer transition-all duration-200"
       style={{ background: 'rgba(255,255,255,0.03)' }}
       onClick={onClick}
       onMouseEnter={e => {
@@ -247,7 +247,7 @@ function StatusListPopup({
     <>
       <div className="fixed inset-0 z-50" style={{ background: 'rgba(0,0,0,0.85)' }} onClick={onClose} />
       <div 
-        className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg z-50 rounded-2xl overflow-hidden"
+        className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg z-50 rounded-xl overflow-hidden"
         style={{ background: 'rgba(15,15,20,0.98)', maxHeight: '80vh' }}
       >
         <div className="p-6 border-b" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
@@ -410,7 +410,7 @@ function DetailPanel({ task, onClose }: { task: Task; onClose: () => void }) {
                           <p className="text-[10px] mb-1" style={{ color: 'rgba(255,255,255,0.25)', textAlign: isUser ? 'right' : 'left' }}>
                             {isUser ? 'Bruger' : 'Agent'}
                           </p>
-                          <div className="rounded-2xl px-4 py-2.5" style={{ 
+                          <div className="rounded-xl px-4 py-2.5" style={{ 
                             background: isUser ? '#007AFF' : 'rgba(255,255,255,0.06)',
                             color: isUser ? '#fff' : 'rgba(255,255,255,0.85)',
                           }}>
@@ -494,7 +494,7 @@ function CreateModal({ open, onClose }: { open: boolean; onClose: () => void }) 
     <>
       <div className="fixed inset-0 z-50" style={{ background: 'rgba(0,0,0,0.85)' }} onClick={onClose} />
       <div 
-        className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md z-50 p-6 rounded-2xl"
+        className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md z-50 p-6 rounded-xl"
         style={{ background: 'rgba(15,15,20,0.98)' }}
       >
         <div className="flex items-center justify-between mb-6">
@@ -735,7 +735,7 @@ export default function Tasks() {
         <StatBox label="I Kø" value={queued.length} color="#FF9F0A" icon="clock" onClick={() => setStatusPopup('queued')} />
         <StatBox label="Aktive" value={active.length} color="#007AFF" icon="bolt" onClick={() => setStatusPopup('active')} />
         <StatBox label="Afsluttede" value={completed.length} color="#30D158" icon="checkmark-circle" onClick={() => setStatusPopup('completed')} />
-        <div className="rounded-2xl p-5" style={{ background: 'rgba(255,255,255,0.03)' }}>
+        <div className="rounded-xl p-5" style={{ background: 'rgba(255,255,255,0.03)' }}>
           <div className="flex items-center justify-between mb-3">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(175,82,222,0.1)' }}>
               <Icon name="gauge" size={18} style={{ color: '#AF52DE' }} />

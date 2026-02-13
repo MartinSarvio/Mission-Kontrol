@@ -194,7 +194,7 @@ function DayContent({ day }: { day: DayData }) {
         return (
           <div 
             key={i}
-            className="rounded-2xl p-6"
+            className="rounded-xl p-6"
             style={{ background: 'rgba(255,255,255,0.03)' }}
           >
             <div className="flex items-center gap-2 mb-4">

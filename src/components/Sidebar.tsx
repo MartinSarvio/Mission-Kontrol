@@ -19,7 +19,7 @@ const nav = [
   { id: 'skills', label: 'Færdigheder', icon: 'sparkle' },
   { id: 'intelligence', label: 'Intelligens', icon: 'lightbulb' },
   { id: 'weekly', label: 'Ugerapport', icon: 'calendar-week' },
-  { id: 'clients', label: 'Klienter', icon: 'people' },
+  { id: 'clients', label: 'Projekter', icon: 'folder' },
   { id: 'cron', label: 'Planlagte Jobs', icon: 'clock' },
   { id: 'api', label: 'API Forbrug', icon: 'chart-bar' },
   { id: 'workshop', label: 'Værksted', icon: 'wrench' },

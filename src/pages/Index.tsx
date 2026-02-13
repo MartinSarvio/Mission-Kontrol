@@ -3,15 +3,16 @@ import Card from '../components/Card'
 import SearchBar from '../components/SearchBar'
 import Icon from '../components/Icon'
 import { useLiveData } from '../api/LiveDataContext'
-import { searchWorkspace } from '../api/openclaw'
+import { searchWorkspace, invokeToolRaw } from '../api/openclaw'
 
-type Category = 'all' | 'workspace' | 'sessions' | 'cron'
+type Category = 'all' | 'workspace' | 'sessions' | 'cron' | 'web'
 
 const categoryLabels: Record<Category, string> = {
   all: 'Alle',
   workspace: 'Workspace',
   sessions: 'Sessions',
-  cron: 'Cron Jobs'
+  cron: 'Cron Jobs',
+  web: 'Web'
 }
 
 interface SearchResult {
@@ -27,7 +28,9 @@ export default function Index() {
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState<Category>('all')
   const [workspaceResults, setWorkspaceResults] = useState<SearchResult[]>([])
+  const [webResults, setWebResults] = useState<SearchResult[]>([])
   const [isSearching, setIsSearching] = useState(false)
+  const [isSearchingWeb, setIsSearchingWeb] = useState(false)
 
   // Søg i workspace files når search opdateres
   const performWorkspaceSearch = async (query: string) => {
@@ -59,10 +62,43 @@ export default function Index() {
     }
   }
 
-  // Debounced workspace search
+  // Web search
+  const performWebSearch = async (query: string) => {
+    if (!query.trim() || (category !== 'all' && category !== 'web')) {
+      setWebResults([])
+      return
+    }
+
+    setIsSearchingWeb(true)
+    try {
+      const result = await invokeToolRaw('web_search', { query }) as any
+      const text = result?.result?.content?.[0]?.text || ''
+      
+      // Parse simple results from text
+      const parsed: SearchResult[] = []
+      if (text.length > 0) {
+        parsed.push({
+          type: 'Web',
+          title: query,
+          subtitle: 'AI-sammenfatning fra websøgning',
+          content: text.slice(0, 500)
+        })
+      }
+      
+      setWebResults(parsed)
+    } catch (err) {
+      console.error('Web search error:', err)
+      setWebResults([])
+    } finally {
+      setIsSearchingWeb(false)
+    }
+  }
+
+  // Debounced search
   useMemo(() => {
     const timer = setTimeout(() => {
       performWorkspaceSearch(search)
+      performWebSearch(search)
     }, 300)
     return () => clearTimeout(timer)
   }, [search, category])
@@ -109,6 +145,9 @@ export default function Index() {
   const allResults = useMemo(() => {
     const combined: SearchResult[] = []
     
+    if (category === 'all' || category === 'web') {
+      combined.push(...webResults)
+    }
     if (category === 'all' || category === 'workspace') {
       combined.push(...workspaceResults)
     }
@@ -120,7 +159,7 @@ export default function Index() {
     }
     
     return combined
-  }, [workspaceResults, sessionResults, cronResults, category])
+  }, [webResults, workspaceResults, sessionResults, cronResults, category])
 
   return (
     <div>
@@ -131,7 +170,7 @@ export default function Index() {
         <SearchBar value={search} onChange={setSearch} placeholder="Søg i workspace filer, sessions, cron jobs..." />
 
         <div className="flex flex-wrap gap-1 mt-4 mb-6">
-          {(['all', 'workspace', 'sessions', 'cron'] as Category[]).map(c => (
+          {(['all', 'web', 'workspace', 'sessions', 'cron'] as Category[]).map(c => (
             <button 
               key={c} 
               onClick={() => setCategory(c)}
@@ -160,9 +199,11 @@ export default function Index() {
           </div>
         )}
 
-        {search && isSearching && (
+        {search && (isSearching || isSearchingWeb) && (
           <div className="text-center py-8">
-            <p style={{ color: 'rgba(255,255,255,0.4)' }}>Søger...</p>
+            <p style={{ color: 'rgba(255,255,255,0.4)' }}>
+              Søger{isSearchingWeb ? ' nettet' : ''}...
+            </p>
           </div>
         )}
 
