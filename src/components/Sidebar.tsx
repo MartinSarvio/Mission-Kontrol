@@ -61,13 +61,21 @@ export default function Sidebar({ active, onNavigate, isOpen, onClose, onMaisonC
             onClick={onMaisonClick}
           >
             <div 
-              className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+              className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
               style={{ 
-                background: 'linear-gradient(135deg, #007AFF, #AF52DE)',
-                boxShadow: '0 2px 8px rgba(0, 122, 255, 0.25)'
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.08)',
               }}
             >
-              <Icon name="brain" size={16} className="text-white" />
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <circle cx="12" cy="12" r="6" />
+                <circle cx="12" cy="12" r="2" />
+                <line x1="12" y1="2" x2="12" y2="5" />
+                <line x1="12" y1="19" x2="12" y2="22" />
+                <line x1="2" y1="12" x2="5" y2="12" />
+                <line x1="19" y1="12" x2="22" y2="12" />
+              </svg>
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
