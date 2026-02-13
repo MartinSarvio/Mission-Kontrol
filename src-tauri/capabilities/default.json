@@ -6,15 +6,6 @@
   "permissions": [
     "core:default",
     "shell:allow-open",
-    "updater:default",
-    {
-      "identifier": "http:default",
-      "allow": [
-        { "url": "https://srv1356942.tail9aaaf1.ts.net" },
-        { "url": "https://srv1356942.tail9aaaf1.ts.net:*" },
-        { "url": "https://*.tail9aaaf1.ts.net" },
-        { "url": "https://*.tail9aaaf1.ts.net:*" }
-      ]
-    }
+    "updater:default"
   ]
 }
