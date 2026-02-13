@@ -129,7 +129,7 @@ export default function WeeklyRecap() {
                 <div key={job.id} className="flex items-center justify-between py-2 glass-row text-sm">
                   <div>
                     <p className="font-medium">{job.name}</p>
-                    <p className="caption">{job.schedule}</p>
+                    <p className="caption">{typeof job.schedule === 'object' ? (job.schedule?.expr || job.schedule?.kind || 'Planlagt') : (job.schedule || 'Ukendt')}</p>
                   </div>
                   <span 
                     className="px-2.5 py-1 rounded-full text-xs whitespace-nowrap" 

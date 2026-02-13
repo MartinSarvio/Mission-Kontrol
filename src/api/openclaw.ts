@@ -112,7 +112,7 @@ export interface SessionsResponse {
 export interface CronJobApi {
   id: string
   name: string
-  schedule: string
+  schedule: string | { kind?: string; expr?: string; tz?: string; everyMs?: number; at?: string }
   enabled: boolean
   lastRun?: string
   nextRun?: string

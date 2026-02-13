@@ -94,13 +94,13 @@ export default function Index() {
     return cronJobs
       .filter(c => 
         c.name.toLowerCase().includes(q) || 
-        c.schedule.toLowerCase().includes(q)
+        (typeof c.schedule === 'string' ? c.schedule : c.schedule?.expr || '').toLowerCase().includes(q)
       )
       .slice(0, 10)
       .map(c => ({
         type: 'Cron Job',
         title: c.name,
-        subtitle: c.schedule,
+        subtitle: typeof c.schedule === 'object' ? (c.schedule?.expr || c.schedule?.kind || 'Planlagt') : (c.schedule || ''),
         status: String(c.enabled)
       }))
   }, [search, cronJobs, category])
