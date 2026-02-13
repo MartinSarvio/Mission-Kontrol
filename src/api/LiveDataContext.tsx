@@ -1,7 +1,5 @@
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react'
 import { fetchSessions, fetchStatus, fetchCronJobs, fetchConfig, getGatewayToken, ApiSession, CronJobApi } from './openclaw'
-
-export type PollingSpeed = 'fast' | 'normal' | 'slow'
 
 interface LiveData {
   isConnected: boolean
@@ -11,7 +9,6 @@ interface LiveData {
   statusText: string | null
   cronJobs: CronJobApi[]
   gatewayConfig: Record<string, any> | null
-  pollingSpeed: PollingSpeed
   refresh: () => Promise<void>
 }
 
@@ -23,7 +20,6 @@ const LiveDataContext = createContext<LiveData>({
   statusText: null,
   cronJobs: [],
   gatewayConfig: null,
-  pollingSpeed: 'normal',
   refresh: async () => {},
 })
 
@@ -39,8 +35,15 @@ export function LiveDataProvider({ children }: { children: ReactNode }) {
   const [statusText, setStatusText] = useState<string | null>(null)
   const [cronJobs, setCronJobs] = useState<CronJobApi[]>([])
   const [gatewayConfig, setGatewayConfig] = useState<Record<string, any> | null>(null)
-  const [pollingSpeed, setPollingSpeed] = useState<PollingSpeed>('normal')
-  const [currentInterval, setCurrentInterval] = useState(3000)
+  
+  // Track previous data hash to only update when data actually changes
+  const prevSessionsHash = useRef<string>('')
+  const prevStatusHash = useRef<string>('')
+  const prevCronHash = useRef<string>('')
+  const prevConfigHash = useRef<string>('')
+  
+  // Track if this is first load (show loading only on first load)
+  const isFirstLoad = useRef(true)
 
   const refresh = useCallback(async () => {
     const token = getGatewayToken()
@@ -49,7 +52,6 @@ export function LiveDataProvider({ children }: { children: ReactNode }) {
       return
     }
 
-    setIsLoading(true)
     try {
       const [sessionsData, statusData, cronData, configData] = await Promise.all([
         fetchSessions().catch(() => null),
@@ -62,45 +64,61 @@ export function LiveDataProvider({ children }: { children: ReactNode }) {
       if (anySuccess) {
         setIsConnected(true)
         setLastUpdated(new Date())
-        if (sessionsData) setSessions(sessionsData.sessions)
-        if (statusData) setStatusText(statusData)
-        if (cronData) setCronJobs(cronData)
-        if (configData) setGatewayConfig(configData)
         
-        // Smart polling: Beregn næste interval baseret på aktivitet
-        const now = Date.now()
-        const hasRecentActivity = sessionsData?.sessions.some(s => 
-          (now - s.updatedAt) < 30000 // opdateret inden for 30 sekunder
-        )
-        const hasAnyActivity = sessionsData?.sessions.some(s => 
-          (now - s.updatedAt) < 60000 // opdateret inden for 60 sekunder
-        )
-        
-        if (hasRecentActivity) {
-          setPollingSpeed('fast')
-          setCurrentInterval(1000) // 1 sekund
-        } else if (hasAnyActivity) {
-          setPollingSpeed('normal')
-          setCurrentInterval(3000) // 3 sekunder
-        } else {
-          setPollingSpeed('slow')
-          setCurrentInterval(5000) // 5 sekunder
+        // Only update state if data has actually changed (using hash)
+        if (sessionsData) {
+          const newHash = JSON.stringify(sessionsData.sessions.map(s => ({
+            key: s.key,
+            updated: s.updatedAt,
+            ctx: s.contextTokens,
+            total: s.totalTokens
+          })))
+          if (newHash !== prevSessionsHash.current) {
+            prevSessionsHash.current = newHash
+            setSessions(sessionsData.sessions)
+          }
         }
+        
+        if (statusData) {
+          const newHash = String(statusData)
+          if (newHash !== prevStatusHash.current) {
+            prevStatusHash.current = newHash
+            setStatusText(statusData)
+          }
+        }
+        
+        if (cronData) {
+          const newHash = JSON.stringify(cronData.map(c => ({ id: c.id, enabled: c.enabled, lastRun: c.lastRun })))
+          if (newHash !== prevCronHash.current) {
+            prevCronHash.current = newHash
+            setCronJobs(cronData)
+          }
+        }
+        
+        if (configData) {
+          const newHash = JSON.stringify(configData)
+          if (newHash !== prevConfigHash.current) {
+            prevConfigHash.current = newHash
+            setGatewayConfig(configData)
+          }
+        }
+        
+        // After first successful load, never show loading again
+        isFirstLoad.current = false
       } else {
         setIsConnected(false)
       }
     } catch {
       setIsConnected(false)
-    } finally {
-      setIsLoading(false)
     }
   }, [])
 
   useEffect(() => {
     refresh()
-    const id = setInterval(refresh, currentInterval)
+    // Fixed 5-second interval - no adaptive polling
+    const id = setInterval(refresh, 5000)
     return () => clearInterval(id)
-  }, [refresh, currentInterval])
+  }, [refresh])
 
   // Listen for storage changes (when settings are updated)
   useEffect(() => {
@@ -110,7 +128,16 @@ export function LiveDataProvider({ children }: { children: ReactNode }) {
   }, [refresh])
 
   return (
-    <LiveDataContext.Provider value={{ isConnected, isLoading, lastUpdated, sessions, statusText, cronJobs, gatewayConfig, pollingSpeed, refresh }}>
+    <LiveDataContext.Provider value={{ 
+      isConnected,
+      isLoading,
+      lastUpdated, 
+      sessions, 
+      statusText, 
+      cronJobs, 
+      gatewayConfig, 
+      refresh 
+    }}>
       {children}
     </LiveDataContext.Provider>
   )
