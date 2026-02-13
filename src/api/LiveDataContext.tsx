@@ -27,14 +27,31 @@ export function useLiveData() {
   return useContext(LiveDataContext)
 }
 
+const CACHE_KEY = 'openclaw-live-cache'
+
+function loadCache(): { sessions: ApiSession[], statusText: string | null, cronJobs: CronJobApi[], gatewayConfig: Record<string, any> | null } {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY)
+    if (raw) return JSON.parse(raw)
+  } catch {}
+  return { sessions: [], statusText: null, cronJobs: [], gatewayConfig: null }
+}
+
+function saveCache(sessions: ApiSession[], statusText: string | null, cronJobs: CronJobApi[], gatewayConfig: Record<string, any> | null) {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify({ sessions, statusText, cronJobs, gatewayConfig }))
+  } catch {}
+}
+
 export function LiveDataProvider({ children }: { children: ReactNode }) {
-  const [isConnected, setIsConnected] = useState(false)
+  const cached = useRef(loadCache())
+  const [isConnected, setIsConnected] = useState(cached.current.sessions.length > 0)
   const [isLoading, setIsLoading] = useState(false)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
-  const [sessions, setSessions] = useState<ApiSession[]>([])
-  const [statusText, setStatusText] = useState<string | null>(null)
-  const [cronJobs, setCronJobs] = useState<CronJobApi[]>([])
-  const [gatewayConfig, setGatewayConfig] = useState<Record<string, any> | null>(null)
+  const [sessions, setSessions] = useState<ApiSession[]>(cached.current.sessions)
+  const [statusText, setStatusText] = useState<string | null>(cached.current.statusText)
+  const [cronJobs, setCronJobs] = useState<CronJobApi[]>(cached.current.cronJobs)
+  const [gatewayConfig, setGatewayConfig] = useState<Record<string, any> | null>(cached.current.gatewayConfig)
   
   // Track previous data hash to only update when data actually changes
   const prevSessionsHash = useRef<string>('')
@@ -105,6 +122,14 @@ export function LiveDataProvider({ children }: { children: ReactNode }) {
         
         // After first successful load, never show loading again
         isFirstLoad.current = false
+        
+        // Persist to localStorage so data survives refresh
+        saveCache(
+          sessionsData ? sessionsData.sessions : sessions,
+          statusData || statusText,
+          cronData || cronJobs,
+          configData || gatewayConfig
+        )
       } else {
         setIsConnected(false)
       }
