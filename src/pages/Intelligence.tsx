@@ -1,418 +1,541 @@
 import { useState, useEffect, useCallback } from 'react'
 import Icon from '../components/Icon'
 import { useLiveData } from '../api/LiveDataContext'
-import { fetchSessionHistory, runPrompt } from '../api/openclaw'
 
-interface SessionMessage {
-  role: string
-  text?: string
-  content?: string
-  timestamp?: number
-}
-
-interface ResearchSession {
-  sessionKey: string
-  label: string
-  displayName: string
-  date: string
-  messages: SessionMessage[]
-  preview: string
-}
-
-interface Toast {
+/* ── Types ──────────────────────────────────── */
+interface Article {
   id: string
-  message: string
+  title: string
+  summary: string
+  source: string
+  url?: string
+  category: string
+  relevance: 'high' | 'medium' | 'low'
+  timestamp: string
+  isNew: boolean
 }
 
-export default function Intelligence() {
-  const { isConnected, isLoading, sessions } = useLiveData()
-  const [researchSessions, setResearchSessions] = useState<ResearchSession[]>([])
-  const [selectedKey, setSelectedKey] = useState<string>('')
-  const [showNewAnalysis, setShowNewAnalysis] = useState(false)
-  const [newAnalysisQuery, setNewAnalysisQuery] = useState('')
-  const [isRunning, setIsRunning] = useState(false)
-  const [toasts, setToasts] = useState<Toast[]>([])
-  const [showMobileList, setShowMobileList] = useState(false)
+interface ArticleScan {
+  id: string
+  query: string
+  articles: Article[]
+  scannedAt: string
+  status: 'scanning' | 'done' | 'error'
+}
 
-  const showToast = useCallback((message: string) => {
-    const id = Date.now().toString()
-    setToasts(prev => [...prev, { id, message }])
-    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3000)
-  }, [])
+const CACHE_KEY = 'openclaw-intelligence-scans'
 
-  // Load research sessions from live data
-  useEffect(() => {
-    async function loadResearch() {
-      if (!sessions.length) {
-        setResearchSessions([])
-        return
+function loadCache(): ArticleScan[] {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY)
+    if (raw) return JSON.parse(raw)
+  } catch {}
+  return []
+}
+
+function saveCache(scans: ArticleScan[]) {
+  try { localStorage.setItem(CACHE_KEY, JSON.stringify(scans)) } catch {}
+}
+
+/* ── Helpers ─────────────────────────────────── */
+function timeAgo(dateStr: string): string {
+  const mins = Math.floor((Date.now() - new Date(dateStr).getTime()) / 60000)
+  if (mins < 1) return 'lige nu'
+  if (mins < 60) return `${mins}m siden`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `${hours}t siden`
+  return `${Math.floor(hours / 24)}d siden`
+}
+
+function relevanceColor(r: string) {
+  return r === 'high' ? '#30D158' : r === 'medium' ? '#FF9F0A' : 'rgba(255,255,255,0.4)'
+}
+
+function categoryColor(c: string) {
+  const colors: Record<string, string> = {
+    'AI': '#007AFF', 'SaaS': '#AF52DE', 'Restaurant': '#FF6B35',
+    'Automation': '#30D158', 'Marketing': '#FF9F0A', 'Tech': '#5AC8FA',
+  }
+  return colors[c] || '#636366'
+}
+
+/* ── Parse articles from AI response ─────────── */
+function parseArticlesFromResponse(text: string, query: string): Article[] {
+  const articles: Article[] = []
+  
+  // Try to find numbered items or markdown headers
+  const lines = text.split('\n')
+  let currentArticle: Partial<Article> = {}
+  let articleIndex = 0
+  
+  for (const line of lines) {
+    const trimmed = line.trim()
+    
+    // Match patterns like "1. **Title**" or "### Title" or "**Title**"
+    const numberedMatch = trimmed.match(/^\d+[\.\)]\s*\*?\*?(.+?)\*?\*?\s*$/)
+    const headerMatch = trimmed.match(/^#{1,3}\s+(.+)$/)
+    const boldMatch = trimmed.match(/^\*\*(.+?)\*\*/)
+    
+    const titleMatch = numberedMatch || headerMatch || boldMatch
+    
+    if (titleMatch && titleMatch[1].length > 10 && titleMatch[1].length < 200) {
+      // Save previous article
+      if (currentArticle.title) {
+        articles.push({
+          id: `art-${articleIndex}`,
+          title: currentArticle.title,
+          summary: currentArticle.summary || '',
+          source: currentArticle.source || 'Web',
+          url: currentArticle.url,
+          category: guessCategory(currentArticle.title + ' ' + (currentArticle.summary || ''), query),
+          relevance: articleIndex < 5 ? 'high' : articleIndex < 10 ? 'medium' : 'low',
+          timestamp: new Date().toISOString(),
+          isNew: true,
+        })
+        articleIndex++
       }
-
-      // Vis alle sub-agent sessions (de er research/analyse resultater)
-      // Filtrer main session fra — vis kun subagents
-      const candidates = sessions.filter(s => {
-        const key = (s.key || '').toLowerCase()
-        return key.includes('subagent')
-      })
-
-      const loaded: ResearchSession[] = []
-      for (const s of candidates.slice(0, 20)) {
-        try {
-          const msgs = await fetchSessionHistory(s.key, 20)
-          if (msgs.length === 0) continue
-
-          // Udpak preview fra sidste assistant message
-          const lastAssistant = [...msgs].reverse().find(m => m.role === 'assistant')
-          const rawPreview = lastAssistant?.text || lastAssistant?.content || ''
-          const previewText = typeof rawPreview === 'string' ? rawPreview : JSON.stringify(rawPreview)
-          const preview = previewText.length > 200 
-            ? previewText.slice(0, 200) + '...'
-            : previewText || 'Ingen indhold tilgængeligt'
-
-          loaded.push({
-            sessionKey: s.key,
-            label: s.label || s.displayName || s.key,
-            displayName: s.displayName || s.label || s.key,
-            date: new Date(s.updatedAt || Date.now()).toISOString(),
-            messages: msgs,
-            preview,
-          })
-        } catch (err) {
-          console.error('Kunne ikke indlæse session', s.key, err)
-        }
+      currentArticle = { title: titleMatch[1].replace(/\*\*/g, '').trim() }
+    } else if (currentArticle.title && trimmed.length > 20) {
+      // URL detection
+      const urlMatch = trimmed.match(/https?:\/\/[^\s\)]+/)
+      if (urlMatch) {
+        currentArticle.url = urlMatch[0]
+        currentArticle.source = new URL(urlMatch[0]).hostname.replace('www.', '')
       }
-
-      // Sorter efter dato (nyeste først)
-      loaded.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-
-      setResearchSessions(loaded)
-      if (loaded.length > 0 && !selectedKey) {
-        setSelectedKey(loaded[0].sessionKey)
+      // Summary text
+      if (!currentArticle.summary && !trimmed.startsWith('http') && !trimmed.startsWith('[')) {
+        currentArticle.summary = trimmed.replace(/^\-\s*/, '').replace(/\*\*/g, '').slice(0, 300)
       }
-    }
-
-    loadResearch()
-  }, [sessions, selectedKey])
-
-  const selectedSession = researchSessions.find(r => r.sessionKey === selectedKey)
-
-  async function runNewAnalysis() {
-    if (!newAnalysisQuery.trim()) return
-    setIsRunning(true)
-    try {
-      // Kør prompt med eksplicit web_search instruktion
-      const prompt = `Brug web_search tool til at researche følgende emne grundigt og giv en detaljeret analyse med kilder:
-
-${newAnalysisQuery}
-
-Sørg for at:
-1. Søge efter aktuelle nyheder og artikler
-2. Inkludere kilder og links
-3. Give en samlet analyse af resultaterne
-4. Fremhæve vigtige trends eller insights`
-
-      const result = await runPrompt(prompt, 'opus')
-      showToast('Analyse startet — se sessioner for resultat')
-      setNewAnalysisQuery('')
-      setShowNewAnalysis(false)
-      
-      // Genindlæs sessions efter kort delay for at vise den nye
-      setTimeout(() => {
-        window.location.reload()
-      }, 2000)
-    } catch (err: any) {
-      showToast('Fejl: ' + (err.message || 'Kunne ikke starte analyse'))
-    } finally {
-      setIsRunning(false)
     }
   }
+  
+  // Push last article
+  if (currentArticle.title) {
+    articles.push({
+      id: `art-${articleIndex}`,
+      title: currentArticle.title,
+      summary: currentArticle.summary || '',
+      source: currentArticle.source || 'Web',
+      url: currentArticle.url,
+      category: guessCategory(currentArticle.title + ' ' + (currentArticle.summary || ''), query),
+      relevance: articleIndex < 5 ? 'high' : articleIndex < 10 ? 'medium' : 'low',
+      timestamp: new Date().toISOString(),
+      isNew: true,
+    })
+  }
+  
+  // If parsing failed, create a single article from the whole text
+  if (articles.length === 0 && text.length > 50) {
+    articles.push({
+      id: 'art-0',
+      title: query,
+      summary: text.slice(0, 500),
+      source: 'AI Analyse',
+      category: 'AI',
+      relevance: 'high',
+      timestamp: new Date().toISOString(),
+      isNew: true,
+    })
+  }
+  
+  return articles
+}
 
-  function openSession(session: ResearchSession) {
-    setSelectedKey(session.sessionKey)
-    setShowMobileList(false)
+function guessCategory(text: string, query: string): string {
+  const t = (text + ' ' + query).toLowerCase()
+  if (t.includes('restaurant') || t.includes('food') || t.includes('dining')) return 'Restaurant'
+  if (t.includes('ai') || t.includes('artificial') || t.includes('llm') || t.includes('gpt') || t.includes('claude')) return 'AI'
+  if (t.includes('saas') || t.includes('software') || t.includes('platform')) return 'SaaS'
+  if (t.includes('automat') || t.includes('workflow')) return 'Automation'
+  if (t.includes('market') || t.includes('growth') || t.includes('seo')) return 'Marketing'
+  return 'Tech'
+}
+
+/* ── API call to search ──────────────────────── */
+async function searchArticles(query: string): Promise<string> {
+  // Import dynamically to avoid circular deps
+  const { default: invokeSearch } = await import('../api/openclaw').then(m => ({
+    default: async (q: string) => {
+      const url = localStorage.getItem('openclaw-gateway-url') || 'http://127.0.0.1:63362'
+      const token = localStorage.getItem('openclaw-gateway-token') || ''
+      
+      // Use Tauri fetch if available
+      let fetchFn: typeof fetch = fetch
+      if (typeof window !== 'undefined' && '__TAURI__' in window) {
+        const { fetch: tauriFetch } = await import('@tauri-apps/plugin-http')
+        fetchFn = tauriFetch
+      }
+      
+      const resolvedUrl = (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app') && url.includes('ts.net'))
+        ? '/api/gateway' : url
+      
+      const res = await fetchFn(`${resolvedUrl}/tools/invoke`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({
+          tool: 'web_search',
+          args: { query: q }
+        }),
+      })
+      const data = await res.json() as any
+      return data?.result?.content?.[0]?.text || ''
+    }
+  }))
+  return invokeSearch(query)
+}
+
+/* ── Components ──────────────────────────────── */
+function ArticleCard({ article, onClick }: { article: Article; onClick: () => void }) {
+  return (
+    <div
+      onClick={onClick}
+      className="rounded-2xl p-5 cursor-pointer transition-all duration-200"
+      style={{ background: 'rgba(255,255,255,0.03)' }}
+      onMouseEnter={e => {
+        e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+        e.currentTarget.style.transform = 'translateY(-1px)'
+        e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.4)'
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.background = 'rgba(255,255,255,0.03)'
+        e.currentTarget.style.transform = 'translateY(0)'
+        e.currentTarget.style.boxShadow = 'none'
+      }}
+    >
+      <div className="flex items-start gap-4">
+        <div className="w-1 h-12 rounded-full flex-shrink-0 mt-1" style={{ background: relevanceColor(article.relevance) }} />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-2 flex-wrap">
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{
+              background: `${categoryColor(article.category)}20`,
+              color: categoryColor(article.category),
+            }}>
+              {article.category}
+            </span>
+            {article.isNew && (
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(0,122,255,0.15)', color: '#007AFF' }}>
+                NY
+              </span>
+            )}
+            <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.25)' }}>{article.source}</span>
+          </div>
+          <h3 className="text-sm font-semibold text-white mb-1 leading-snug">{article.title}</h3>
+          <p className="text-xs leading-relaxed line-clamp-2" style={{ color: 'rgba(255,255,255,0.5)' }}>
+            {article.summary}
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ArticleDetail({ article, onClose, onDeploy }: { article: Article; onClose: () => void; onDeploy: () => void }) {
+  return (
+    <>
+      <div className="fixed inset-0 z-50" style={{ background: 'rgba(0,0,0,0.85)' }} onClick={onClose} />
+      <div
+        className="fixed right-0 top-0 bottom-0 w-full sm:w-[520px] z-50 overflow-y-auto p-6"
+        style={{ background: 'rgba(10,10,15,0.98)', borderLeft: '1px solid rgba(255,255,255,0.1)' }}
+      >
+        <div className="flex items-center justify-between mb-6">
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{
+            background: `${categoryColor(article.category)}20`,
+            color: categoryColor(article.category),
+          }}>
+            {article.category}
+          </span>
+          <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.06)' }}>
+            <Icon name="xmark" size={14} className="text-white/60" />
+          </button>
+        </div>
+
+        <h2 className="text-xl font-bold text-white mb-3 leading-snug">{article.title}</h2>
+        
+        <div className="flex items-center gap-3 mb-6 flex-wrap">
+          <span className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{article.source}</span>
+          <span className="text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>{timeAgo(article.timestamp)}</span>
+          <div className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full" style={{ background: relevanceColor(article.relevance) }} />
+            <span className="text-xs" style={{ color: relevanceColor(article.relevance) }}>
+              {article.relevance === 'high' ? 'Høj relevans' : article.relevance === 'medium' ? 'Medium relevans' : 'Lav relevans'}
+            </span>
+          </div>
+        </div>
+
+        <div className="rounded-xl p-4 mb-6" style={{ background: 'rgba(255,255,255,0.03)' }}>
+          <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.7)' }}>{article.summary}</p>
+        </div>
+
+        {article.url && (
+          <a
+            href={article.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 text-sm mb-6"
+            style={{ color: '#007AFF' }}
+          >
+            <Icon name="link" size={14} />
+            Åbn original artikel
+          </a>
+        )}
+
+        <button
+          onClick={onDeploy}
+          className="w-full py-3 rounded-xl font-semibold text-white text-sm transition-all"
+          style={{ background: 'linear-gradient(135deg, #30D158, #34C759)' }}
+          onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 20px rgba(48,209,88,0.4)' }}
+          onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none' }}
+        >
+          <Icon name="zap" size={14} className="inline mr-2" />
+          Send til Workshop
+        </button>
+      </div>
+    </>
+  )
+}
+
+/* ── Preset Queries ──────────────────────────── */
+const PRESET_QUERIES = [
+  { label: 'AI i Restauration', query: 'AI automation restaurant industry 2025 2026 trends use cases', icon: 'sparkle' },
+  { label: 'SaaS Trends', query: 'SaaS platform trends 2026 restaurant management software market', icon: 'chart' },
+  { label: 'Marketing Automation', query: 'marketing automation restaurant food service AI personalization 2026', icon: 'lightbulb' },
+  { label: 'OpenClaw / AI Agents', query: 'AI agent orchestration multi-agent systems 2026 autonomous agents trends', icon: 'robot' },
+]
+
+/* ── Main Page ───────────────────────────────── */
+export default function Intelligence() {
+  const { isConnected } = useLiveData()
+  const [scans, setScans] = useState<ArticleScan[]>(loadCache)
+  const [selectedScan, setSelectedScan] = useState<string>('')
+  const [selectedArticle, setSelectedArticle] = useState<Article | null>(null)
+  const [customQuery, setCustomQuery] = useState('')
+  const [showCustom, setShowCustom] = useState(false)
+
+  // Select latest scan by default
+  useEffect(() => {
+    if (scans.length > 0 && !selectedScan) {
+      setSelectedScan(scans[0].id)
+    }
+  }, [scans, selectedScan])
+
+  const runScan = useCallback(async (query: string) => {
+    const scanId = `scan-${Date.now()}`
+    const newScan: ArticleScan = {
+      id: scanId,
+      query,
+      articles: [],
+      scannedAt: new Date().toISOString(),
+      status: 'scanning',
+    }
+    
+    setScans(prev => {
+      const updated = [newScan, ...prev].slice(0, 20)
+      saveCache(updated)
+      return updated
+    })
+    setSelectedScan(scanId)
+
+    try {
+      // Run 2-3 searches to get 10-15 articles
+      const searches = [
+        query,
+        query + ' latest news articles',
+        query + ' tools platforms solutions',
+      ]
+      
+      const allArticles: Article[] = []
+      
+      for (const q of searches) {
+        try {
+          const result = await searchArticles(q)
+          const parsed = parseArticlesFromResponse(result, query)
+          allArticles.push(...parsed)
+        } catch {}
+      }
+      
+      // Deduplicate by title similarity
+      const unique: Article[] = []
+      for (const art of allArticles) {
+        const isDupe = unique.some(u => 
+          u.title.toLowerCase().includes(art.title.toLowerCase().slice(0, 30)) ||
+          art.title.toLowerCase().includes(u.title.toLowerCase().slice(0, 30))
+        )
+        if (!isDupe) {
+          art.id = `art-${unique.length}`
+          unique.push(art)
+        }
+      }
+      
+      setScans(prev => {
+        const updated = prev.map(s => s.id === scanId ? { ...s, articles: unique.slice(0, 15), status: 'done' as const } : s)
+        saveCache(updated)
+        return updated
+      })
+    } catch {
+      setScans(prev => {
+        const updated = prev.map(s => s.id === scanId ? { ...s, status: 'error' as const } : s)
+        saveCache(updated)
+        return updated
+      })
+    }
+  }, [])
+
+  const currentScan = scans.find(s => s.id === selectedScan)
+
+  if (!isConnected) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <div className="text-center">
+          <Icon name="exclamation-triangle" size={48} className="mx-auto mb-4 opacity-30" />
+          <h3 className="text-lg font-semibold text-white mb-2">Ingen forbindelse til Gateway</h3>
+          <p className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>Gå til Indstillinger for at konfigurere</p>
+        </div>
+      </div>
+    )
   }
 
   return (
-    <div className="flex flex-col lg:flex-row min-h-full">
-      {/* Left Sidebar - responsive */}
-      <div className={`
-        ${showMobileList ? 'fixed inset-0 z-50' : 'hidden'}
-        lg:block lg:relative lg:z-auto
-        w-full lg:w-80 flex-shrink-0 flex flex-col
-        bg-[#0a0a0f] lg:bg-white/[0.02]
-        lg:border-r lg:border-white/[0.06]
-      `}>
-        <div className="p-4 lg:px-4 lg:py-5 border-b border-white/[0.06]">
-          <div className="flex items-center justify-between mb-2">
-            <h1 className="text-xl font-bold text-white">Intelligens</h1>
-            <div className="flex items-center gap-2">
-              {!isConnected && (
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-400/15 text-orange-300">
-                  OFFLINE
-                </span>
-              )}
-              <button 
-                onClick={() => setShowNewAnalysis(!showNewAnalysis)}
-                style={{ 
-                  minHeight: '44px',
-                  minWidth: '44px',
-                  backgroundColor: '#007AFF',
-                  color: 'white',
-                  borderRadius: '12px',
-                  padding: '8px 12px',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  border: 'none',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '4px'
-                }}>
-                <Icon name="plus" size={14} />
-              </button>
-              <button 
-                onClick={() => setShowMobileList(false)}
-                className="lg:hidden"
-                style={{ minHeight: '44px', minWidth: '44px', background: 'transparent', border: 'none', cursor: 'pointer' }}>
-                <Icon name="xmark" size={16} className="text-white/40" />
-              </button>
-            </div>
-          </div>
-          <p className="text-xs text-white/30">
-            {isLoading ? 'Indlæser...' : `${researchSessions.length} analyser`}
+    <div className="h-full flex flex-col">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-white mb-1">Intelligens</h1>
+          <p className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>
+            Web scanning og research · {scans.reduce((sum, s) => sum + s.articles.length, 0)} artikler fundet
           </p>
         </div>
-
-        <div className="flex-1 overflow-y-auto p-2">
-          {isLoading && (
-            <div className="text-center py-8">
-              <div className="inline-block animate-spin text-blue-500">
-                <Icon name="arrow-path" size={24} />
-              </div>
-              <p className="text-xs text-white/30 mt-2">
-                Indlæser research-sessioner...
-              </p>
-            </div>
-          )}
-
-          {!isLoading && researchSessions.length === 0 && (
-            <div className="text-center py-12 px-4">
-              <Icon name="magnifying-glass" size={32} className="text-white/20 mx-auto mb-3" />
-              <p className="text-sm text-white/40">
-                Ingen research-sessioner fundet
-              </p>
-              <p className="text-xs text-white/25 mt-1">
-                Klik + for at starte ny analyse
-              </p>
-            </div>
-          )}
-
-          {researchSessions.map(item => {
-            const isActive = selectedKey === item.sessionKey
-            return (
-              <div 
-                key={item.sessionKey} 
-                onClick={() => openSession(item)}
-                className={`
-                  p-3 mb-0.5 rounded-xl cursor-pointer transition-all
-                  border-l-[3px] hover:bg-white/5
-                  ${isActive ? 'bg-blue-500/12 border-l-blue-500' : 'bg-transparent border-l-transparent'}
-                `}
-                style={{ minHeight: '44px' }}
-              >
-                <h3 className={`text-sm leading-tight mb-1 ${isActive ? 'font-bold text-white' : 'font-medium text-white/70'}`}>
-                  {item.displayName}
-                </h3>
-                <p className="text-xs text-white/40 truncate leading-tight">
-                  {item.preview}
-                </p>
-                <span className="text-[10px] text-white/25 block mt-1">
-                  {new Date(item.date).toLocaleDateString('da-DK', { 
-                    day: 'numeric', 
-                    month: 'short',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  })}
-                </span>
-              </div>
-            )
-          })}
-        </div>
       </div>
 
-      {/* Main Content Area */}
-      <div className="flex-1 overflow-y-auto">
-        {/* Mobile header - only show on mobile when list is hidden */}
-        <div className="lg:hidden flex items-center justify-between p-3 border-b border-white/[0.06] bg-white/[0.02]">
-          <button 
-            onClick={() => setShowMobileList(true)}
-            className="flex items-center gap-2 text-sm font-medium"
-            style={{ 
-              minHeight: '44px',
-              color: '#007AFF',
-              background: 'transparent',
-              border: 'none',
-              cursor: 'pointer'
-            }}>
-            <Icon name="list" size={18} /> Analyser ({researchSessions.length})
+      {/* Quick Scan Buttons */}
+      <div className="flex flex-wrap gap-2 mb-6">
+        {PRESET_QUERIES.map(pq => (
+          <button
+            key={pq.label}
+            onClick={() => runScan(pq.query)}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all"
+            style={{ background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.6)' }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0,122,255,0.15)'; e.currentTarget.style.color = '#5AC8FA' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = 'rgba(255,255,255,0.6)' }}
+          >
+            <Icon name={pq.icon} size={14} />
+            {pq.label}
           </button>
-          <button 
-            onClick={() => setShowNewAnalysis(!showNewAnalysis)}
-            style={{ 
-              minHeight: '44px', 
-              minWidth: '44px',
-              color: '#007AFF',
-              background: 'transparent',
-              border: 'none',
-              cursor: 'pointer'
-            }}>
-            <Icon name="plus" size={18} />
-          </button>
-        </div>
-
-        {showNewAnalysis && (
-          <div className="m-4 lg:m-6 p-6 rounded-2xl bg-white/5 border border-white/[0.08]">
-            <h3 className="text-base font-bold text-white mb-3">Ny Analyse</h3>
-            <p className="text-sm text-white/50 mb-4">
-              Beskriv hvad du vil researche. Systemet vil automatisk bruge web-søgning til at finde aktuelle kilder og data.
-            </p>
-            <textarea
-              value={newAnalysisQuery}
-              onChange={e => setNewAnalysisQuery(e.target.value)}
-              placeholder="Eksempel: Analyser de seneste trends inden for AI og maskinlæring..."
-              className="w-full min-h-[120px] bg-white/[0.08] border border-white/10 rounded-lg p-3 text-white text-sm resize-vertical mb-3"
-              style={{ minHeight: '120px' }}
-            />
-            <div className="flex flex-col sm:flex-row gap-2">
-              <button 
-                onClick={runNewAnalysis} 
-                disabled={isRunning || !newAnalysisQuery.trim()}
-                style={{ 
-                  minHeight: '44px',
-                  backgroundColor: '#007AFF',
-                  color: 'white',
-                  borderRadius: '12px',
-                  padding: '10px 20px',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  border: 'none',
-                  cursor: (!newAnalysisQuery.trim() || isRunning) ? 'not-allowed' : 'pointer',
-                  opacity: (!newAnalysisQuery.trim() || isRunning) ? 0.5 : 1,
-                  flex: '1'
-                }}>
-                {isRunning ? 'Starter analyse...' : 'Start Analyse'}
-              </button>
-              <button 
-                onClick={() => setShowNewAnalysis(false)}
-                style={{ 
-                  minHeight: '44px',
-                  backgroundColor: 'rgba(0,122,255,0.1)',
-                  color: '#007AFF',
-                  borderRadius: '12px',
-                  padding: '10px 20px',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  border: '1px solid rgba(0,122,255,0.2)',
-                  cursor: 'pointer'
-                }}>
-                Annuller
-              </button>
-            </div>
-          </div>
-        )}
-
-        {selectedSession && !showNewAnalysis ? (
-          <div className="p-4 sm:p-6 lg:p-14 max-w-3xl mx-auto">
-            <span className="inline-block text-[11px] font-bold tracking-wider px-3 py-1 rounded-md bg-purple-500/20 text-purple-300 mb-4">
-              RESEARCH
-            </span>
-
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white leading-tight mb-3">
-              {selectedSession.displayName}
-            </h1>
-
-            <p className="text-sm sm:text-base text-white/50 leading-relaxed mb-5">
-              {selectedSession.preview}
-            </p>
-
-            <div className="flex items-center gap-3 flex-wrap mb-8">
-              <span className="inline-flex items-center gap-1.5 text-xs font-semibold tracking-wide px-3 py-1.5 rounded-md bg-white/[0.06] text-white/50 border border-white/[0.08]">
-                <Icon name="clock" size={12} />
-                {new Date(selectedSession.date).toLocaleDateString('da-DK', { 
-                  day: 'numeric', 
-                  month: 'long', 
-                  year: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit'
-                })}
-              </span>
-              <span className="text-xs text-white/30">
-                {selectedSession.messages.length} beskeder
-              </span>
-            </div>
-
-            <div className="h-px bg-white/[0.06] mb-8" />
-
-            <div className="space-y-4 sm:space-y-6">
-              {selectedSession.messages.map((msg, i) => (
-                <div 
-                  key={i} 
-                  className={`
-                    p-4 lg:p-5 rounded-xl border
-                    ${msg.role === 'user' 
-                      ? 'bg-blue-500/[0.08] border-blue-500/15' 
-                      : 'bg-white/[0.03] border-white/[0.06]'}
-                  `}>
-                  <div className="flex items-center gap-2 mb-2">
-                    <Icon name={msg.role === 'user' ? 'person' : 'sparkle'} size={14} />
-                    <span className={`text-[11px] font-bold tracking-wider ${msg.role === 'user' ? 'text-blue-500' : 'text-white/40'}`}>
-                      {msg.role === 'user' ? 'BRUGER' : 'ASSISTENT'}
-                    </span>
-                    {msg.timestamp && (
-                      <span className="text-[10px] text-white/25 ml-auto">
-                        {new Date(msg.timestamp).toLocaleTimeString('da-DK', { 
-                          hour: '2-digit', 
-                          minute: '2-digit' 
-                        })}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-sm text-white/75 leading-relaxed whitespace-pre-wrap">
-                    {msg.text || msg.content || ''}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : !showNewAnalysis && !selectedSession && !isLoading && (
-          <div className="flex items-center justify-center h-full px-4">
-            <div className="text-center">
-              <Icon name="magnifying-glass" size={48} className="text-white/20 mx-auto mb-4" />
-              <p className="text-base font-medium text-white/50">
-                Ingen analyse valgt
-              </p>
-              <p className="text-sm text-white/30 mt-2">
-                Vælg en analyse fra listen eller opret en ny
-              </p>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Toast notifications */}
-      <div className="fixed top-4 right-4 z-[100] flex flex-col gap-2">
-        {toasts.map(toast => (
-          <div 
-            key={toast.id} 
-            className="animate-slide-in rounded-2xl px-5 py-3 text-sm font-medium bg-[#1e1e23]/95 backdrop-blur-xl border border-white/10 text-white shadow-2xl">
-            <div className="flex items-center gap-2">
-              <Icon name="checkmark-circle" size={18} className="text-green-400" />
-              <span>{toast.message}</span>
-            </div>
-          </div>
         ))}
+        <button
+          onClick={() => setShowCustom(!showCustom)}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all"
+          style={{ background: 'rgba(0,122,255,0.1)', color: '#007AFF' }}
+        >
+          <Icon name="plus" size={14} />
+          Tilpasset søgning
+        </button>
       </div>
+
+      {/* Custom query input */}
+      {showCustom && (
+        <div className="flex gap-2 mb-6">
+          <input
+            type="text"
+            value={customQuery}
+            onChange={e => setCustomQuery(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter' && customQuery.trim()) { runScan(customQuery); setCustomQuery(''); setShowCustom(false) } }}
+            placeholder="Hvad vil du researche?"
+            className="flex-1 px-4 py-2 rounded-xl text-sm text-white"
+            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', outline: 'none' }}
+            autoFocus
+          />
+          <button
+            onClick={() => { if (customQuery.trim()) { runScan(customQuery); setCustomQuery(''); setShowCustom(false) } }}
+            className="px-5 py-2 rounded-xl text-sm font-semibold text-white"
+            style={{ background: '#007AFF' }}
+          >
+            Scan
+          </button>
+        </div>
+      )}
+
+      {/* Scan History Tabs */}
+      {scans.length > 0 && (
+        <div className="flex gap-1 overflow-x-auto mb-6 pb-1">
+          {scans.slice(0, 8).map(s => (
+            <button
+              key={s.id}
+              onClick={() => setSelectedScan(s.id)}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all"
+              style={{
+                background: selectedScan === s.id ? 'rgba(0,122,255,0.2)' : 'rgba(255,255,255,0.03)',
+                color: selectedScan === s.id ? '#5AC8FA' : 'rgba(255,255,255,0.4)',
+              }}
+            >
+              {s.status === 'scanning' && <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />}
+              {s.status === 'done' && <span className="w-2 h-2 rounded-full bg-green-400" />}
+              {s.status === 'error' && <span className="w-2 h-2 rounded-full bg-red-400" />}
+              {s.query.slice(0, 30)}{s.query.length > 30 ? '...' : ''}
+              <span className="opacity-50">({s.articles.length})</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Articles Grid */}
+      <div className="flex-1 overflow-y-auto">
+        {currentScan?.status === 'scanning' && (
+          <div className="text-center py-16">
+            <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+            <p className="text-sm font-medium text-white mb-1">Scanner nettet...</p>
+            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>Finder relevante artikler for: {currentScan.query}</p>
+          </div>
+        )}
+
+        {currentScan?.status === 'done' && currentScan.articles.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: 'rgba(255,255,255,0.3)' }}>
+              {currentScan.articles.length} artikler fundet · {timeAgo(currentScan.scannedAt)}
+            </p>
+            {currentScan.articles.map(article => (
+              <ArticleCard key={article.id} article={article} onClick={() => setSelectedArticle(article)} />
+            ))}
+          </div>
+        )}
+
+        {currentScan?.status === 'done' && currentScan.articles.length === 0 && (
+          <div className="text-center py-16">
+            <Icon name="magnifying-glass" size={48} className="mx-auto mb-4 opacity-20" />
+            <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>Ingen artikler fundet for denne søgning</p>
+          </div>
+        )}
+
+        {currentScan?.status === 'error' && (
+          <div className="text-center py-16">
+            <Icon name="exclamation-triangle" size={48} className="mx-auto mb-4 text-red-400 opacity-50" />
+            <p className="text-sm text-red-400">Fejl under scanning — prøv igen</p>
+          </div>
+        )}
+
+        {!currentScan && scans.length === 0 && (
+          <div className="text-center py-16">
+            <Icon name="sparkle" size={48} className="mx-auto mb-4 opacity-20" />
+            <p className="text-base font-medium" style={{ color: 'rgba(255,255,255,0.4)' }}>
+              Start en scanning ovenfor
+            </p>
+            <p className="text-sm mt-2" style={{ color: 'rgba(255,255,255,0.25)' }}>
+              Vælg et preset eller skriv din egen søgning
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Article Detail */}
+      {selectedArticle && (
+        <ArticleDetail
+          article={selectedArticle}
+          onClose={() => setSelectedArticle(null)}
+          onDeploy={() => {
+            setSelectedArticle(null)
+            // TODO: Send to workshop
+          }}
+        />
+      )}
     </div>
   )
 }
