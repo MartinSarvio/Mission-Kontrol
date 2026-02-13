@@ -600,6 +600,115 @@ function CreateModal({ open, onClose }: { open: boolean; onClose: () => void }) 
   )
 }
 
+/* ── Archive Modal ───────────────────────────── */
+function ArchiveModal({ open, onClose, tasks, onSelectTask }: { 
+  open: boolean; onClose: () => void; tasks: Task[]; onSelectTask: (t: Task) => void 
+}) {
+  const [searchArchive, setSearchArchive] = useState('')
+  const [filterStatus, setFilterStatus] = useState<'all' | 'queued' | 'active' | 'completed'>('all')
+
+  const filteredTasks = useMemo(() => {
+    let filtered = tasks
+    if (filterStatus !== 'all') {
+      filtered = filtered.filter(t => t.status === filterStatus)
+    }
+    if (searchArchive.trim()) {
+      const q = searchArchive.toLowerCase()
+      filtered = filtered.filter(t => 
+        t.title.toLowerCase().includes(q) || 
+        t.agent.toLowerCase().includes(q) || 
+        (t.firstMessage || '').toLowerCase().includes(q)
+      )
+    }
+    return filtered
+  }, [tasks, filterStatus, searchArchive])
+
+  if (!open) return null
+
+  return (
+    <>
+      <div className="fixed inset-0 z-50" style={{ background: 'rgba(0,0,0,0.85)' }} onClick={onClose} />
+      <div 
+        className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl z-50 rounded-xl overflow-hidden"
+        style={{ background: 'rgba(15,15,20,0.98)', maxHeight: '85vh' }}
+      >
+        {/* Header */}
+        <div className="p-6 border-b" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(142,142,147,0.15)' }}>
+                <Icon name="doc-text" size={18} style={{ color: '#8E8E93' }} />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-white">Arkiv</h2>
+                <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{filteredTasks.length} opgaver</p>
+              </div>
+            </div>
+            <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center" 
+                    style={{ background: 'rgba(255,255,255,0.06)' }}>
+              <Icon name="xmark" size={14} style={{ color: 'rgba(255,255,255,0.4)' }} />
+            </button>
+          </div>
+
+          {/* Search + Filters */}
+          <div className="flex gap-3">
+            <div className="flex-1 relative">
+              <Icon name="magnifying-glass" size={14} className="absolute left-3 top-1/2 -translate-y-1/2" 
+                    style={{ color: 'rgba(255,255,255,0.3)' }} />
+              <input
+                type="text"
+                value={searchArchive}
+                onChange={e => setSearchArchive(e.target.value)}
+                placeholder="Søg i arkiv..."
+                className="w-full pl-10 pr-3 py-2 rounded-lg text-sm text-white placeholder-white/20"
+                style={{ background: 'rgba(255,255,255,0.04)', border: 'none', outline: 'none' }}
+              />
+            </div>
+            <div className="flex gap-2">
+              {[
+                { id: 'all', label: 'Alle', color: '#8E8E93' },
+                { id: 'queued', label: 'I Kø', color: '#FF9F0A' },
+                { id: 'active', label: 'Aktive', color: '#007AFF' },
+                { id: 'completed', label: 'Afsluttet', color: '#30D158' },
+              ].map(f => (
+                <button
+                  key={f.id}
+                  onClick={() => setFilterStatus(f.id as any)}
+                  className="px-3 py-2 rounded-lg text-xs font-medium transition-all"
+                  style={{ 
+                    background: filterStatus === f.id ? `${f.color}20` : 'rgba(255,255,255,0.04)',
+                    color: filterStatus === f.id ? f.color : 'rgba(255,255,255,0.4)',
+                  }}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Task List */}
+        <div className="p-4 overflow-y-auto space-y-2" style={{ maxHeight: 'calc(85vh - 160px)' }}>
+          {filteredTasks.length === 0 ? (
+            <div className="text-center py-12">
+              <Icon name="doc-text" size={32} className="mx-auto mb-2" style={{ color: 'rgba(255,255,255,0.1)' }} />
+              <p className="text-sm" style={{ color: 'rgba(255,255,255,0.3)' }}>Ingen opgaver fundet</p>
+            </div>
+          ) : (
+            filteredTasks.map(t => (
+              <TaskMiniCard 
+                key={t.id} 
+                task={t} 
+                onSelect={() => { onClose(); onSelectTask(t) }} 
+              />
+            ))
+          )}
+        </div>
+      </div>
+    </>
+  )
+}
+
 /* ── Main Page ──────────────────────────────── */
 export default function Tasks() {
   const { sessions, cronJobs } = useLiveData()
@@ -607,6 +716,7 @@ export default function Tasks() {
   const [loading, setLoading] = useState(true)
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
   const [showCreate, setShowCreate] = useState(false)
+  const [showArchive, setShowArchive] = useState(false)
   const [statusPopup, setStatusPopup] = useState<'queued' | 'active' | 'completed' | null>(null)
   const [search, setSearch] = useState('')
 
@@ -714,16 +824,34 @@ export default function Tasks() {
             {loading ? 'Indlæser...' : `${tasks.length} total · ${active.length} aktive · ${completed.length} afsluttede`}
           </p>
         </div>
-        <button
-          onClick={() => setShowCreate(true)}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-white text-sm transition-all"
-          style={{ background: '#007AFF' }}
-          onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,122,255,0.3)' }}
-          onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none' }}
-        >
-          <Icon name="plus" size={16} />
-          Ny Opgave
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowArchive(true)}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-white text-sm transition-all"
+            style={{ background: 'rgba(255,255,255,0.06)' }}
+            onMouseEnter={e => { 
+              e.currentTarget.style.background = 'rgba(255,255,255,0.1)' 
+              e.currentTarget.style.boxShadow = '0 4px 20px rgba(142,142,147,0.2)'
+            }}
+            onMouseLeave={e => { 
+              e.currentTarget.style.background = 'rgba(255,255,255,0.06)' 
+              e.currentTarget.style.boxShadow = 'none'
+            }}
+          >
+            <Icon name="doc-text" size={16} />
+            Arkiv
+          </button>
+          <button
+            onClick={() => setShowCreate(true)}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-white text-sm transition-all"
+            style={{ background: '#007AFF' }}
+            onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,122,255,0.3)' }}
+            onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none' }}
+          >
+            <Icon name="plus" size={16} />
+            Ny Opgave
+          </button>
+        </div>
       </div>
 
       {/* Search + Activity Status */}
@@ -824,6 +952,12 @@ export default function Tasks() {
       {/* Popups */}
       {selectedTask && <DetailPanel task={selectedTask} onClose={() => setSelectedTask(null)} />}
       <CreateModal open={showCreate} onClose={() => setShowCreate(false)} />
+      <ArchiveModal 
+        open={showArchive} 
+        onClose={() => setShowArchive(false)} 
+        tasks={tasks} 
+        onSelectTask={setSelectedTask} 
+      />
     </div>
   )
 }
