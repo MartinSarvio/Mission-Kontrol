@@ -26,7 +26,7 @@
     ],
     "macOSPrivateApi": true,
     "security": {
-      "csp": "default-src 'self' https://srv1356942.tail9aaaf1.ts.net; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://srv1356942.tail9aaaf1.ts.net https://*.tail9aaaf1.ts.net; img-src 'self' data: https:; font-src 'self' data:"
+      "csp": "default-src 'self' https://srv1356942.tail9aaaf1.ts.net:* https://srv1356942.tail9aaaf1.ts.net; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://srv1356942.tail9aaaf1.ts.net:* https://srv1356942.tail9aaaf1.ts.net https://*.tail9aaaf1.ts.net:* https://*.tail9aaaf1.ts.net; img-src 'self' data: https:; font-src 'self' data:"
     }
   },
   "bundle": {
