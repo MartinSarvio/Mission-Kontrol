@@ -6,6 +6,7 @@ import { fetchMemoryFiles, fetchAllSessions, MemoryEntry, TranscriptSession } fr
 interface DayData {
   date: string
   memory?: MemoryEntry
+  memories?: MemoryEntry[]
   sessions: TranscriptSession[]
 }
 
@@ -13,9 +14,17 @@ interface DayData {
 const CACHE_KEY_MEMORY = 'openclaw-memory-files'
 const CACHE_KEY_SESSIONS = 'openclaw-all-sessions'
 
+function extractDatePart(dateStr: string): string {
+  // Extract YYYY-MM-DD from strings like "2026-02-13-c" or "2026-02-12-mission-kontrol"
+  const match = dateStr.match(/^(\d{4}-\d{2}-\d{2})/)
+  return match ? match[1] : dateStr
+}
+
 function formatDate(dateStr: string): string {
   try {
-    const date = new Date(dateStr)
+    const clean = extractDatePart(dateStr)
+    const date = new Date(clean + 'T12:00:00')
+    if (isNaN(date.getTime())) return dateStr
     return date.toLocaleDateString('da-DK', { 
       weekday: 'long', 
       day: 'numeric', 
@@ -25,6 +34,12 @@ function formatDate(dateStr: string): string {
   } catch {
     return dateStr
   }
+}
+
+function extractTitle(content: string): string | null {
+  // Find first markdown heading
+  const match = content.match(/^#\s+(.+)$/m)
+  return match ? match[1].trim() : null
 }
 
 function getDateKey(timestamp: string | number): string {
@@ -174,18 +189,22 @@ function DayContent({ day }: { day: DayData }) {
   return (
     <div className="space-y-6">
       {/* Memory content */}
-      {day.memory && (
-        <div 
-          className="rounded-2xl p-6"
-          style={{ background: 'rgba(255,255,255,0.03)' }}
-        >
-          <div className="flex items-center gap-2 mb-4">
-            <Icon name="doc-text" size={18} style={{ color: '#007AFF' }} />
-            <h3 className="text-base font-bold text-white">Daglig Note</h3>
+      {day.memories && day.memories.length > 0 && day.memories.map((mem, i) => {
+        const title = extractTitle(mem.content) || mem.filename.replace('.md', '').replace(/^\d{4}-\d{2}-\d{2}-?/, '') || 'Daglig Note'
+        return (
+          <div 
+            key={i}
+            className="rounded-2xl p-6"
+            style={{ background: 'rgba(255,255,255,0.03)' }}
+          >
+            <div className="flex items-center gap-2 mb-4">
+              <Icon name="doc-text" size={18} style={{ color: '#007AFF' }} />
+              <h3 className="text-base font-bold text-white">{title}</h3>
+            </div>
+            {renderMarkdown(mem.content)}
           </div>
-          {renderMarkdown(day.memory.content)}
-        </div>
-      )}
+        )
+      })}
       
       {/* Sessions */}
       {day.sessions.length > 0 && (
@@ -265,9 +284,6 @@ function DateSidebar({
               }}
             >
               <div className="text-sm">{formatDate(date)}</div>
-              <div className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>
-                {date}
-              </div>
             </button>
           )
         })}
@@ -339,13 +355,16 @@ export default function Journal() {
   const dayDataMap = useMemo(() => {
     const map = new Map<string, DayData>()
     
-    // Tilføj memory entries
+    // Tilføj memory entries (group by YYYY-MM-DD)
     for (const mem of memoryFiles) {
-      const dateKey = mem.date
+      const dateKey = extractDatePart(mem.date)
       if (!map.has(dateKey)) {
-        map.set(dateKey, { date: dateKey, sessions: [] })
+        map.set(dateKey, { date: dateKey, sessions: [], memories: [] })
       }
-      map.get(dateKey)!.memory = mem
+      const day = map.get(dateKey)!
+      if (!day.memory) day.memory = mem
+      if (!day.memories) day.memories = []
+      day.memories.push(mem)
     }
     
     // Tilføj sessions grupperet efter dato
