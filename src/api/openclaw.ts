@@ -6,8 +6,18 @@ const STORAGE_KEY_TOKEN = 'openclaw-gateway-token'
 // Use Tauri's fetch in desktop app (bypasses CORS/cert issues), native fetch in browser
 async function smartFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
   if (typeof window !== 'undefined' && '__TAURI__' in window) {
-    const { fetch: tauriFetch } = await import('@tauri-apps/plugin-http')
-    return tauriFetch(input, init)
+    try {
+      const { fetch: tauriFetch } = await import('@tauri-apps/plugin-http')
+      const res = await tauriFetch(input instanceof URL ? input.toString() : input, {
+        ...init,
+        method: init?.method || 'GET',
+        headers: init?.headers instanceof Headers ? Object.fromEntries(init.headers.entries()) : init?.headers as Record<string, string>,
+      })
+      return res
+    } catch (e: any) {
+      console.warn('[smartFetch] Tauri fetch failed, falling back to native:', e?.message)
+      return fetch(input, init)
+    }
   }
   return fetch(input, init)
 }
