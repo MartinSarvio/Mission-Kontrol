@@ -48,17 +48,30 @@ async function invokeToolRaw(tool: string, args: Record<string, unknown>): Promi
   const token = getGatewayToken()
   if (!token) throw new Error('Ingen auth token konfigureret')
 
-  const res = await smartFetch(`${url}/tools/invoke`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-    },
-    body: JSON.stringify({ tool, args }),
-  })
+  let res: Response
+  try {
+    res = await smartFetch(`${url}/tools/invoke`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ tool, args }),
+    })
+  } catch (e: any) {
+    throw new Error(`Netværksfejl: ${e?.message || e || 'Ukendt fejl'}`)
+  }
 
-  if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  const data = await res.json()
+  if (!res.ok) {
+    const text = await res.text().catch(() => '')
+    throw new Error(`HTTP ${res.status}: ${text || res.statusText || 'Ukendt'}`)
+  }
+  let data: any
+  try {
+    data = await res.json()
+  } catch {
+    throw new Error('Ugyldigt JSON svar fra gateway')
+  }
   if (!data.ok) throw new Error(data.error?.message || 'API fejl')
   return data
 }
