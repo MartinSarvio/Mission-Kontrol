@@ -519,7 +519,6 @@ export async function searchWorkspace(query: string): Promise<{ file: string; li
 }
 
 export async function fetchAllSessionHistory(limit = 20): Promise<{ session: string; role: string; text: string; timestamp?: number }[]> {
-  // Get all sessions, then fetch recent messages from each
   const sessionsData = await fetchSessions()
   const entries: { session: string; role: string; text: string; timestamp?: number }[] = []
   const sessions = sessionsData.sessions?.slice(0, 10) || []
@@ -539,4 +538,198 @@ export async function fetchAllSessionHistory(limit = 20): Promise<{ session: str
   }
   
   return entries.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0)).slice(0, limit)
+}
+
+/* ── Transcript & History API ─────────────────────────── */
+
+export interface TranscriptSession {
+  sessionId: string
+  agent: string
+  label?: string
+  spawnedBy?: string
+  startedAt: string
+  updatedAt?: number
+  model?: string
+  messageCount: number
+  firstMessage?: string
+  status: 'active' | 'completed'
+}
+
+export interface MemoryEntry {
+  date: string
+  filename: string
+  content: string
+}
+
+// Read a file from disk via gateway exec tool
+async function readFileViaGateway(path: string): Promise<string> {
+  const data = await invokeToolRaw('read', { path }) as any
+  const text = data.result?.content?.[0]?.text
+  if (text) return text
+  throw new Error('Could not read file')
+}
+
+// List files via gateway exec
+async function execViaGateway(command: string): Promise<string> {
+  const data = await invokeToolRaw('exec', { command, timeout: 10 }) as any
+  const text = data.result?.content?.[0]?.text
+  if (text) return text
+  return ''
+}
+
+// Fetch ALL sessions including completed ones from transcript files on disk
+export async function fetchAllSessions(): Promise<TranscriptSession[]> {
+  try {
+    const output = await execViaGateway(`python3 -c "
+import json, os, glob
+
+sessions = []
+for agent_dir in glob.glob('/data/.openclaw/agents/*/sessions/'):
+    agent = agent_dir.split('/')[-3]
+    
+    # Read sessions.json for metadata
+    meta = {}
+    sfile = os.path.join(agent_dir, 'sessions.json')
+    if os.path.exists(sfile):
+        with open(sfile) as f:
+            meta = json.load(f)
+    
+    # Scan all transcript files
+    for jf in sorted(glob.glob(os.path.join(agent_dir, '*.jsonl')), key=os.path.getmtime, reverse=True):
+        sid = os.path.basename(jf).replace('.jsonl', '')
+        stat = os.stat(jf)
+        
+        # Read first few lines for metadata
+        first_msg = ''
+        model = ''
+        msg_count = 0
+        started = ''
+        with open(jf) as f:
+            for i, line in enumerate(f):
+                if i > 200: break
+                try:
+                    d = json.loads(line)
+                    if d.get('type') == 'session':
+                        started = d.get('timestamp', '')
+                    elif d.get('type') == 'model_change':
+                        model = d.get('modelId', '')
+                    elif d.get('type') == 'message':
+                        msg_count += 1
+                        if not first_msg:
+                            msg = d.get('message', {})
+                            c = msg.get('content', [])
+                            if isinstance(c, list):
+                                for block in c:
+                                    if isinstance(block, dict) and block.get('type') == 'text':
+                                        first_msg = block.get('text', '')[:150]
+                                        break
+                            elif isinstance(c, str):
+                                first_msg = c[:150]
+                except: pass
+        
+        # Find label from sessions.json
+        label = None
+        spawned_by = None
+        for k, v in meta.items():
+            if v.get('sessionId') == sid:
+                label = v.get('label')
+                spawned_by = v.get('spawnedBy')
+                break
+        
+        sessions.append({
+            'sessionId': sid,
+            'agent': agent,
+            'label': label,
+            'spawnedBy': spawned_by,
+            'startedAt': started,
+            'updatedAt': int(stat.st_mtime * 1000),
+            'model': model,
+            'messageCount': msg_count,
+            'firstMessage': first_msg,
+            'status': 'active' if (int(stat.st_mtime * 1000) > (int(__import__('time').time() * 1000) - 300000)) else 'completed'
+        })
+
+print(json.dumps(sessions))
+"`)
+    return JSON.parse(output)
+  } catch (e) {
+    console.error('Failed to fetch all sessions:', e)
+    return []
+  }
+}
+
+// Fetch memory files for Journal
+export async function fetchMemoryFiles(): Promise<MemoryEntry[]> {
+  try {
+    const output = await execViaGateway(`python3 -c "
+import json, os, glob
+entries = []
+for f in sorted(glob.glob('/data/.openclaw/workspace/memory/*.md'), reverse=True):
+    name = os.path.basename(f)
+    date = name.replace('.md', '')
+    with open(f) as fh:
+        content = fh.read()
+    entries.append({'date': date, 'filename': name, 'content': content})
+print(json.dumps(entries))
+"`)
+    return JSON.parse(output)
+  } catch (e) {
+    console.error('Failed to fetch memory files:', e)
+    return []
+  }
+}
+
+// Read a specific transcript's messages
+export async function readTranscriptMessages(agent: string, sessionId: string, limit = 50): Promise<DetailedSessionMessage[]> {
+  try {
+    const output = await execViaGateway(`python3 -c "
+import json, glob
+
+path = None
+for p in glob.glob('/data/.openclaw/agents/${agent}/sessions/${sessionId}.jsonl*'):
+    if '.deleted' not in p or not path:
+        path = p
+        if '.deleted' not in p: break
+
+if not path:
+    print('[]')
+else:
+    msgs = []
+    with open(path) as f:
+        for line in f:
+            try:
+                d = json.loads(line)
+                if d.get('type') != 'message': continue
+                msg = d.get('message', {})
+                role = msg.get('role', '')
+                content = msg.get('content', '')
+                text = ''
+                tool_calls = []
+                if isinstance(content, str):
+                    text = content
+                elif isinstance(content, list):
+                    for block in content:
+                        if isinstance(block, dict):
+                            if block.get('type') == 'text':
+                                text = block.get('text', '')
+                            elif block.get('type') == 'tool_use':
+                                tool_calls.append({'tool': block.get('name',''), 'args': block.get('input',{})})
+                            elif block.get('type') == 'tool_result':
+                                pass
+                            elif block.get('type') == 'toolCall':
+                                tool_calls.append({'tool': block.get('name',''), 'args': block.get('arguments',{})})
+                
+                entry = {'role': role, 'text': text[:500], 'timestamp': msg.get('timestamp', d.get('timestamp'))}
+                if tool_calls:
+                    entry['toolCalls'] = tool_calls[:5]
+                if text or tool_calls:
+                    msgs.append(entry)
+            except: pass
+    print(json.dumps(msgs[-${limit}:]))
+"`)
+    return JSON.parse(output)
+  } catch (e) {
+    console.error('Failed to read transcript:', e)
+    return []
+  }
 }

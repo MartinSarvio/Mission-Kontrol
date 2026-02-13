@@ -1,8 +1,15 @@
 import { useState, useMemo, useEffect } from 'react'
 import Icon from '../components/Icon'
-// import LiveFeed from '../components/LiveFeed'
 import { useLiveData } from '../api/LiveDataContext'
-import { createAgent, ApiSession, getSessionHistory, DetailedSessionMessage, ToolCall } from '../api/openclaw'
+import { 
+  createAgent, 
+  ApiSession, 
+  fetchAllSessions, 
+  readTranscriptMessages, 
+  TranscriptSession,
+  DetailedSessionMessage, 
+  ToolCall 
+} from '../api/openclaw'
 
 /* ── Types ───────────────────────────────────── */
 interface Task {
@@ -10,18 +17,23 @@ interface Task {
   title: string
   status: 'queued' | 'active' | 'completed'
   kind: string
+  agent: string
   model: string
   updated: Date
-  sessionKey: string
+  sessionKey?: string
   sessionId: string
   channel: string
   contextTokens?: number
   totalTokens?: number
-  lastMessages?: any[]
+  messageCount: number
+  firstMessage?: string
   label?: string
+  spawnedBy?: string
 }
 
 /* ── Helpers ─────────────────────────────────── */
+const CACHE_KEY_SESSIONS = 'openclaw-all-sessions'
+
 function timeAgo(date: Date): string {
   const mins = Math.floor((Date.now() - date.getTime()) / 60000)
   if (mins < 1) return 'lige nu'
@@ -31,13 +43,46 @@ function timeAgo(date: Date): string {
   return `${Math.floor(hours / 24)}d siden`
 }
 
-function sessionToTask(s: ApiSession): Task {
+function transcriptToTask(s: TranscriptSession): Task {
+  const updatedAt = s.updatedAt ? new Date(s.updatedAt) : new Date()
+  const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000)
+  
+  let status: 'queued' | 'active' | 'completed' = 'completed'
+  
+  // Kø: 0 beskeder
+  if (s.messageCount === 0) {
+    status = 'queued'
+  }
+  // Aktive: opdateret inden for 5 min ELLER status='active'
+  else if (updatedAt > fiveMinAgo || s.status === 'active') {
+    status = 'active'
+  }
+
+  let title = s.label || `${s.agent}/${s.sessionId.substring(0, 8)}`
+
+  return {
+    id: s.sessionId,
+    title,
+    status,
+    kind: s.agent === 'main' ? 'main' : 'subagent',
+    agent: s.agent,
+    model: s.model || 'unknown',
+    updated: updatedAt,
+    sessionId: s.sessionId,
+    channel: 'transcript',
+    messageCount: s.messageCount,
+    firstMessage: s.firstMessage,
+    label: s.label,
+    spawnedBy: s.spawnedBy,
+  }
+}
+
+function liveSessionToTask(s: ApiSession): Task {
   const updatedAt = new Date(s.updatedAt)
   const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000)
   
   let status: 'queued' | 'active' | 'completed' = 'completed'
   
-  // Kø logik: subagent uden aktivitet (ingen lastMessages eller meget gamle)
   if (s.kind === 'subagent') {
     const hasActivity = s.lastMessages && s.lastMessages.length > 0
     if (!hasActivity) {
@@ -52,11 +97,15 @@ function sessionToTask(s: ApiSession): Task {
   let title = s.label || s.displayName || 'Unavngiven'
   if (s.kind === 'main') title = 'Hovedsession'
 
+  const msgCount = s.lastMessages?.length || 0
+  const firstMsg = s.lastMessages?.[0]?.text || s.lastMessages?.[0]?.content || ''
+
   return {
     id: s.sessionId,
     title,
     status,
     kind: s.kind,
+    agent: s.kind,
     model: s.model,
     updated: updatedAt,
     sessionKey: s.key,
@@ -64,7 +113,8 @@ function sessionToTask(s: ApiSession): Task {
     channel: s.lastChannel || s.channel,
     contextTokens: s.contextTokens,
     totalTokens: s.totalTokens,
-    lastMessages: s.lastMessages,
+    messageCount: msgCount,
+    firstMessage: typeof firstMsg === 'string' ? firstMsg : '',
     label: s.label,
   }
 }
@@ -131,13 +181,19 @@ function TaskCard({ task, onClick }: { task: Task; onClick: () => void }) {
               className="text-xs px-2 py-0.5 rounded-full font-medium"
               style={{ background: `${getKindColor(task.kind)}20`, color: getKindColor(task.kind) }}
             >
-              {task.kind === 'main' ? 'Hoved' : task.kind === 'subagent' ? 'Sub' : task.kind}
+              {task.agent}
             </span>
             <span className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>·</span>
-            <span className="text-xs truncate" style={{ color: 'rgba(255,255,255,0.4)' }}>{task.channel}</span>
+            <span className="text-xs truncate" style={{ color: 'rgba(255,255,255,0.4)' }}>{task.messageCount} msg</span>
           </div>
         </div>
       </div>
+      
+      {task.firstMessage && (
+        <p className="text-xs mb-3 line-clamp-2" style={{ color: 'rgba(255,255,255,0.5)' }}>
+          {task.firstMessage}
+        </p>
+      )}
       
       <div className="flex items-center justify-between pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
         <span className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>{timeAgo(task.updated)}</span>
@@ -205,21 +261,7 @@ function MessageBubble({ message }: { message: DetailedSessionMessage }) {
   const isUser = message.role === 'user'
   const isAssistant = message.role === 'assistant'
   
-  let text = ''
-  const msgText = message.text as any
-  const msgContent = message.content as any
-  
-  if (typeof msgText === 'string') {
-    text = msgText
-  } else if (typeof msgContent === 'string') {
-    text = msgContent
-  } else if (Array.isArray(msgText)) {
-    const textBlock = msgText.find((c: any) => c.type === 'text')
-    text = textBlock?.text || ''
-  } else if (Array.isArray(msgContent)) {
-    const textBlock = msgContent.find((c: any) => c.type === 'text')
-    text = textBlock?.text || ''
-  }
+  const text = message.text || ''
   
   if (!text && !message.toolCalls) return null
   
@@ -228,6 +270,9 @@ function MessageBubble({ message }: { message: DetailedSessionMessage }) {
       <div className={`max-w-[85%] ${isUser ? 'order-2' : 'order-1'}`}>
         <div className={`text-xs mb-1 ${isUser ? 'text-right' : 'text-left'}`} style={{ color: 'rgba(255,255,255,0.3)' }}>
           {isUser ? 'Bruger' : isAssistant ? 'Agent' : message.role}
+          {message.timestamp && (
+            <span className="ml-2">{new Date(message.timestamp).toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' })}</span>
+          )}
         </div>
         
         {text && (
@@ -292,14 +337,14 @@ function DetailPanel({ task, onClose }: { task: Task; onClose: () => void }) {
 
   useEffect(() => {
     setLoadingHistory(true)
-    getSessionHistory(task.sessionKey)
+    readTranscriptMessages(task.agent, task.sessionId, 100)
       .then(msgs => setSessionHistory(msgs))
       .catch(err => {
         console.error('Failed to load history:', err)
         setSessionHistory([])
       })
       .finally(() => setLoadingHistory(false))
-  }, [task.sessionKey])
+  }, [task.agent, task.sessionId])
 
   const statusColors = {
     queued: '#FF9F0A',
@@ -357,25 +402,25 @@ function DetailPanel({ task, onClose }: { task: Task; onClose: () => void }) {
           {/* Meta info */}
           <div className="grid grid-cols-2 gap-2">
             <div className="rounded-lg p-2" style={{ background: 'rgba(255,255,255,0.03)' }}>
-              <p className="text-xs uppercase tracking-wider mb-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>Type</p>
+              <p className="text-xs uppercase tracking-wider mb-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>Agent</p>
               <span 
                 className="text-xs px-2 py-0.5 rounded-full font-medium"
                 style={{ background: `${getKindColor(task.kind)}20`, color: getKindColor(task.kind) }}
               >
-                {task.kind === 'main' ? 'Hoved' : task.kind === 'subagent' ? 'Sub-agent' : task.kind}
+                {task.agent}
               </span>
             </div>
             <div className="rounded-lg p-2" style={{ background: 'rgba(255,255,255,0.03)' }}>
-              <p className="text-xs uppercase tracking-wider mb-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>Kanal</p>
-              <p className="text-xs text-white">{task.channel}</p>
+              <p className="text-xs uppercase tracking-wider mb-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>Beskeder</p>
+              <p className="text-xs text-white">{task.messageCount}</p>
             </div>
             <div className="rounded-lg p-2" style={{ background: 'rgba(255,255,255,0.03)' }}>
               <p className="text-xs uppercase tracking-wider mb-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>Model</p>
               <p className="text-xs text-white">{task.model.split('/').pop()}</p>
             </div>
             <div className="rounded-lg p-2" style={{ background: 'rgba(255,255,255,0.03)' }}>
-              <p className="text-xs uppercase tracking-wider mb-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>Tokens</p>
-              <p className="text-xs text-white">{task.contextTokens ? `${(task.contextTokens / 1000).toFixed(1)}K` : 'N/A'}</p>
+              <p className="text-xs uppercase tracking-wider mb-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>Opdateret</p>
+              <p className="text-xs text-white">{timeAgo(task.updated)}</p>
             </div>
           </div>
         </div>
@@ -492,12 +537,61 @@ function CreateModal({ open, onClose }: { open: boolean; onClose: () => void }) 
 /* ── Main Page ──────────────────────────────── */
 export default function Tasks() {
   const { sessions } = useLiveData()
+  const [allSessions, setAllSessions] = useState<TranscriptSession[]>([])
+  const [loading, setLoading] = useState(true)
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
   const [showCreate, setShowCreate] = useState(false)
 
+  // Hent alle sessions ved mount (inkl. afsluttede)
+  useEffect(() => {
+    // Prøv at hente fra cache først
+    const cached = localStorage.getItem(CACHE_KEY_SESSIONS)
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached)
+        setAllSessions(parsed)
+      } catch (e) {
+        console.error('Failed to parse cached sessions:', e)
+      }
+    }
+
+    // Hent frisk data
+    setLoading(true)
+    fetchAllSessions()
+      .then(sessions => {
+        setAllSessions(sessions)
+        localStorage.setItem(CACHE_KEY_SESSIONS, JSON.stringify(sessions))
+      })
+      .catch(err => {
+        console.error('Failed to fetch all sessions:', err)
+      })
+      .finally(() => setLoading(false))
+  }, [])
+
+  // Kombiner transcript sessions med live sessions
   const tasks: Task[] = useMemo(() => {
-    return sessions.map(sessionToTask).sort((a, b) => b.updated.getTime() - a.updated.getTime())
-  }, [sessions])
+    const transcriptTasks = allSessions.map(transcriptToTask)
+    const liveTasks = sessions.map(liveSessionToTask)
+    
+    // Merge: brug live data hvis sessionId matcher, ellers behold transcript
+    const mergedMap = new Map<string, Task>()
+    
+    for (const t of transcriptTasks) {
+      mergedMap.set(t.sessionId, t)
+    }
+    
+    for (const t of liveTasks) {
+      const existing = mergedMap.get(t.sessionId)
+      if (existing) {
+        // Opdater med live data
+        mergedMap.set(t.sessionId, { ...existing, ...t, sessionKey: t.sessionKey })
+      } else {
+        mergedMap.set(t.sessionId, t)
+      }
+    }
+    
+    return Array.from(mergedMap.values()).sort((a, b) => b.updated.getTime() - a.updated.getTime())
+  }, [sessions, allSessions])
 
   const queued = tasks.filter(t => t.status === 'queued')
   const active = tasks.filter(t => t.status === 'active')
@@ -509,7 +603,7 @@ export default function Tasks() {
         <div>
           <h1 className="text-2xl font-bold text-white mb-1">Opgaver</h1>
           <p className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>
-            {tasks.length} sessions · {active.length} aktive
+            {loading ? 'Indlæser...' : `${tasks.length} sessions · ${active.length} aktive · ${completed.length} afsluttede`}
           </p>
         </div>
         
