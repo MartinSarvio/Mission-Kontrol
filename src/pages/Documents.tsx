@@ -4,7 +4,7 @@ import Table from '../components/Table'
 import SearchBar from '../components/SearchBar'
 import Modal from '../components/Modal'
 import Icon from '../components/Icon'
-import { fetchWorkspaceFiles } from '../api/openclaw'
+import { fetchWorkspaceFiles, readFileContent, downloadFile } from '../api/openclaw'
 import { useLiveData } from '../api/LiveDataContext'
 
 interface WorkspaceFile {
@@ -22,6 +22,9 @@ export default function Documents() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState<WorkspaceFile | null>(null)
+  const [fileContent, setFileContent] = useState<string | null>(null)
+  const [loadingContent, setLoadingContent] = useState(false)
+  const [downloading, setDownloading] = useState(false)
 
   useEffect(() => {
     if (isConnected) {
@@ -126,7 +129,7 @@ export default function Documents() {
         <p className="caption mt-1">PDF, Markdown, CSV, Excel, SQL</p>
       </div>
 
-      <Modal open={!!selected} onClose={() => setSelected(null)} title={selected?.name || ''}>
+      <Modal open={!!selected} onClose={() => { setSelected(null); setFileContent(null) }} title={selected?.name || ''}>
         {selected && (
           <div className="space-y-4 text-sm">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -136,9 +139,48 @@ export default function Documents() {
               <div><p className="caption">Sti</p><p className="font-medium font-mono text-xs">{selected.path}</p></div>
             </div>
             <div className="flex flex-col sm:flex-row gap-2 pt-2">
-              <button style={{ minHeight: '44px', background: '#007AFF', color: '#fff', padding: '8px 16px', borderRadius: '12px', fontSize: '14px', fontWeight: 500, border: 'none', opacity: 0.5 }} disabled>Download</button>
-              <button style={{ minHeight: '44px', background: 'rgba(0,122,255,0.1)', color: '#007AFF', padding: '8px 16px', borderRadius: '12px', fontSize: '14px', fontWeight: 500, border: '1px solid rgba(0,122,255,0.2)', opacity: 0.5 }} disabled>Se Indhold</button>
+              <button
+                onClick={async () => {
+                  setDownloading(true)
+                  try {
+                    const { content, name } = await downloadFile(selected.path)
+                    const ext = name.split('.').pop()?.toLowerCase() || 'txt'
+                    const mimeMap: Record<string, string> = { md: 'text/markdown', json: 'application/json', html: 'text/html', css: 'text/css', js: 'text/javascript', ts: 'text/typescript' }
+                    const mime = mimeMap[ext] || 'text/plain'
+                    const blob = new Blob([content], { type: mime })
+                    const url = URL.createObjectURL(blob)
+                    const a = document.createElement('a')
+                    a.href = url; a.download = name; a.click()
+                    URL.revokeObjectURL(url)
+                  } catch (e) { console.error('Download fejl:', e) }
+                  finally { setDownloading(false) }
+                }}
+                style={{ minHeight: '44px', background: '#007AFF', color: '#fff', padding: '8px 16px', borderRadius: '12px', fontSize: '14px', fontWeight: 500, border: 'none', cursor: 'pointer' }}
+              >
+                {downloading ? 'Henter...' : 'Download'}
+              </button>
+              <button
+                onClick={async () => {
+                  if (fileContent !== null) { setFileContent(null); return }
+                  setLoadingContent(true)
+                  try {
+                    const content = await readFileContent(selected.path)
+                    setFileContent(content)
+                  } catch (e: any) { setFileContent(`Fejl: ${e?.message || 'Kunne ikke læse fil'}`) }
+                  finally { setLoadingContent(false) }
+                }}
+                style={{ minHeight: '44px', background: 'rgba(0,122,255,0.1)', color: '#007AFF', padding: '8px 16px', borderRadius: '12px', fontSize: '14px', fontWeight: 500, border: '1px solid rgba(0,122,255,0.2)', cursor: 'pointer' }}
+              >
+                {loadingContent ? 'Indlæser...' : fileContent !== null ? 'Skjul Indhold' : 'Se Indhold'}
+              </button>
             </div>
+            {fileContent !== null && (
+              <div style={{ background: 'rgba(0,0,0,0.4)', borderRadius: '12px', padding: '16px', maxHeight: '400px', overflow: 'auto' }}>
+                <pre style={{ margin: 0, fontFamily: 'ui-monospace, SFMono-Regular, monospace', fontSize: '12px', color: 'rgba(255,255,255,0.8)', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                  {fileContent}
+                </pre>
+              </div>
+            )}
           </div>
         )}
       </Modal>

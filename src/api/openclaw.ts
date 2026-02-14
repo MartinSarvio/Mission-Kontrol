@@ -405,54 +405,66 @@ export async function searchSkills(query: string): Promise<{ name: string; versi
 
 // --- Live data functions (no mock) ---
 
+export async function readFileContent(path: string): Promise<string> {
+  const data = await invokeToolRaw('read', { path }) as any
+  const text = data.result?.content?.[0]?.text
+  if (typeof text === 'string') return text
+  throw new Error('Kunne ikke læse fil')
+}
+
+export async function downloadFile(path: string): Promise<{ content: string; name: string }> {
+  const content = await readFileContent(path)
+  const name = path.split('/').pop() || 'download'
+  return { content, name }
+}
+
 export async function fetchWorkspaceFiles(): Promise<{ name: string; size: string; modified: string; type: string; path: string }[]> {
-  // Use memory_search to find workspace files
-  const data = await invokeToolRaw('memory_search', { query: 'workspace file md ts tsx json' }) as any
+  // Use exec to get real file listing with sizes
+  const data = await invokeToolRaw('exec', {
+    command: 'find /data/.openclaw/workspace -maxdepth 3 -type f -not -path "*/node_modules/*" -not -path "*/.git/*" -not -path "*/dist/*" -not -path "*/.openclaw/workspace/mission-kontrol/src/*" | head -100 | while read f; do ls -lh "$f" 2>/dev/null; done'
+  }) as any
   const text = data.result?.content?.[0]?.text || ''
-  
-  // Also include known workspace files
-  const knownFiles = [
-    'MEMORY.md', 'SOUL.md', 'USER.md', 'IDENTITY.md', 'TOOLS.md', 
-    'AGENTS.md', 'HEARTBEAT.md', 'BOOTSTRAP.md', 'BOOT.md'
-  ]
-  
+
   const results: { name: string; size: string; modified: string; type: string; path: string }[] = []
-  
-  // Parse search results
-  if (text) {
-    const lines = text.split('\n').filter(Boolean)
-    for (const line of lines.slice(0, 30)) {
-      // Extract filename from search result
-      const match = line.match(/([A-Z_]+\.md|[\w-]+\.(ts|tsx|json|js|mjs))/i)
-      if (match) {
-        const name = match[0]
-        const ext = name.split('.').pop()?.toUpperCase() || 'FIL'
-        results.push({
-          name,
-          path: `/data/.openclaw/workspace/${name}`,
-          size: 'N/A',
-          modified: new Date().toLocaleDateString('da-DK', { day: 'numeric', month: 'short', year: 'numeric' }),
-          type: ext,
-        })
+  const lines = text.split('\n').filter(Boolean)
+
+  for (const line of lines) {
+    // ls -lh output: -rw-r--r-- 1 root root 4.2K Feb 14 12:00 /data/.openclaw/workspace/FILE.md
+    const match = line.match(/\S+\s+\S+\s+\S+\s+\S+\s+([\d.]+[KMGTP]?)\s+(\w+\s+\d+\s+[\d:]+)\s+(.+)$/)
+    if (match) {
+      const [, size, modified, fullPath] = match
+      const name = fullPath.split('/').pop() || fullPath
+      const ext = name.split('.').pop()?.toLowerCase() || ''
+      const typeMap: Record<string, string> = {
+        md: 'Markdown', txt: 'Tekst', json: 'JSON', js: 'JavaScript', ts: 'TypeScript',
+        tsx: 'React TSX', jsx: 'React JSX', css: 'CSS', html: 'HTML', sh: 'Shell',
+        yml: 'YAML', yaml: 'YAML', toml: 'TOML', mjs: 'ES Module',
       }
+      results.push({
+        name,
+        path: fullPath.trim(),
+        size,
+        modified,
+        type: typeMap[ext] || ext.toUpperCase() || 'Fil',
+      })
     }
   }
-  
-  // Add known files if not already in results
-  for (const file of knownFiles) {
-    if (!results.find(r => r.name === file)) {
-      const ext = file.split('.').pop()?.toUpperCase() || 'MD'
+
+  // Fallback if exec returned nothing
+  if (results.length === 0) {
+    const knownFiles = ['MEMORY.md', 'SOUL.md', 'USER.md', 'IDENTITY.md', 'TOOLS.md', 'AGENTS.md', 'HEARTBEAT.md', 'BOOT.md']
+    for (const file of knownFiles) {
       results.push({
         name: file,
         path: `/data/.openclaw/workspace/${file}`,
         size: 'N/A',
-        modified: new Date().toLocaleDateString('da-DK', { day: 'numeric', month: 'short', year: 'numeric' }),
-        type: ext,
+        modified: 'Ukendt',
+        type: 'Markdown',
       })
     }
   }
-  
-  return results.slice(0, 50)
+
+  return results.sort((a, b) => a.name.localeCompare(b.name))
 }
 
 export async function fetchSystemInfo(): Promise<Record<string, string>> {

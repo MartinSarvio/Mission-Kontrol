@@ -449,28 +449,53 @@ function CreateModal({ open, onClose }: { open: boolean; onClose: () => void }) 
   const [scheduledTime, setScheduledTime] = useState('')
   const [creating, setCreating] = useState(false)
   const [useSchedule, setUseSchedule] = useState(false)
+  const [attachments, setAttachments] = useState<File[]>([])
+  const [previews, setPreviews] = useState<string[]>([])
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || [])
+    setAttachments(prev => [...prev, ...files])
+    for (const file of files) {
+      const reader = new FileReader()
+      reader.onload = () => setPreviews(prev => [...prev, reader.result as string])
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const removeAttachment = (index: number) => {
+    setAttachments(prev => prev.filter((_, i) => i !== index))
+    setPreviews(prev => prev.filter((_, i) => i !== index))
+  }
 
   const handleCreate = async () => {
     if (!name.trim() || !task.trim()) return
     setCreating(true)
     try {
+      let fullTask = task.trim()
+
+      // Append base64 images to task description
+      if (attachments.length > 0) {
+        fullTask += `\n\n[Vedhæftet: ${attachments.length} billede${attachments.length > 1 ? 'r' : ''}]`
+        for (let i = 0; i < previews.length; i++) {
+          fullTask += `\n\nBillede ${i + 1} (${attachments[i].name}):\n${previews[i]}`
+        }
+      }
+
       if (useSchedule && scheduledDate && scheduledTime) {
-        // Create as scheduled cron job — fires once at the given time
         const isoTime = `${scheduledDate}T${scheduledTime}:00`
         await invokeToolRaw('cron', {
           action: 'add',
           job: {
             name: name.trim(),
             schedule: { kind: 'at', at: new Date(isoTime).toISOString() },
-            payload: { kind: 'agentTurn', message: `[Opgave: ${name.trim()}]\n\n${task.trim()}` },
+            payload: { kind: 'agentTurn', message: `[Opgave: ${name.trim()}]\n\n${fullTask}` },
             sessionTarget: 'isolated',
           }
         })
       } else {
-        // Run immediately as sub-agent
         await createAgent({ 
           name: name.trim(), 
-          task: task.trim(), 
+          task: fullTask, 
           model: 'sonnet', 
           label: name.trim().toLowerCase().replace(/\s+/g, '-') 
         })
@@ -481,6 +506,8 @@ function CreateModal({ open, onClose }: { open: boolean; onClose: () => void }) 
       setScheduledDate('')
       setScheduledTime('')
       setUseSchedule(false)
+      setAttachments([])
+      setPreviews([])
     } catch (e) {
       console.error('Fejl ved oprettelse:', e)
     } finally {
@@ -524,6 +551,52 @@ function CreateModal({ open, onClose }: { open: boolean; onClose: () => void }) 
               className="w-full px-4 py-2.5 rounded-xl text-sm text-white resize-none placeholder-white/20"
               style={{ background: 'rgba(255,255,255,0.06)', border: 'none', outline: 'none' }}
             />
+          </div>
+
+          {/* Image Upload */}
+          <div>
+            <label className="block text-sm font-medium mb-2 text-white/70">Vedhæft billeder</label>
+            <label
+              className="block cursor-pointer rounded-xl p-4 text-center transition-all"
+              style={{ background: 'rgba(255,255,255,0.04)', border: '2px dashed rgba(255,255,255,0.1)' }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(0,122,255,0.4)' }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)' }}
+              onDragOver={e => { e.preventDefault(); e.currentTarget.style.borderColor = 'rgba(0,122,255,0.6)' }}
+              onDragLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)' }}
+              onDrop={e => {
+                e.preventDefault()
+                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'
+                const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'))
+                if (files.length) {
+                  setAttachments(prev => [...prev, ...files])
+                  for (const file of files) {
+                    const reader = new FileReader()
+                    reader.onload = () => setPreviews(prev => [...prev, reader.result as string])
+                    reader.readAsDataURL(file)
+                  }
+                }
+              }}
+            >
+              <Icon name="upload" size={20} style={{ color: 'rgba(255,255,255,0.3)', margin: '0 auto 8px' }} />
+              <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>Klik eller træk billeder hertil</p>
+              <input type="file" accept="image/*" multiple onChange={handleFileSelect} className="hidden" />
+            </label>
+            {previews.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-3">
+                {previews.map((src, i) => (
+                  <div key={i} className="relative group" style={{ width: 64, height: 64 }}>
+                    <img src={src} alt="" className="w-full h-full object-cover rounded-lg" />
+                    <button
+                      onClick={() => removeAttachment(i)}
+                      className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      style={{ background: '#FF375F', color: '#fff', fontSize: '10px', lineHeight: 1, border: 'none', cursor: 'pointer' }}
+                    >
+                      <Icon name="xmark" size={10} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Category */}
