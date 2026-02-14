@@ -817,8 +817,36 @@ export default function Tasks() {
       const existing = mergedMap.get(t.sessionId)
       mergedMap.set(t.sessionId, existing ? { ...existing, ...t, sessionKey: t.sessionKey } : t)
     }
+    // Add scheduled cron jobs (kind: 'at', not yet fired) as queued tasks
+    if (cronJobs) {
+      for (const job of cronJobs as any[]) {
+        const sched = job.schedule as any
+        if (sched?.kind === 'at' && job.enabled !== false) {
+          const scheduledTime = new Date(sched.at)
+          if (scheduledTime.getTime() > Date.now()) {
+            const cronId = `cron-${job.jobId || job.id}`
+            if (!mergedMap.has(cronId)) {
+              mergedMap.set(cronId, {
+                id: cronId,
+                title: job.name || 'Planlagt opgave',
+                status: 'queued',
+                kind: 'subagent',
+                agent: 'cron',
+                model: job.payload?.model || 'sonnet',
+                updated: new Date(),
+                sessionId: cronId,
+                channel: 'cron',
+                messageCount: 0,
+                label: job.name,
+                scheduledAt: scheduledTime.toISOString(),
+              })
+            }
+          }
+        }
+      }
+    }
     return Array.from(mergedMap.values()).sort((a, b) => b.updated.getTime() - a.updated.getTime())
-  }, [sessions, allSessions])
+  }, [sessions, allSessions, cronJobs])
 
   const queued = tasks.filter(t => t.status === 'queued')
   const active = tasks.filter(t => t.status === 'active')
