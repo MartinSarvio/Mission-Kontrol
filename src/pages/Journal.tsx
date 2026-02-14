@@ -342,7 +342,7 @@ export default function Journal() {
             const lDate = latest.updatedAt || latest.startedAt
             return (sDate && (!lDate || sDate > lDate)) ? s : latest
           })
-          setSelectedDate(getDateKey(latest.updatedAt || latest.startedAt))
+          setSelectedDate(getDateKey(latest.updatedAt || latest.startedAt || Date.now()))
         }
       })
       .catch(err => {
@@ -369,7 +369,7 @@ export default function Journal() {
     
     // Tilføj sessions grupperet efter dato
     for (const session of allSessions) {
-      const dateKey = getDateKey(session.updatedAt || session.startedAt)
+      const dateKey = getDateKey(session.updatedAt || session.startedAt || Date.now())
       if (!map.has(dateKey)) {
         map.set(dateKey, { date: dateKey, sessions: [] })
       }

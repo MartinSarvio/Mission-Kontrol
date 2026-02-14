@@ -602,12 +602,13 @@ export interface TranscriptSession {
   agent: string
   label?: string
   spawnedBy?: string
-  startedAt: string
+  startedAt?: string
   updatedAt?: number
   model?: string
   messageCount: number
   firstMessage?: string
-  status: 'active' | 'completed'
+  status: string
+  sessionKey?: string
 }
 
 export interface MemoryEntry {
@@ -633,21 +634,43 @@ async function fetchStaticArchive(filename: string): Promise<any> {
 
 // Fetch ALL sessions including completed ones
 export async function fetchAllSessions(): Promise<TranscriptSession[]> {
+  // Try static archive first
   try {
-    // Try static archive first
     const archive = await fetchStaticArchive('sessions-archive.json')
-    if (archive?.sessions) return archive.sessions
-  } catch {
-    // Static file not available, try gateway proxy
-    try {
-      const url = resolveApiUrl(getGatewayUrl())
-      const res = await smartFetch(`${url.replace('/api/gateway', '')}/sessions-archive.json?t=${Date.now()}`)
-      if (res.ok) {
-        const archive = await res.json()
-        if (archive?.sessions) return archive.sessions
-      }
-    } catch {}
-  }
+    if (archive?.sessions?.length) return archive.sessions
+  } catch {}
+
+  // Fallback: use live Gateway API
+  try {
+    const data = await invokeToolRaw('sessions_list', { messageLimit: 2, limit: 100 }) as any
+    const text = data.result?.content?.[0]?.text
+    let sessions: any[] = []
+    if (text) {
+      try {
+        const parsed = JSON.parse(text)
+        sessions = parsed.sessions || []
+      } catch {}
+    }
+    if (!sessions.length && data.result?.details?.sessions) {
+      sessions = data.result.details.sessions
+    }
+    return sessions.map((s: any) => ({
+      sessionId: s.sessionId,
+      agent: s.kind === 'main' ? 'main' : (s.label || s.key?.split(':')[1] || 'subagent'),
+      model: s.model || 'unknown',
+      label: s.label,
+      status: s.kind,
+      updatedAt: s.updatedAt,
+      messageCount: s.lastMessages?.length || s.messageCount || 0,
+      firstMessage: s.lastMessages?.[0]?.content?.[0]?.text || s.lastMessages?.[0]?.text || '',
+      spawnedBy: s.key?.includes('subagent') ? 'main' : undefined,
+      messages: s.lastMessages?.map((m: any) => ({
+        role: m.role,
+        text: typeof m.content === 'string' ? m.content : m.content?.[0]?.text || '',
+        ts: m.timestamp,
+      })) || [],
+    }))
+  } catch {}
   return []
 }
 
@@ -669,19 +692,39 @@ export async function fetchMemoryFiles(): Promise<MemoryEntry[]> {
   return []
 }
 
-// Read a specific transcript's messages from the archive
-export async function readTranscriptMessages(agent: string, sessionId: string, _limit = 50): Promise<DetailedSessionMessage[]> {
+// Read a specific transcript's messages
+export async function readTranscriptMessages(agent: string, sessionId: string, limit = 50): Promise<DetailedSessionMessage[]> {
+  // Try fetching via sessions_history API with the session key
   try {
-    // Messages are embedded in the sessions archive
-    const sessions = await fetchAllSessions()
-    const session = sessions.find((s: any) => s.sessionId === sessionId && s.agent === agent)
-    if (session && (session as any).messages) {
+    // Find session key from sessions list
+    const allSessions = await fetchAllSessions()
+    const session = allSessions.find((s: any) => s.sessionId === sessionId)
+    
+    // Try embedded messages first
+    if (session && (session as any).messages?.length) {
       return (session as any).messages.map((m: any) => ({
         role: m.role,
-        text: m.text,
-        timestamp: m.ts,
+        text: m.text || m.content?.[0]?.text || '',
+        timestamp: m.ts || m.timestamp,
         toolCalls: m.toolCalls,
       }))
+    }
+
+    // Try sessions_history API
+    const sessionKey = (session as any)?.sessionKey || `agent:${agent}:${sessionId}`
+    const data = await invokeToolRaw('sessions_history', { sessionKey, limit, includeTools: false }) as any
+    const text = data.result?.content?.[0]?.text
+    if (text) {
+      try {
+        const parsed = JSON.parse(text)
+        const messages = parsed.messages || parsed || []
+        return messages.map((m: any) => ({
+          role: m.role,
+          text: typeof m.content === 'string' ? m.content : m.content?.[0]?.text || m.text || '',
+          timestamp: m.timestamp,
+          toolCalls: m.toolCalls,
+        }))
+      } catch {}
     }
   } catch {}
   return []
