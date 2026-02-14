@@ -303,22 +303,61 @@ export interface SkillInfo {
 }
 
 export async function fetchInstalledSkills(): Promise<SkillInfo[]> {
-  // Return known skills from system and workspace
-  const systemSkills: SkillInfo[] = [
-    { name: 'clawhub', description: 'Skill package manager for discovering and installing skills', location: 'system', category: 'System' },
-    { name: 'healthcheck', description: 'System health monitoring and diagnostics', location: 'system', category: 'Sikkerhed' },
-    { name: 'openai-image-gen', description: 'Generate images using OpenAI DALL-E', location: 'system', category: 'AI / Kreativ' },
-    { name: 'openai-whisper-api', description: 'Speech-to-text using OpenAI Whisper API', location: 'system', category: 'AI / Lyd' },
-    { name: 'skill-creator', description: 'Create new OpenClaw skills from templates', location: 'system', category: 'Udvikling' },
-    { name: 'weather', description: 'Weather forecast and current conditions', location: 'system', category: 'Data' },
-  ]
-  
-  const workspaceSkills: SkillInfo[] = [
-    { name: 'perplexity', description: 'Advanced web search using Perplexity Sonar', location: 'workspace', category: 'Søgning' },
-    { name: 'youtube-watcher', description: 'Monitor YouTube channels and transcribe videos', location: 'workspace', category: 'Medier' },
-  ]
-  
-  return [...workspaceSkills, ...systemSkills]
+  try {
+    // Call clawhub list to get installed skills
+    const listData = await invokeToolRaw('exec', { command: 'clawhub list' }) as any
+    const listText = listData.result?.content?.[0]?.text || ''
+    
+    const skills: SkillInfo[] = []
+    const lines = listText.trim().split('\n').filter(Boolean)
+    
+    for (const line of lines) {
+      // Parse "skill-name  version" format
+      const match = line.trim().match(/^(\S+)\s+(\S+)$/)
+      if (!match) continue
+      
+      const [, name, version] = match
+      
+      // Get description from clawhub inspect
+      let description = 'No description available'
+      let category = 'Andet'
+      
+      try {
+        const inspectData = await invokeToolRaw('exec', { command: `clawhub inspect ${name}` }) as any
+        const inspectText = inspectData.result?.content?.[0]?.text || ''
+        
+        // Parse "Summary: ..." line
+        const summaryMatch = inspectText.match(/Summary:\s*(.+)/i)
+        if (summaryMatch) {
+          description = summaryMatch[1].trim()
+        }
+      } catch {
+        // If inspect fails, use generic description
+        description = `${name} v${version}`
+      }
+      
+      // Detect category from name
+      if (name.includes('github') || name.includes('git')) category = 'Udvikling'
+      else if (name.includes('browser') || name.includes('web')) category = 'Automation'
+      else if (name.includes('perplexity') || name.includes('search')) category = 'Søgning'
+      else if (name.includes('youtube') || name.includes('video') || name.includes('media')) category = 'Medier'
+      else if (name.includes('newsletter') || name.includes('mail')) category = 'Kommunikation'
+      else if (name.includes('summarize') || name.includes('summary')) category = 'AI / Tekst'
+      else if (name.includes('review') || name.includes('pr-')) category = 'Udvikling'
+      
+      skills.push({
+        name,
+        description,
+        location: 'workspace', // All clawhub-installed skills are workspace
+        category,
+      })
+    }
+    
+    return skills
+  } catch (e) {
+    console.error('Failed to fetch installed skills:', e)
+    return []
+  }
 }
 
 export async function installSkill(name: string): Promise<any> {
@@ -331,31 +370,37 @@ export async function installSkill(name: string): Promise<any> {
 }
 
 export async function searchSkills(query: string): Promise<{ name: string; version: string; description: string; score: number }[]> {
-  // Use web_fetch to search ClawHub API
   try {
-    const url = `https://clawhub.com/api/search?q=${encodeURIComponent(query)}`
-    const data = await invokeToolRaw('web_fetch', { url }) as any
+    // Use clawhub search CLI command
+    const data = await invokeToolRaw('exec', { command: `clawhub search ${query} --limit 15` }) as any
     const text = data.result?.content?.[0]?.text || ''
     
-    // Try to parse JSON response
-    try {
-      const parsed = JSON.parse(text)
-      if (Array.isArray(parsed)) {
-        return parsed.map((s: any) => ({
-          name: s.name || s.id || '',
-          version: s.version || '1.0.0',
-          description: s.description || '',
-          score: s.score || 0.5,
-        }))
+    const results: { name: string; version: string; description: string; score: number }[] = []
+    const lines = text.trim().split('\n').filter(Boolean)
+    
+    for (const line of lines) {
+      // Skip "- Searching" and empty lines
+      if (line.includes('Searching') || !line.trim()) continue
+      
+      // Parse format: "skill-name vX.X.X  Description text  (score)"
+      // Example: "lb-supabase-skill v0.1.0  Supabase Complete Documentation  (3.444)"
+      const match = line.match(/^(\S+)\s+v?([\d.]+)\s+(.+?)\s+\(([\d.]+)\)/)
+      if (match) {
+        const [, name, version, description, scoreStr] = match
+        results.push({
+          name: name.trim(),
+          version: version.trim(),
+          description: description.trim(),
+          score: parseFloat(scoreStr) / 10, // Normalize score to 0-1 range
+        })
       }
-    } catch {
-      // Fallback: return empty array
     }
+    
+    return results
   } catch (e) {
     console.error('Failed to search ClawHub:', e)
+    return []
   }
-  
-  return []
 }
 
 // --- Live data functions (no mock) ---
