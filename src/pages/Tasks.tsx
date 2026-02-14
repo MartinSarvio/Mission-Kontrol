@@ -449,6 +449,7 @@ function CreateModal({ open, onClose }: { open: boolean; onClose: () => void }) 
   const [scheduledTime, setScheduledTime] = useState('')
   const [creating, setCreating] = useState(false)
   const [useSchedule, setUseSchedule] = useState(false)
+  const [startNow, setStartNow] = useState(false)
   const [attachments, setAttachments] = useState<File[]>([])
   const [previews, setPreviews] = useState<string[]>([])
 
@@ -481,7 +482,16 @@ function CreateModal({ open, onClose }: { open: boolean; onClose: () => void }) 
         }
       }
 
-      if (useSchedule && scheduledDate && scheduledTime) {
+      if (startNow) {
+        // Start immediately — spawns agent
+        await createAgent({ 
+          name: name.trim(), 
+          task: fullTask, 
+          model: 'sonnet', 
+          label: name.trim().toLowerCase().replace(/\s+/g, '-') 
+        })
+      } else if (useSchedule && scheduledDate && scheduledTime) {
+        // Schedule for specific time
         const isoTime = `${scheduledDate}T${scheduledTime}:00`
         await invokeToolRaw('cron', {
           action: 'add',
@@ -493,11 +503,16 @@ function CreateModal({ open, onClose }: { open: boolean; onClose: () => void }) 
           }
         })
       } else {
-        await createAgent({ 
-          name: name.trim(), 
-          task: fullTask, 
-          model: 'sonnet', 
-          label: name.trim().toLowerCase().replace(/\s+/g, '-') 
+        // Queue — schedule far in the future (manual start)
+        await invokeToolRaw('cron', {
+          action: 'add',
+          job: {
+            name: name.trim(),
+            schedule: { kind: 'at', at: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString() },
+            payload: { kind: 'agentTurn', message: `[Opgave: ${name.trim()}]\n\n${fullTask}` },
+            sessionTarget: 'isolated',
+            enabled: false,
+          }
         })
       }
       onClose()
@@ -620,19 +635,43 @@ function CreateModal({ open, onClose }: { open: boolean; onClose: () => void }) 
             </div>
           </div>
 
-          {/* Schedule toggle */}
-          <div>
-            <label className="flex items-center gap-3 cursor-pointer">
-              <div 
-                className="w-10 h-6 rounded-full relative transition-all"
-                style={{ background: useSchedule ? '#007AFF' : 'rgba(255,255,255,0.1)' }}
-                onClick={() => setUseSchedule(!useSchedule)}
+          {/* Action mode: Queue / Schedule / Start Now */}
+          <div className="space-y-3">
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                type="button"
+                onClick={() => { setStartNow(false); setUseSchedule(false) }}
+                className="py-2.5 px-3 rounded-xl text-xs font-semibold transition-all text-center"
+                style={{ 
+                  background: !startNow && !useSchedule ? '#FF9F0A' : 'rgba(255,255,255,0.06)',
+                  color: !startNow && !useSchedule ? '#000' : 'rgba(255,255,255,0.5)'
+                }}
               >
-                <div className="absolute top-1 w-4 h-4 rounded-full bg-white transition-all"
-                     style={{ left: useSchedule ? 22 : 4 }} />
-              </div>
-              <span className="text-sm text-white/70">Planlæg tidspunkt</span>
-            </label>
+                Sæt i kø
+              </button>
+              <button
+                type="button"
+                onClick={() => { setStartNow(false); setUseSchedule(true) }}
+                className="py-2.5 px-3 rounded-xl text-xs font-semibold transition-all text-center"
+                style={{ 
+                  background: useSchedule ? '#007AFF' : 'rgba(255,255,255,0.06)',
+                  color: useSchedule ? '#fff' : 'rgba(255,255,255,0.5)'
+                }}
+              >
+                Planlæg
+              </button>
+              <button
+                type="button"
+                onClick={() => { setStartNow(true); setUseSchedule(false) }}
+                className="py-2.5 px-3 rounded-xl text-xs font-semibold transition-all text-center"
+                style={{ 
+                  background: startNow ? '#30D158' : 'rgba(255,255,255,0.06)',
+                  color: startNow ? '#000' : 'rgba(255,255,255,0.5)'
+                }}
+              >
+                Start nu
+              </button>
+            </div>
           </div>
 
           {useSchedule && (
@@ -661,11 +700,12 @@ function CreateModal({ open, onClose }: { open: boolean; onClose: () => void }) 
             disabled={creating || !name.trim() || !task.trim()}
             className="w-full py-3 rounded-xl font-semibold text-white text-sm transition-all"
             style={{ 
-              background: creating || !name.trim() || !task.trim() ? 'rgba(0,122,255,0.2)' : '#007AFF',
-              opacity: creating || !name.trim() || !task.trim() ? 0.5 : 1 
+              background: creating || !name.trim() || !task.trim() ? 'rgba(0,122,255,0.2)' : startNow ? '#30D158' : useSchedule ? '#007AFF' : '#FF9F0A',
+              opacity: creating || !name.trim() || !task.trim() ? 0.5 : 1,
+              color: startNow || (!startNow && !useSchedule) ? '#000' : '#fff'
             }}
           >
-            {creating ? 'Opretter...' : useSchedule ? 'Planlæg Opgave' : 'Start Opgave Nu'}
+            {creating ? 'Opretter...' : startNow ? 'Start Opgave Nu' : useSchedule ? 'Planlæg Opgave' : 'Sæt i Kø'}
           </button>
         </div>
       </div>
@@ -821,9 +861,9 @@ export default function Tasks() {
     if (cronJobs) {
       for (const job of cronJobs as any[]) {
         const sched = job.schedule as any
-        if (sched?.kind === 'at' && job.enabled !== false) {
+        if (sched?.kind === 'at') {
           const scheduledTime = new Date(sched.at)
-          if (scheduledTime.getTime() > Date.now()) {
+          if (scheduledTime.getTime() > Date.now() || job.enabled === false) {
             const cronId = `cron-${job.jobId || job.id}`
             if (!mergedMap.has(cronId)) {
               mergedMap.set(cronId, {
@@ -885,12 +925,30 @@ export default function Tasks() {
 
   const handleStartTask = async (task: Task) => {
     try {
-      await createAgent({
-        name: task.title,
-        task: task.firstMessage || task.title,
-        model: 'sonnet',
-        label: task.label || task.title.toLowerCase().replace(/\s+/g, '-'),
-      })
+      if (task.sessionId.startsWith('cron-')) {
+        // It's a queued cron job — run it now and remove the placeholder
+        const cronId = task.sessionId.replace('cron-', '')
+        // Extract the task message from cron job payload
+        const job = (cronJobs as any[]).find((j: any) => (j.jobId || j.id) === cronId || `${j.jobId || j.id}` === cronId)
+        const message = job?.payload?.message || task.firstMessage || task.title
+        await createAgent({
+          name: task.title,
+          task: message,
+          model: task.model || 'sonnet',
+          label: task.label || task.title.toLowerCase().replace(/\s+/g, '-'),
+        })
+        // Remove the cron job since we started it manually
+        try {
+          await invokeToolRaw('cron', { action: 'remove', jobId: cronId })
+        } catch (_) { /* ignore */ }
+      } else {
+        await createAgent({
+          name: task.title,
+          task: task.firstMessage || task.title,
+          model: 'sonnet',
+          label: task.label || task.title.toLowerCase().replace(/\s+/g, '-'),
+        })
+      }
     } catch (e) {
       console.error('Fejl ved start:', e)
     }
