@@ -706,37 +706,52 @@ export async function fetchMemoryFiles(): Promise<MemoryEntry[]> {
 
 // Read a specific transcript's messages
 export async function readTranscriptMessages(agent: string, sessionId: string, limit = 50): Promise<DetailedSessionMessage[]> {
-  // Try fetching via sessions_history API with the session key
+  // Build possible session keys to try (most specific first)
+  const keysToTry = [
+    `agent:${agent}:subagent:${sessionId}`,
+    `agent:${agent}:${sessionId}`,
+    sessionId,
+  ]
+
   try {
-    // Find session key from sessions list
+    // First check if session is in active list (has embedded messages)
     const allSessions = await fetchAllSessions()
     const session = allSessions.find((s: any) => s.sessionId === sessionId)
     
-    // Try embedded messages first
-    if (session && (session as any).messages?.length) {
-      return (session as any).messages.map((m: any) => ({
-        role: m.role,
-        text: m.text || m.content?.[0]?.text || '',
-        timestamp: m.ts || m.timestamp,
-        toolCalls: m.toolCalls,
-      }))
-    }
-
-    // Try sessions_history API
-    const sessionKey = (session as any)?.sessionKey || `agent:${agent}:${sessionId}`
-    const data = await invokeToolRaw('sessions_history', { sessionKey, limit, includeTools: false }) as any
-    const text = data.result?.content?.[0]?.text
-    if (text) {
-      try {
-        const parsed = JSON.parse(text)
-        const messages = parsed.messages || parsed || []
-        return messages.map((m: any) => ({
+    if (session) {
+      // Use actual sessionKey from API
+      if ((session as any)?.sessionKey) {
+        keysToTry.unshift((session as any).sessionKey)
+      }
+      // Try embedded messages first
+      if ((session as any).messages?.length) {
+        return (session as any).messages.map((m: any) => ({
           role: m.role,
-          text: typeof m.content === 'string' ? m.content : m.content?.[0]?.text || m.text || '',
-          timestamp: m.timestamp,
+          text: m.text || m.content?.[0]?.text || '',
+          timestamp: m.ts || m.timestamp,
           toolCalls: m.toolCalls,
         }))
-      } catch {}
+      }
+    }
+
+    // Try each possible session key until one works
+    for (const sessionKey of [...new Set(keysToTry)]) {
+      try {
+        const data = await invokeToolRaw('sessions_history', { sessionKey, limit, includeTools: true }) as any
+        const text = data.result?.content?.[0]?.text
+        if (text) {
+          const parsed = JSON.parse(text)
+          const messages = parsed.messages || parsed || []
+          if (messages.length > 0) {
+            return messages.map((m: any) => ({
+              role: m.role,
+              text: typeof m.content === 'string' ? m.content : m.content?.[0]?.text || m.text || '',
+              timestamp: m.timestamp,
+              toolCalls: m.toolCalls,
+            }))
+          }
+        }
+      } catch { /* try next key */ }
     }
   } catch {}
   return []
