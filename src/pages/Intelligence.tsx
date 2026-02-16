@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import Icon from '../components/Icon'
 import { useLiveData } from '../api/LiveDataContext'
+import { invokeToolRaw } from '../api/openclaw'
 
 /* ── Types ──────────────────────────────────── */
 interface Article {
@@ -195,63 +196,39 @@ export default function Intelligence() {
 
   const loadAnalysesFromMemory = useCallback(async () => {
     try {
-      const url = localStorage.getItem('openclaw-gateway-url') || 'http://127.0.0.1:63362'
-      const token = localStorage.getItem('openclaw-gateway-token') || ''
-      const resolvedUrl = (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app') && url.includes('ts.net'))
-        ? '/api/gateway' : url
+      // List memory files
+      const listData = await invokeToolRaw('exec', { command: 'ls -1 /data/.openclaw/workspace/memory/ | sort -r' }) as any
+      const r = listData as any
+      const stdout = r?.result?.content?.[0]?.text || r?.result?.stdout || r?.content?.[0]?.text || ''
+      const allFiles: string[] = stdout.split('\n').filter((f: string) => f.endsWith('.md'))
 
-      // List memory files that contain reports/intelligence
-      const listRes = await fetch(`${resolvedUrl}/tools/invoke`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({
-          tool: 'exec',
-          args: { command: 'ls -1 /data/.openclaw/workspace/memory/ | sort -r' }
-        }),
-      })
-      const listData = await listRes.json() as any
-      const allFiles: string[] = (listData?.result?.content?.[0]?.text || '').split('\n').filter((f: string) => f.endsWith('.md'))
-
-      // Load intelligence/research/report files
+      // Load intelligence/research/report files (also daily logs)
       const reportFiles = allFiles.filter((f: string) => 
-        f.includes('intelligence') || f.includes('research') || f.includes('report') || f.includes('analyse')
+        f.includes('intelligence') || f.includes('research') || f.includes('report') || f.includes('analyse') || f.includes('video')
       )
+      console.log('[Intelligence] Found memory files:', allFiles.length, 'reports:', reportFiles.length, reportFiles)
 
       const memoryArticles: Article[] = []
 
       for (const file of reportFiles.slice(0, 20)) {
         try {
-          const fileRes = await fetch(`${resolvedUrl}/tools/invoke`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-            body: JSON.stringify({
-              tool: 'exec',
-              args: { command: `cat /data/.openclaw/workspace/memory/${file}` }
-            }),
-          })
-          const fileData = await fileRes.json() as any
-          const content = fileData?.result?.content?.[0]?.text || ''
+          const fileData = await invokeToolRaw('exec', { command: `cat /data/.openclaw/workspace/memory/${file}` }) as any
+          const fr = fileData as any
+          const content = fr?.result?.content?.[0]?.text || fr?.result?.stdout || fr?.content?.[0]?.text || ''
           if (!content) continue
 
-          // Extract title from first heading
           const titleMatch = content.match(/^#\s+(.+)/m)
           const title = titleMatch ? titleMatch[1] : file.replace('.md', '')
 
-          // Extract date from filename
           const dateMatch = file.match(/(\d{4}-\d{2}-\d{2})/)
           const date = dateMatch ? new Date(dateMatch[1]).toISOString() : new Date().toISOString()
 
-          // Get summary (first paragraph after title)
-          const lines = content.split('\n').filter((l: string) => l.trim() && !l.startsWith('#'))
-          const summary = lines.slice(0, 5).join('\n').slice(0, 600)
-
-          // Determine category
-          const category = guessCategory(title + ' ' + summary, '')
+          const category = guessCategory(title + ' ' + content.slice(0, 500), '')
 
           memoryArticles.push({
             id: `mem-${file}`,
             title,
-            summary: content.slice(0, 3000), // Store full content for display
+            summary: content.slice(0, 3000),
             source: 'Intern Analyse',
             category,
             relevance: 'high',
@@ -263,7 +240,6 @@ export default function Intelligence() {
 
       if (memoryArticles.length > 0) {
         setArticles(prev => {
-          // Merge: memory articles first, then existing (no dupes)
           const memIds = new Set(memoryArticles.map(a => a.id))
           const existing = prev.filter(a => !memIds.has(a.id))
           const merged = [...memoryArticles, ...existing].slice(0, 100)
@@ -274,7 +250,7 @@ export default function Intelligence() {
     } catch (err) {
       console.error('Failed to load analyses:', err)
     }
-  }, [isConnected])
+  }, [])
 
   // Select latest article by default
   useEffect(() => {
