@@ -1,4 +1,4 @@
-import { ReactNode } from 'react'
+import { ReactNode, useEffect } from 'react'
 import Icon from './Icon'
 
 interface ModalProps {
@@ -9,6 +9,13 @@ interface ModalProps {
 }
 
 export default function Modal({ open, onClose, title, children }: ModalProps) {
+  useEffect(() => {
+    if (!open) return
+    const handler = () => onClose()
+    window.addEventListener('modal-close', handler)
+    return () => window.removeEventListener('modal-close', handler)
+  }, [open, onClose])
+
   if (!open) return null
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={onClose}>

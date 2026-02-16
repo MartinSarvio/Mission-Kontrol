@@ -5,6 +5,7 @@ import { DonutChart, BarChart } from '../components/Chart'
 import { useLiveData } from '../api/LiveDataContext'
 import { fetchSystemInfo } from '../api/openclaw'
 import { Status } from '../types'
+import { DashboardSkeleton } from '../components/SkeletonLoader'
 
 interface SystemInfo {
   host?: string
@@ -71,7 +72,7 @@ function deriveChannelsFromConfig(config: Record<string, any>): Array<{ name: st
 }
 
 export default function Dashboard() {
-  const { isConnected, isLoading, sessions, statusText, cronJobs, gatewayConfig } = useLiveData()
+  const { isConnected, isLoading, isRefreshing, error, sessions, statusText, cronJobs, gatewayConfig } = useLiveData()
   const [systemInfo, setSystemInfo] = useState<SystemInfo>({})
 
   useEffect(() => {
@@ -80,10 +81,23 @@ export default function Dashboard() {
     }
   }, [isConnected])
 
-  if (isLoading) {
+  if (isLoading && sessions.length === 0) {
+    return <DashboardSkeleton />
+  }
+
+  if (error && !isConnected && sessions.length === 0) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-white/50">Henter data...</p>
+        <div className="text-center">
+          <p className="text-white/70 mb-2">Kunne ikke hente data</p>
+          <p className="text-sm text-white/40 mb-4">{error}</p>
+          <button
+            onClick={() => { window.location.reload() }}
+            style={{ background: '#007AFF', color: '#fff', padding: '8px 20px', borderRadius: 10, fontSize: 14, fontWeight: 600, border: 'none', cursor: 'pointer' }}
+          >
+            Prøv igen
+          </button>
+        </div>
       </div>
     )
   }

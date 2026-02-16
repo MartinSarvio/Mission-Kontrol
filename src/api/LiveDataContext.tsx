@@ -4,6 +4,8 @@ import { fetchSessions, fetchStatus, fetchCronJobs, fetchConfig, getGatewayToken
 interface LiveData {
   isConnected: boolean
   isLoading: boolean
+  isRefreshing: boolean
+  error: string | null
   lastUpdated: Date | null
   sessions: ApiSession[]
   statusText: string | null
@@ -15,6 +17,8 @@ interface LiveData {
 const LiveDataContext = createContext<LiveData>({
   isConnected: false,
   isLoading: false,
+  isRefreshing: false,
+  error: null,
   lastUpdated: null,
   sessions: [],
   statusText: null,
@@ -47,6 +51,8 @@ export function LiveDataProvider({ children }: { children: ReactNode }) {
   const cached = useRef(loadCache())
   const [isConnected, setIsConnected] = useState(cached.current.sessions.length > 0)
   const [isLoading, setIsLoading] = useState(false)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const [sessions, setSessions] = useState<ApiSession[]>(cached.current.sessions)
   const [statusText, setStatusText] = useState<string | null>(cached.current.statusText)
@@ -69,6 +75,7 @@ export function LiveDataProvider({ children }: { children: ReactNode }) {
       return
     }
 
+    setIsRefreshing(true)
     try {
       const [sessionsData, statusData, cronData, configData] = await Promise.all([
         fetchSessions().catch(() => null),
@@ -80,6 +87,7 @@ export function LiveDataProvider({ children }: { children: ReactNode }) {
       const anySuccess = sessionsData || statusData || cronData !== null || configData
       if (anySuccess) {
         setIsConnected(true)
+        setError(null)
         setLastUpdated(new Date())
         
         // Only update state if data has actually changed (using hash)
@@ -132,9 +140,13 @@ export function LiveDataProvider({ children }: { children: ReactNode }) {
         )
       } else {
         setIsConnected(false)
+        setError('Kunne ikke oprette forbindelse til Gateway')
       }
     } catch {
       setIsConnected(false)
+      setError('Kunne ikke oprette forbindelse til Gateway')
+    } finally {
+      setIsRefreshing(false)
     }
   }, [])
 
@@ -174,6 +186,8 @@ export function LiveDataProvider({ children }: { children: ReactNode }) {
     <LiveDataContext.Provider value={{ 
       isConnected,
       isLoading,
+      isRefreshing,
+      error,
       lastUpdated, 
       sessions, 
       statusText, 

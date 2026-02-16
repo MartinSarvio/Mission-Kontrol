@@ -1,4 +1,4 @@
-import { useState, lazy, Suspense } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import { LiveDataProvider } from './api/LiveDataContext'
 import { NotificationProvider } from './api/NotificationContext'
 import Layout from './components/Layout'
@@ -53,6 +53,23 @@ function LoadingFallback() {
 export default function App() {
   const [page, setPage] = useState('dashboard')
   const Page = pages[page] || Dashboard
+
+  // Global keyboard shortcuts
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      // Cmd+K / Ctrl+K → navigate to search page
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        setPage('index')
+      }
+      // Esc → close any open modals (dispatches custom event)
+      if (e.key === 'Escape') {
+        window.dispatchEvent(new CustomEvent('modal-close'))
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [])
 
   return (
     <LiveDataProvider>

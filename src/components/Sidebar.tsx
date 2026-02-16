@@ -31,7 +31,7 @@ const nav = [
 ]
 
 export default function Sidebar({ active, onNavigate, isOpen, onClose, onMaisonClick }: SidebarProps) {
-  const { isConnected, lastUpdated, isLoading, sessions } = useLiveData()
+  const { isConnected, lastUpdated, isLoading, isRefreshing } = useLiveData()
   const [pulse, setPulse] = useState(true)
 
   useEffect(() => {
@@ -107,7 +107,23 @@ export default function Sidebar({ active, onNavigate, isOpen, onClose, onMaisonC
             key={item.id}
             onClick={() => onNavigate(item.id)}
             className={`sidebar-item ${active === item.id ? 'active' : ''}`}
+            style={{ position: 'relative' }}
           >
+            {active === item.id && (
+              <span
+                style={{
+                  position: 'absolute',
+                  left: 0,
+                  top: '20%',
+                  bottom: '20%',
+                  width: 3,
+                  borderRadius: 2,
+                  background: '#007AFF',
+                  boxShadow: '0 0 8px rgba(0,122,255,0.6)',
+                  animation: 'slideIn 200ms ease-out',
+                }}
+              />
+            )}
             <Icon name={item.icon} size={20} className={active === item.id ? 'text-blue-400' : 'text-white/50'} />
             <span>{item.label}</span>
           </div>
@@ -118,8 +134,10 @@ export default function Sidebar({ active, onNavigate, isOpen, onClose, onMaisonC
         <div className="flex items-center gap-2">
           <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-[#34C759]' : 'bg-[#FF3B30]'} ${isLoading ? 'animate-pulse' : ''}`} />
           <span className="text-[11px] text-white/50">
-            {isConnected ? 'Live' : 'Offline'}
-            {lastUpdated && isConnected && (
+            {isRefreshing ? (
+              <span style={{ color: 'rgba(0,122,255,0.7)' }}>Opdaterer...</span>
+            ) : isConnected ? 'Live' : 'Offline'}
+            {lastUpdated && isConnected && !isRefreshing && (
               <span className="text-white/30"> · {lastUpdated.toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
             )}
           </span>
