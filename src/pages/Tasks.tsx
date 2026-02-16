@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from 'react'
 import Icon from '../components/Icon'
 import { useLiveData } from '../api/LiveDataContext'
 import { usePageTitle } from '../hooks/usePageTitle'
+import { formatRelativeTime } from '../hooks/useRelativeTime'
 import { 
   createAgent, 
   invokeToolRaw,
@@ -50,12 +51,7 @@ const CATEGORIES: { id: TaskCategory; label: string; color: string; icon: string
 const CACHE_KEY_SESSIONS = 'openclaw-all-sessions'
 
 function timeAgo(date: Date): string {
-  const mins = Math.floor((Date.now() - date.getTime()) / 60000)
-  if (mins < 1) return 'lige nu'
-  if (mins < 60) return `${mins}m siden`
-  const hours = Math.floor(mins / 60)
-  if (hours < 24) return `${hours}t siden`
-  return `${Math.floor(hours / 24)}d siden`
+  return formatRelativeTime(date)
 }
 
 function transcriptToTask(s: TranscriptSession): Task {

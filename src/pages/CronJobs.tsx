@@ -7,6 +7,7 @@ import { useLiveData } from '../api/LiveDataContext'
 import { fetchCronRuns } from '../api/openclaw'
 import { useToast } from '../components/Toast'
 import { usePageTitle } from '../hooks/usePageTitle'
+import { formatRelativeTime } from '../hooks/useRelativeTime'
 
 interface CronRun {
   timestamp: string
@@ -126,13 +127,13 @@ export default function CronJobs() {
                 <div className="flex flex-wrap items-center gap-4 sm:gap-6 text-sm">
                   {job.lastRun && (
                     <div className="text-left sm:text-right">
-                      <p className="font-medium">{job.lastRun}</p>
+                      <p className="font-medium">{formatRelativeTime(job.lastRun)}</p>
                       <p className="caption">sidst kørt</p>
                     </div>
                   )}
                   {job.nextRun && (
                     <div className="text-left sm:text-right">
-                      <p className="font-medium">{job.nextRun}</p>
+                      <p className="font-medium">{formatRelativeTime(job.nextRun)}</p>
                       <p className="caption">næste kørsel</p>
                     </div>
                   )}
@@ -180,13 +181,13 @@ export default function CronJobs() {
               {selectedJob.lastRun && (
                 <div>
                   <p className="caption">Sidst kørt</p>
-                  <p className="font-medium">{selectedJob.lastRun}</p>
+                  <p className="font-medium">{formatRelativeTime(selectedJob.lastRun)}</p>
                 </div>
               )}
               {selectedJob.nextRun && (
                 <div>
                   <p className="caption">Næste kørsel</p>
-                  <p className="font-medium">{selectedJob.nextRun}</p>
+                  <p className="font-medium">{formatRelativeTime(selectedJob.nextRun)}</p>
                 </div>
               )}
               {selectedJob.command && (

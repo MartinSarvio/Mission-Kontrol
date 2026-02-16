@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import Icon from '../components/Icon'
 import { fetchMemoryFiles, fetchAllSessions, MemoryEntry, TranscriptSession } from '../api/openclaw'
 import { usePageTitle } from '../hooks/usePageTitle'
+import { formatRelativeTime } from '../hooks/useRelativeTime'
 
 /* ── Types ───────────────────────────────────── */
 interface DayData {
@@ -204,6 +205,11 @@ function SessionCard({ session, forceExpanded }: { session: TranscriptSession; f
                 <span className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
                   {session.messageCount} beskeder
                 </span>
+                {session.updatedAt && (
+                  <span className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                    · {formatRelativeTime(session.updatedAt)}
+                  </span>
+                )}
               </div>
             </div>
           </div>

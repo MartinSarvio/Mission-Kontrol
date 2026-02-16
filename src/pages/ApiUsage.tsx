@@ -3,6 +3,7 @@ import Card from '../components/Card'
 import { BarChart, MiniLineChart } from '../components/Chart'
 import { useLiveData } from '../api/LiveDataContext'
 import { usePageTitle } from '../hooks/usePageTitle'
+import { formatRelativeTime } from '../hooks/useRelativeTime'
 
 export default function ApiUsage() {
   usePageTitle('API Forbrug')
@@ -189,7 +190,7 @@ export default function ApiUsage() {
                       color: new Date(s.updatedAt).getTime() > Date.now() - 300000 ? '#34C759' : 'rgba(255,255,255,0.4)' 
                     }}
                   >
-                    {"Live"}
+                    {formatRelativeTime(s.updatedAt)}
                   </span>
                 </div>
               </div>
