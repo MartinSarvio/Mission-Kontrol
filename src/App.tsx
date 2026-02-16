@@ -6,6 +6,7 @@ import Layout from './components/Layout'
 import UpdateBanner from './components/UpdateBanner'
 import CommandPalette from './components/CommandPalette'
 import ErrorBoundary from './components/ErrorBoundary'
+import { useHashRouter } from './hooks/useHashRouter'
 
 // Lazy load all pages for better performance
 const Dashboard = lazy(() => import('./pages/Dashboard'))
@@ -61,7 +62,7 @@ function LoadingFallback() {
 }
 
 export default function App() {
-  const [page, setPage] = useState('dashboard')
+  const [page, setPage] = useHashRouter('dashboard')
   const [cmdOpen, setCmdOpen] = useState(false)
   const Page = pages[page] || Dashboard
 

@@ -103,11 +103,15 @@ export default function Sidebar({ active, onNavigate, isOpen, onClose, onMaisonC
 
       <nav className="flex-1 px-2 space-y-0.5 overflow-y-auto">
         {nav.map(item => (
-          <div
+          <a
             key={item.id}
-            onClick={() => onNavigate(item.id)}
+            href={`#${item.id}`}
+            onClick={(e) => {
+              e.preventDefault()
+              onNavigate(item.id)
+            }}
             className={`sidebar-item ${active === item.id ? 'active' : ''}`}
-            style={{ position: 'relative' }}
+            style={{ position: 'relative', textDecoration: 'none', display: 'flex' }}
           >
             {active === item.id && (
               <span
@@ -126,7 +130,7 @@ export default function Sidebar({ active, onNavigate, isOpen, onClose, onMaisonC
             )}
             <Icon name={item.icon} size={20} className={active === item.id ? 'text-blue-400' : 'text-white/50'} />
             <span>{item.label}</span>
-          </div>
+          </a>
         ))}
       </nav>
 
