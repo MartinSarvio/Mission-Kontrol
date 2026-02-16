@@ -671,8 +671,6 @@ export default function Agents() {
   const [selectedAgent, setSelectedAgent] = useState<AgentEntry | null>(null)
   const [showCreate, setShowCreate] = useState(false)
   const [apiAgents, setApiAgents] = useState<AgentApi[]>([])
-  const [tab, setTab] = useState<'team' | 'kommunikation'>('team')
-
   useEffect(() => {
     listAgents()
       .then(agents => setApiAgents(agents))
@@ -683,11 +681,6 @@ export default function Agents() {
   const teamAgents = buildTeamAgents(apiAgents, sessions)
   const subAgents = buildSubAgents(sessions)
   const allAgents = [mainAgent, ...teamAgents, ...subAgents]
-
-  const tabs: { key: typeof tab; label: string; icon: string }[] = [
-    { key: 'team', label: 'Team', icon: 'person' },
-    { key: 'kommunikation', label: 'Kommunikation', icon: 'chat' },
-  ]
 
   return (
     <div className="h-full flex flex-col">
@@ -711,55 +704,31 @@ export default function Agents() {
         </button>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 p-1 rounded-xl w-fit mb-6" style={{ background: 'rgba(255,255,255,0.04)' }}>
-        {tabs.map(t => (
-          <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all"
-            style={{
-              background: tab === t.key ? 'rgba(0,122,255,0.2)' : 'transparent',
-              color: tab === t.key ? '#5AC8FA' : 'rgba(255,255,255,0.4)',
-            }}
-          >
-            <Icon name={t.icon} size={14} />
-            {t.label}
-          </button>
-        ))}
-      </div>
+      {/* Hero Card */}
+      <HeroCard agent={mainAgent} onClick={() => setSelectedAgent(mainAgent)} />
 
-      {tab === 'team' ? (
-        <>
-          {/* Hero Card */}
-          <HeroCard agent={mainAgent} onClick={() => setSelectedAgent(mainAgent)} />
+      {/* Team Agents */}
+      {teamAgents.length > 0 && (
+        <div className="mt-8">
+          <h2 className="text-lg font-bold text-white mb-4">Team Agenter</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {teamAgents.map(agent => (
+              <AgentCard key={agent.id} agent={agent} onClick={() => setSelectedAgent(agent)} />
+            ))}
+          </div>
+        </div>
+      )}
 
-          {/* Team Agents */}
-          {teamAgents.length > 0 && (
-            <div className="mt-8">
-              <h2 className="text-lg font-bold text-white mb-4">Team Agenter</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {teamAgents.map(agent => (
-                  <AgentCard key={agent.id} agent={agent} onClick={() => setSelectedAgent(agent)} />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Sub Agents */}
-          {subAgents.length > 0 && (
-            <div className="mt-8">
-              <h2 className="text-lg font-bold text-white mb-4">Sub-Agenter</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                {subAgents.map(agent => (
-                  <AgentCard key={agent.id} agent={agent} onClick={() => setSelectedAgent(agent)} />
-                ))}
-              </div>
-            </div>
-          )}
-        </>
-      ) : (
-        <CommunicationView />
+      {/* Sub Agents */}
+      {subAgents.length > 0 && (
+        <div className="mt-8">
+          <h2 className="text-lg font-bold text-white mb-4">Sub-Agenter</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {subAgents.map(agent => (
+              <AgentCard key={agent.id} agent={agent} onClick={() => setSelectedAgent(agent)} />
+            ))}
+          </div>
+        </div>
       )}
 
       {selectedAgent && <DetailPanel agent={selectedAgent} onClose={() => setSelectedAgent(null)} />}

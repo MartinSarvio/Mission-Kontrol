@@ -93,10 +93,10 @@ export default function Communication() {
       const session = sessions.find(s => s.key === selectedSession)
       const channel = session?.channel || 'telegram'
       
-      await invokeToolRaw('message', {
-        action: 'send',
+      // Send message into the selected session (agent turn)
+      await invokeToolRaw('sessions_send', {
+        sessionKey: selectedSession,
         message: messageInput,
-        channel,
       })
       
       setMessageInput('')
