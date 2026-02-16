@@ -773,3 +773,46 @@ export async function readTranscriptMessages(agent: string, sessionId: string, l
   } catch {}
   return []
 }
+
+// Projects API
+export interface Project {
+  id: string
+  name: string
+  description: string
+  status: 'active' | 'paused' | 'planning'
+  techStack: string[]
+  color: string
+  icon: string
+  repoUrl?: string
+  deployUrl?: string
+}
+
+export interface ProjectsResponse {
+  ok: boolean
+  projects: Project[]
+  count: number
+}
+
+// Fetch projects from backend endpoint
+export async function fetchProjects(): Promise<Project[]> {
+  try {
+    // Use relative URL for API endpoint
+    const response = await fetch('/api/projects')
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+    }
+    
+    const data: ProjectsResponse = await response.json()
+    
+    if (!data.ok || !data.projects) {
+      throw new Error('Invalid response format')
+    }
+    
+    return data.projects
+  } catch (error) {
+    console.error('Failed to fetch projects:', error)
+    // Return empty array on error - let UI handle empty state
+    return []
+  }
+}

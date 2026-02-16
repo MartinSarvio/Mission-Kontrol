@@ -20,6 +20,7 @@
     "@tauri-apps/cli": "^2.10.0",
     "@types/react": "^18.2.43",
     "@types/react-dom": "^18.2.17",
+    "@vercel/node": "^5.6.3",
     "@vitejs/plugin-react": "^4.2.1",
     "autoprefixer": "^10.4.16",
     "png2icons": "^2.0.1",

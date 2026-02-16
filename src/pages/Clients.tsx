@@ -1,39 +1,9 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import Card from '../components/Card'
 import SearchBar from '../components/SearchBar'
 import Modal from '../components/Modal'
 import Icon from '../components/Icon'
-
-interface Project {
-  id: string
-  name: string
-  description: string
-  status: 'active' | 'paused' | 'planning'
-  techStack: string[]
-  color: string
-  icon: string
-}
-
-const PROJECTS: Project[] = [
-  {
-    id: 'mission-kontrol',
-    name: 'Mission Kontrol',
-    description: 'AI-assisteret dashboard og kontrolpanel til OpenClaw Gateway. React + TypeScript + Tailwind med live data streaming.',
-    status: 'active',
-    techStack: ['React', 'TypeScript', 'Tailwind CSS', 'Vite', 'Vercel'],
-    color: '#007AFF',
-    icon: 'chart-bar',
-  },
-  {
-    id: 'flow',
-    name: 'Flow',
-    description: 'Alt-i-én restaurationsplatform med bordreservationer, online ordering, marketing automation og gæsteanalyse.',
-    status: 'paused',
-    techStack: ['Vanilla JS', 'Supabase', 'Vite', 'PostgreSQL'],
-    color: '#FF6B35',
-    icon: 'utensils',
-  },
-]
+import { fetchProjects, type Project } from '../api/openclaw'
 
 const statusLabels: Record<string, string> = {
   active: 'Aktiv',
@@ -50,16 +20,34 @@ const statusColors: Record<string, { bg: string; text: string }> = {
 export default function Clients() {
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState<Project | null>(null)
+  const [projects, setProjects] = useState<Project[]>([])
+  const [loading, setLoading] = useState(true)
+
+  // Fetch projects on mount
+  useEffect(() => {
+    async function loadProjects() {
+      setLoading(true)
+      try {
+        const data = await fetchProjects()
+        setProjects(data)
+      } catch (error) {
+        console.error('Failed to load projects:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadProjects()
+  }, [])
 
   const filtered = useMemo(() => {
-    if (!search) return PROJECTS
+    if (!search) return projects
     const q = search.toLowerCase()
-    return PROJECTS.filter(p => 
+    return projects.filter(p => 
       p.name.toLowerCase().includes(q) || 
       p.description.toLowerCase().includes(q) ||
       p.techStack.some(t => t.toLowerCase().includes(q))
     )
-  }, [search])
+  }, [search, projects])
 
   return (
     <div>
@@ -74,8 +62,20 @@ export default function Clients() {
         </div>
       </div>
 
-      <div className="space-y-3">
-        {filtered.map(project => (
+      {loading && (
+        <Card>
+          <div className="text-center py-16 px-4">
+            <div className="w-8 h-8 border-2 border-white/20 border-t-white/80 rounded-full animate-spin mx-auto mb-4" />
+            <p className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>
+              Henter projekter...
+            </p>
+          </div>
+        </Card>
+      )}
+
+      {!loading && (
+        <div className="space-y-3">
+          {filtered.map(project => (
           <Card key={project.id}>
             <div 
               className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 cursor-pointer"
@@ -132,17 +132,20 @@ export default function Clients() {
             </div>
           </Card>
         ))}
-      </div>
+        </div>
+      )}
 
-      {filtered.length === 0 && (
+      {!loading && filtered.length === 0 && (
         <Card>
           <div className="text-center py-16 px-4">
             <Icon name="folder" size={40} className="text-white/30 mx-auto mb-4" />
             <p className="text-lg font-medium mb-2" style={{ color: 'rgba(255,255,255,0.7)' }}>
-              Ingen projekter fundet
+              {projects.length === 0 ? 'Ingen projekter endnu' : 'Ingen projekter fundet'}
             </p>
             <p className="caption max-w-md mx-auto">
-              Prøv en anden søgning
+              {projects.length === 0 
+                ? 'Dine projekter vil vises her når de er tilføjet' 
+                : 'Prøv en anden søgning'}
             </p>
           </div>
         </Card>
