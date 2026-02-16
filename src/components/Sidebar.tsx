@@ -32,8 +32,13 @@ const nav = [
 ]
 
 export default function Sidebar({ active, onNavigate, isOpen, onClose, onMaisonClick }: SidebarProps) {
-  const { isConnected, lastUpdated, isLoading, isRefreshing } = useLiveData()
+  const { isConnected, lastUpdated, isLoading, isRefreshing, sessions, cronJobs } = useLiveData()
   const [pulse, setPulse] = useState(true)
+
+  // Calculate badge counts
+  const agentCount = sessions.filter(s => s.kind !== 'main').length
+  const cronCount = cronJobs.filter(c => c.enabled).length
+  const notificationCount = 0 // Placeholder - no notification data yet
 
   useEffect(() => {
     const interval = setInterval(() => setPulse(p => !p), 1500)
@@ -41,6 +46,42 @@ export default function Sidebar({ active, onNavigate, isOpen, onClose, onMaisonC
   }, [])
 
   const now = new Date().toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' })
+
+  // Badge counts per nav item
+  const getBadgeCount = (id: string): number => {
+    switch (id) {
+      case 'agents': return agentCount
+      case 'cron': return cronCount
+      case 'notifications': return notificationCount
+      default: return 0
+    }
+  }
+
+  // Badge component
+  const Badge = ({ count }: { count: number }) => {
+    if (count === 0) return null
+    return (
+      <span
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minWidth: 18,
+          height: 18,
+          padding: '0 6px',
+          borderRadius: 9,
+          background: '#007AFF',
+          color: 'white',
+          fontSize: 11,
+          fontWeight: 600,
+          lineHeight: 1,
+          animation: 'badgeFadeIn 200ms ease-out',
+        }}
+      >
+        {count > 99 ? '99+' : count}
+      </span>
+    )
+  }
 
   return (
     <aside
@@ -113,37 +154,41 @@ export default function Sidebar({ active, onNavigate, isOpen, onClose, onMaisonC
       </div>
 
       <nav role="navigation" aria-label="Hovednavigation" className="flex-1 px-2 space-y-0.5 overflow-y-auto">
-        {nav.map(item => (
-          <a
-            key={item.id}
-            href={`#${item.id}`}
-            onClick={(e) => {
-              e.preventDefault()
-              onNavigate(item.id)
-            }}
-            aria-current={active === item.id ? 'page' : undefined}
-            className={`sidebar-item ${active === item.id ? 'active' : ''}`}
-            style={{ position: 'relative', textDecoration: 'none', display: 'flex' }}
-          >
-            {active === item.id && (
-              <span
-                style={{
-                  position: 'absolute',
-                  left: 0,
-                  top: '20%',
-                  bottom: '20%',
-                  width: 3,
-                  borderRadius: 2,
-                  background: '#007AFF',
-                  boxShadow: '0 0 8px rgba(0,122,255,0.6)',
-                  animation: 'slideIn 200ms ease-out',
-                }}
-              />
-            )}
-            <Icon name={item.icon} size={20} className={active === item.id ? 'text-blue-400' : 'text-white/50'} />
-            <span>{item.label}</span>
-          </a>
-        ))}
+        {nav.map(item => {
+          const badgeCount = getBadgeCount(item.id)
+          return (
+            <a
+              key={item.id}
+              href={`#${item.id}`}
+              onClick={(e) => {
+                e.preventDefault()
+                onNavigate(item.id)
+              }}
+              aria-current={active === item.id ? 'page' : undefined}
+              className={`sidebar-item ${active === item.id ? 'active' : ''}`}
+              style={{ position: 'relative', textDecoration: 'none', display: 'flex', alignItems: 'center' }}
+            >
+              {active === item.id && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    left: 0,
+                    top: '20%',
+                    bottom: '20%',
+                    width: 3,
+                    borderRadius: 2,
+                    background: '#007AFF',
+                    boxShadow: '0 0 8px rgba(0,122,255,0.6)',
+                    animation: 'slideIn 200ms ease-out',
+                  }}
+                />
+              )}
+              <Icon name={item.icon} size={20} className={active === item.id ? 'text-blue-400' : 'text-white/50'} />
+              <span style={{ flex: 1 }}>{item.label}</span>
+              <Badge count={badgeCount} />
+            </a>
+          )
+        })}
       </nav>
 
       <div className="px-5 py-4 border-t border-white/10 space-y-2">
