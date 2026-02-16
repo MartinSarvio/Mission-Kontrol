@@ -299,6 +299,60 @@ interface StandupSession {
   updatedAt: number
   status: string
   lastMessage?: string
+  fullText?: string
+}
+
+interface ActionItem {
+  text: string
+  assignee: string
+  agentId: string
+  hash: string
+}
+
+type ApprovalStatus = 'pending' | 'approved' | 'rejected' | 'done'
+
+const AGENT_NAME_MAP: Record<string, string> = {
+  maison: 'main', main: 'main',
+  elon: 'elon',
+  gary: 'gary',
+  warren: 'warren',
+  frontend: 'frontend',
+  backend: 'backend',
+}
+
+function hashActionItem(text: string, sessionKey: string): string {
+  let h = 0
+  const s = sessionKey + '::' + text
+  for (let i = 0; i < s.length; i++) { h = ((h << 5) - h + s.charCodeAt(i)) | 0 }
+  return 'ai-' + Math.abs(h).toString(36)
+}
+
+function parseActionItems(text: string, sessionKey: string): ActionItem[] {
+  const items: ActionItem[] = []
+  const lines = text.split('\n')
+  for (const line of lines) {
+    const match = line.match(/[-*]\s*\[[ x]\]\s*(.+)/)
+    if (match) {
+      const itemText = match[1].trim()
+      let assignee = 'Ukendt'
+      let agentId = 'main'
+      const assigneeMatch = itemText.match(/\(?@(\w+)\)?/)
+      if (assigneeMatch) {
+        assignee = assigneeMatch[1].charAt(0).toUpperCase() + assigneeMatch[1].slice(1)
+        agentId = AGENT_NAME_MAP[assigneeMatch[1].toLowerCase()] || 'main'
+      }
+      items.push({ text: itemText, assignee, agentId, hash: hashActionItem(itemText, sessionKey) })
+    }
+  }
+  return items
+}
+
+function loadApprovals(): Record<string, ApprovalStatus> {
+  try { return JSON.parse(localStorage.getItem('standup-approvals') || '{}') } catch { return {} }
+}
+
+function saveApprovals(approvals: Record<string, ApprovalStatus>) {
+  localStorage.setItem('standup-approvals', JSON.stringify(approvals))
 }
 
 function StandupsView() {
@@ -311,8 +365,10 @@ function StandupsView() {
   const [standups, setStandups] = useState<StandupSession[]>([])
   const [loading, setLoading] = useState(true)
   const [expandedKey, setExpandedKey] = useState<string | null>(null)
-  const [expandedMessages, setExpandedMessages] = useState<{ role: string; text: string }[]>([])
-  const [actionItems, setActionItems] = useState<{ text: string; done: boolean }[]>([])
+  const [standupTexts, setStandupTexts] = useState<Record<string, string>>({})
+  const [standupActions, setStandupActions] = useState<Record<string, ActionItem[]>>({})
+  const [approvals, setApprovals] = useState<Record<string, ApprovalStatus>>(loadApprovals)
+  const [approvingHash, setApprovingHash] = useState<string | null>(null)
 
   const participantList = [
     { id: 'maison', name: 'Maison', color: '#007AFF', bg: 'rgba(0,122,255,0.15)' },
@@ -321,18 +377,22 @@ function StandupsView() {
     { id: 'warren', name: 'Warren', color: '#30D158', bg: 'rgba(48,209,88,0.15)' },
   ]
 
+  const agentColors: Record<string, string> = {
+    main: '#007AFF', elon: '#FF3B30', gary: '#FF9F0A', warren: '#30D158', frontend: '#FF6B35', backend: '#30D158',
+  }
+
   // Fetch standup sessions
   useEffect(() => {
-    const fetch = async () => {
+    const fetchStandups = async () => {
       try {
-        const data = await invokeToolRaw('sessions_list', { messageLimit: 5, limit: 50 }) as any
+        const data = await invokeToolRaw('sessions_list', { messageLimit: 5, limit: 20 }) as any
         const text = data.result?.content?.[0]?.text
         let raw: any[] = []
         if (text) { try { raw = JSON.parse(text).sessions || [] } catch { /* */ } }
         if (!raw.length && data.result?.details?.sessions) raw = data.result.details.sessions
 
         const standupSessions = raw
-          .filter((s: any) => (s.label || '').startsWith('standup-'))
+          .filter((s: any) => (s.label || '').toLowerCase().includes('standup'))
           .map((s: any) => {
             const lastMsg = s.lastMessages?.filter((m: any) => m.role === 'assistant')?.pop()
             return {
@@ -352,8 +412,8 @@ function StandupsView() {
         setLoading(false)
       }
     }
-    fetch()
-    const interval = setInterval(fetch, 10000)
+    fetchStandups()
+    const interval = setInterval(fetchStandups, 10000)
     return () => clearInterval(interval)
   }, [])
 
@@ -369,7 +429,7 @@ Emne: ${topic}
 Deltagere: ${activeParticipants.join(', ')}
 
 Instruktioner:
-1. Start med at prasentere emnet
+1. Start med at praesentere emnet
 2. Gaa igennem hver deltager og bed om status/input
 3. Diskuter eventuelle blokeringer
 4. Opsummer med konkrete action items i formatet:
@@ -392,13 +452,12 @@ Hold moedet kort og fokuseret. Alle tekster paa dansk.`
     }
   }
 
-  // Expand standup to see result
+  // Expand standup
   const handleExpand = async (standup: StandupSession) => {
-    if (expandedKey === standup.key) {
-      setExpandedKey(null)
-      return
-    }
+    if (expandedKey === standup.key) { setExpandedKey(null); return }
     setExpandedKey(standup.key)
+
+    if (standupTexts[standup.key]) return // already fetched
 
     try {
       const data = await invokeToolRaw('sessions_history', { sessionKey: standup.key, limit: 50, includeTools: false }) as any
@@ -411,42 +470,69 @@ Hold moedet kort og fokuseret. Alle tekster paa dansk.`
         role: m.role,
         text: typeof m.content === 'string' ? m.content : m.content?.[0]?.text || m.text || '',
       }))
-      setExpandedMessages(mapped)
 
-      // Parse action items from last assistant message
       const lastAssistant = mapped.filter((m: { role: string }) => m.role === 'assistant').pop()
-      if (lastAssistant) {
-        const items: { text: string; done: boolean }[] = []
-        const lines = lastAssistant.text.split('\n')
-        for (const line of lines) {
-          const checkMatch = line.match(/- \[([ x])\]\s*(.+)/)
-          if (checkMatch) {
-            items.push({ text: checkMatch[2], done: checkMatch[1] === 'x' })
-          }
-        }
-        setActionItems(items)
-      }
+      const fullText = lastAssistant?.text || ''
+      setStandupTexts(prev => ({ ...prev, [standup.key]: fullText }))
+      setStandupActions(prev => ({ ...prev, [standup.key]: parseActionItems(fullText, standup.key) }))
     } catch (e) {
       console.error('Fejl ved hentning af standup historik:', e)
     }
   }
 
-  const toggleAction = (idx: number) => {
-    setActionItems(prev => prev.map((item, i) => i === idx ? { ...item, done: !item.done } : item))
+  // Approve action
+  const handleApprove = async (item: ActionItem) => {
+    setApprovingHash(item.hash)
+    try {
+      const today = new Date().toISOString().split('T')[0]
+      await invokeToolRaw('sessions_spawn', {
+        task: `Udfoer denne opgave: ${item.text}. Commit og push alle aendringer.`,
+        agentId: item.agentId,
+        label: `approved-task-${today}`,
+      })
+      const next = { ...approvals, [item.hash]: 'approved' as ApprovalStatus }
+      setApprovals(next)
+      saveApprovals(next)
+    } catch (e) {
+      console.error('Fejl ved godkendelse:', e)
+    } finally {
+      setApprovingHash(null)
+    }
   }
+
+  // Reject action
+  const handleReject = (item: ActionItem) => {
+    const next = { ...approvals, [item.hash]: 'rejected' as ApprovalStatus }
+    setApprovals(next)
+    saveApprovals(next)
+  }
+
+  // Compute summary stats
+  const allActions = Object.values(standupActions).flat()
+  const totalItems = allActions.length
+  const approvedCount = allActions.filter(a => approvals[a.hash] === 'approved').length
+  const rejectedCount = allActions.filter(a => approvals[a.hash] === 'rejected').length
+  const pendingCount = totalItems - approvedCount - rejectedCount
 
   return (
     <div className="py-8">
-      {/* Start Standup Button */}
-      <div className="text-center mb-8">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6 max-w-3xl mx-auto">
+        <div>
+          {totalItems > 0 && (
+            <p className="text-xs font-medium" style={{ color: 'rgba(255,255,255,0.5)' }}>
+              {totalItems} action items &middot; {approvedCount} godkendt &middot; {rejectedCount} afvist &middot; {pendingCount} afventer
+            </p>
+          )}
+        </div>
         <button
           onClick={() => setShowModal(true)}
-          className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-white transition-all"
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-white text-sm transition-all"
           style={{ background: 'linear-gradient(135deg, #007AFF, #AF52DE)' }}
           onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,122,255,0.4)' }}
           onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none' }}
         >
-          <Icon name="chat" size={18} />
+          <Icon name="chat" size={16} />
           Start Standup
         </button>
       </div>
@@ -457,7 +543,7 @@ Hold moedet kort og fokuseret. Alle tekster paa dansk.`
           <div className="fixed inset-0 z-50" style={{ background: 'rgba(0,0,0,0.85)' }} onClick={() => setShowModal(false)} />
           <div
             className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md z-50 p-6 rounded-xl"
-            style={{ background: 'rgba(20,20,24,0.98)', border: '1px solid rgba(255,255,255,0.1)' }}
+            style={{ background: 'rgba(20,20,24,0.98)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(40px)' }}
             onClick={e => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-6">
@@ -522,8 +608,8 @@ Hold moedet kort og fokuseret. Alle tekster paa dansk.`
         </>
       )}
 
-      {/* Standup History */}
-      <div className="max-w-2xl mx-auto space-y-4">
+      {/* Standup Cards */}
+      <div className="max-w-3xl mx-auto space-y-4">
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
@@ -533,78 +619,155 @@ Hold moedet kort og fokuseret. Alle tekster paa dansk.`
             Ingen standups endnu. Start det foerste standup ovenfor.
           </p>
         ) : (
-          standups.map(s => (
-            <div
-              key={s.key}
-              className="rounded-xl p-6 cursor-pointer transition-all"
-              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}
-              onClick={() => handleExpand(s)}
-            >
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  <h3 className="text-base font-bold text-white mb-1">{s.label}</h3>
-                  <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                    {new Date(s.updatedAt).toLocaleDateString('da-DK', { day: 'numeric', month: 'long', year: 'numeric' })}
-                    {' · '}
-                    {new Date(s.updatedAt).toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' })}
-                  </p>
-                </div>
-                <span
-                  className="text-xs px-2.5 py-1 rounded-full font-medium"
-                  style={{
-                    background: s.status === 'active' ? 'rgba(0,122,255,0.15)' : 'rgba(48,209,88,0.15)',
-                    color: s.status === 'active' ? '#5AC8FA' : '#30D158',
-                  }}
-                >
-                  {s.status === 'active' ? 'Koerer' : 'Afsluttet'}
-                </span>
-              </div>
+          standups.map(s => {
+            const isExpanded = expandedKey === s.key
+            const fullText = standupTexts[s.key] || ''
+            const actions = standupActions[s.key] || []
 
-              {/* Expanded view */}
-              {expandedKey === s.key && (
-                <div className="mt-4 pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-                  {/* Last assistant message as result */}
-                  {expandedMessages.filter(m => m.role === 'assistant').length > 0 && (
-                    <div className="mb-4">
-                      <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'rgba(255,255,255,0.35)' }}>
-                        Resultat
-                      </p>
-                      <p className="text-sm whitespace-pre-wrap" style={{ color: 'rgba(255,255,255,0.7)' }}>
-                        {expandedMessages.filter(m => m.role === 'assistant').pop()?.text.slice(0, 1000)}
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Action items */}
-                  {actionItems.length > 0 && (
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'rgba(255,255,255,0.35)' }}>
-                        Action Items
-                      </p>
-                      <div className="space-y-2">
-                        {actionItems.map((item, idx) => (
-                          <label
-                            key={idx}
-                            className="flex items-center gap-2 text-sm cursor-pointer"
-                            style={{ color: item.done ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.7)' }}
-                            onClick={e => e.stopPropagation()}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={item.done}
-                              onChange={() => toggleAction(idx)}
-                              className="rounded"
-                            />
-                            <span style={{ textDecoration: item.done ? 'line-through' : 'none' }}>{item.text}</span>
-                          </label>
-                        ))}
+            return (
+              <div key={s.key} className="rounded-xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(20px)' }}>
+                {/* Card header */}
+                <div className="p-5 cursor-pointer" onClick={() => handleExpand(s)}>
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: 'rgba(0,122,255,0.15)' }}>
+                        <Icon name="chat" size={18} style={{ color: '#007AFF' }} />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-bold text-white">{s.label}</h3>
+                        <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                          {new Date(s.updatedAt).toLocaleDateString('da-DK', { day: 'numeric', month: 'long', year: 'numeric' })}
+                          {' · '}
+                          {new Date(s.updatedAt).toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' })}
+                        </p>
                       </div>
                     </div>
-                  )}
+                    <div className="flex items-center gap-2">
+                      {actions.length > 0 && (
+                        <span className="text-[10px] px-2 py-1 rounded-full font-medium" style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.5)' }}>
+                          {actions.length} opgaver
+                        </span>
+                      )}
+                      <span
+                        className="text-xs px-2.5 py-1 rounded-full font-medium"
+                        style={{
+                          background: s.status === 'active' ? 'rgba(0,122,255,0.15)' : 'rgba(48,209,88,0.15)',
+                          color: s.status === 'active' ? '#5AC8FA' : '#30D158',
+                        }}
+                      >
+                        {s.status === 'active' ? 'Koerer...' : 'Afsluttet'}
+                      </span>
+                      <Icon name={isExpanded ? 'chevron-down' : 'chevron-right'} size={14} style={{ color: 'rgba(255,255,255,0.3)' }} />
+                    </div>
+                  </div>
                 </div>
-              )}
-            </div>
-          ))
+
+                {/* Expanded content */}
+                {isExpanded && (
+                  <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                    {/* Action Items */}
+                    {actions.length > 0 && (
+                      <div className="p-5">
+                        <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                          Action Items
+                        </p>
+                        <div className="space-y-2">
+                          {actions.map((item) => {
+                            const status = approvals[item.hash] || 'pending'
+                            const isApproving = approvingHash === item.hash
+                            const color = agentColors[item.agentId] || '#8E8E93'
+
+                            return (
+                              <div
+                                key={item.hash}
+                                className="flex items-center gap-3 p-3 rounded-lg transition-all"
+                                style={{
+                                  background: status === 'approved' ? 'rgba(48,209,88,0.08)' : status === 'rejected' ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.03)',
+                                  border: status === 'approved' ? '1px solid rgba(48,209,88,0.25)' : status === 'rejected' ? '1px solid rgba(255,255,255,0.05)' : '1px solid rgba(0,122,255,0.2)',
+                                }}
+                              >
+                                {/* Status indicator */}
+                                <div className="flex-shrink-0">
+                                  {status === 'approved' && <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ background: 'rgba(48,209,88,0.2)' }}><Icon name="check" size={12} style={{ color: '#30D158' }} /></div>}
+                                  {status === 'rejected' && <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ background: 'rgba(255,69,58,0.15)' }}><Icon name="xmark" size={12} style={{ color: '#FF453A' }} /></div>}
+                                  {status === 'pending' && <div className="w-6 h-6 rounded-full" style={{ border: '2px solid rgba(0,122,255,0.4)' }} />}
+                                </div>
+
+                                {/* Content */}
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm" style={{
+                                    color: status === 'rejected' ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.8)',
+                                    textDecoration: status === 'rejected' ? 'line-through' : 'none',
+                                  }}>
+                                    {item.text}
+                                  </p>
+                                  <div className="flex items-center gap-2 mt-1">
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: color + '20', color }}>{item.assignee}</span>
+                                    {status === 'approved' && <span className="text-[10px] font-medium" style={{ color: '#30D158' }}>Godkendt</span>}
+                                    {status === 'rejected' && <span className="text-[10px] font-medium" style={{ color: '#FF453A' }}>Afvist</span>}
+                                  </div>
+                                </div>
+
+                                {/* Buttons */}
+                                {status === 'pending' && (
+                                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                                    <button
+                                      onClick={e => { e.stopPropagation(); handleApprove(item) }}
+                                      disabled={isApproving}
+                                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
+                                      style={{ background: 'rgba(48,209,88,0.15)', color: '#30D158', border: '1px solid rgba(48,209,88,0.3)' }}
+                                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(48,209,88,0.25)' }}
+                                      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(48,209,88,0.15)' }}
+                                    >
+                                      {isApproving ? <div className="w-3 h-3 border border-green-400 border-t-transparent rounded-full animate-spin" /> : <Icon name="check" size={12} />}
+                                      Godkend
+                                    </button>
+                                    <button
+                                      onClick={e => { e.stopPropagation(); handleReject(item) }}
+                                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
+                                      style={{ background: 'rgba(255,69,58,0.1)', color: '#FF453A', border: '1px solid rgba(255,69,58,0.2)' }}
+                                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,69,58,0.2)' }}
+                                      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,69,58,0.1)' }}
+                                    >
+                                      <Icon name="xmark" size={12} />
+                                      Afvis
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Full text (collapsible) */}
+                    {fullText && (
+                      <div className="px-5 pb-5">
+                        <details>
+                          <summary className="text-xs font-semibold uppercase tracking-wider cursor-pointer mb-2" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                            Fuld referat
+                          </summary>
+                          <div className="rounded-lg p-4 max-h-96 overflow-y-auto" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                            <p className="text-xs whitespace-pre-wrap" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                              {fullText}
+                            </p>
+                          </div>
+                        </details>
+                      </div>
+                    )}
+
+                    {/* Loading state */}
+                    {!fullText && s.status === 'done' && (
+                      <div className="flex items-center justify-center py-6">
+                        <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )
+          })
         )}
       </div>
     </div>
