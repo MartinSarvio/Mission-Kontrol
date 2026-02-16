@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import Icon from '../components/Icon'
 import { useLiveData } from '../api/LiveDataContext'
-import { invokeToolRaw } from '../api/openclaw'
 
 /* ── Types ──────────────────────────────────── */
 interface Article {
@@ -188,61 +187,21 @@ export default function Intelligence() {
   const [searchQuery, setSearchQuery] = useState('')
   const [isSearching, setIsSearching] = useState(false)
 
-  // Auto-load analyses from memory files on mount
+  // Auto-load analyses from pre-generated static JSON
   useEffect(() => {
-    if (!isConnected) return
-    loadAnalysesFromMemory()
-  }, [isConnected])
+    loadAnalyses()
+  }, [])
 
-  const loadAnalysesFromMemory = useCallback(async () => {
+  const loadAnalyses = useCallback(async () => {
     try {
-      // List memory files
-      const listData = await invokeToolRaw('exec', { command: 'ls -1 /data/.openclaw/workspace/memory/ | sort -r' }) as any
-      const r = listData as any
-      const stdout = r?.result?.content?.[0]?.text || r?.result?.stdout || r?.content?.[0]?.text || ''
-      const allFiles: string[] = stdout.split('\n').filter((f: string) => f.endsWith('.md'))
-
-      // Load intelligence/research/report files (also daily logs)
-      const reportFiles = allFiles.filter((f: string) => 
-        f.includes('intelligence') || f.includes('research') || f.includes('report') || f.includes('analyse') || f.includes('video')
-      )
-      console.log('[Intelligence] Found memory files:', allFiles.length, 'reports:', reportFiles.length, reportFiles)
-
-      const memoryArticles: Article[] = []
-
-      for (const file of reportFiles.slice(0, 20)) {
-        try {
-          const fileData = await invokeToolRaw('exec', { command: `cat /data/.openclaw/workspace/memory/${file}` }) as any
-          const fr = fileData as any
-          const content = fr?.result?.content?.[0]?.text || fr?.result?.stdout || fr?.content?.[0]?.text || ''
-          if (!content) continue
-
-          const titleMatch = content.match(/^#\s+(.+)/m)
-          const title = titleMatch ? titleMatch[1] : file.replace('.md', '')
-
-          const dateMatch = file.match(/(\d{4}-\d{2}-\d{2})/)
-          const date = dateMatch ? new Date(dateMatch[1]).toISOString() : new Date().toISOString()
-
-          const category = guessCategory(title + ' ' + content.slice(0, 500), '')
-
-          memoryArticles.push({
-            id: `mem-${file}`,
-            title,
-            summary: content.slice(0, 3000),
-            source: 'Intern Analyse',
-            category,
-            relevance: 'high',
-            timestamp: date,
-            isNew: false,
-          })
-        } catch {}
-      }
-
-      if (memoryArticles.length > 0) {
+      const res = await fetch('/intelligence-data.json?t=' + Date.now())
+      if (!res.ok) return
+      const data: Article[] = await res.json()
+      if (data.length > 0) {
         setArticles(prev => {
-          const memIds = new Set(memoryArticles.map(a => a.id))
+          const memIds = new Set(data.map(a => a.id))
           const existing = prev.filter(a => !memIds.has(a.id))
-          const merged = [...memoryArticles, ...existing].slice(0, 100)
+          const merged = [...data, ...existing].slice(0, 100)
           saveCache(merged)
           return merged
         })
@@ -349,7 +308,7 @@ export default function Intelligence() {
             {isSearching ? 'Søger...' : 'Søg'}
           </button>
           <button
-            onClick={() => loadAnalysesFromMemory()}
+            onClick={() => loadAnalyses()}
             className="px-4 py-2.5 rounded-lg text-sm font-medium text-white transition-all"
             style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
             onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)' }}
