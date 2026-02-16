@@ -140,9 +140,27 @@ export function LiveDataProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     refresh()
-    // Fixed 5-second interval - no adaptive polling
-    const id = setInterval(refresh, 5000)
-    return () => clearInterval(id)
+    
+    // Poll every 15 seconds (reduced from 5s to save resources)
+    const id = setInterval(() => {
+      // Only poll if page is visible (Page Visibility API)
+      if (!document.hidden) {
+        refresh()
+      }
+    }, 15000)
+    
+    // Also refresh when page becomes visible again
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        refresh()
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    
+    return () => {
+      clearInterval(id)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
   }, [refresh])
 
   // Listen for storage changes (when settings are updated)
