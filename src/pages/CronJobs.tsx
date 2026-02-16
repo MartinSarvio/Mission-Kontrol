@@ -5,6 +5,7 @@ import StatusBadge from '../components/StatusBadge'
 import Modal from '../components/Modal'
 import { useLiveData } from '../api/LiveDataContext'
 import { fetchCronRuns } from '../api/openclaw'
+import { useToast } from '../components/Toast'
 
 interface CronRun {
   timestamp: string
@@ -15,6 +16,7 @@ interface CronRun {
 
 export default function CronJobs() {
   const { isConnected, cronJobs, isLoading } = useLiveData()
+  const { showToast } = useToast()
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null)
   const [runs, setRuns] = useState<CronRun[]>([])
   const [loadingRuns, setLoadingRuns] = useState(false)
@@ -67,10 +69,16 @@ export default function CronJobs() {
       </p>
 
       <div className="flex flex-wrap gap-3 mb-6">
-        <button style={{ minHeight: '44px', background: '#007AFF', color: '#fff', padding: '8px 16px', borderRadius: '12px', fontSize: '14px', fontWeight: 500, border: 'none', cursor: 'pointer' }}>
+        <button 
+          onClick={() => showToast('info', 'Denne funktion kommer snart')}
+          style={{ minHeight: '44px', background: '#007AFF', color: '#fff', padding: '8px 16px', borderRadius: '12px', fontSize: '14px', fontWeight: 500, border: 'none', cursor: 'pointer' }}
+        >
           Opret Job
         </button>
-        <button style={{ minHeight: '44px', background: 'rgba(0,122,255,0.1)', color: '#007AFF', padding: '8px 16px', borderRadius: '12px', fontSize: '14px', fontWeight: 500, border: '1px solid rgba(0,122,255,0.2)', cursor: 'pointer' }}>
+        <button 
+          onClick={() => showToast('info', 'Denne funktion kommer snart')}
+          style={{ minHeight: '44px', background: 'rgba(0,122,255,0.1)', color: '#007AFF', padding: '8px 16px', borderRadius: '12px', fontSize: '14px', fontWeight: 500, border: '1px solid rgba(0,122,255,0.2)', cursor: 'pointer' }}
+        >
           Alarmregler
         </button>
       </div>

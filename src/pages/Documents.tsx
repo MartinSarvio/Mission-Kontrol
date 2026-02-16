@@ -6,6 +6,7 @@ import Modal from '../components/Modal'
 import Icon from '../components/Icon'
 import { fetchWorkspaceFiles, readFileContent, downloadFile } from '../api/openclaw'
 import { useLiveData } from '../api/LiveDataContext'
+import { useToast } from '../components/Toast'
 
 interface WorkspaceFile {
   id: string
@@ -18,6 +19,7 @@ interface WorkspaceFile {
 
 export default function Documents() {
   const { isConnected } = useLiveData()
+  const { showToast } = useToast()
   const [files, setFiles] = useState<WorkspaceFile[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -89,7 +91,11 @@ export default function Documents() {
 
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-6">
         <div className="flex-1"><SearchBar value={search} onChange={setSearch} placeholder="Søg i dokumenter..." /></div>
-        <button className="flex items-center justify-center gap-1.5" style={{ minHeight: '44px', background: '#007AFF', color: '#fff', padding: '8px 16px', borderRadius: '12px', fontSize: '14px', fontWeight: 500, border: 'none', cursor: 'pointer', opacity: 0.5 }} disabled>
+        <button 
+          onClick={() => showToast('info', 'Upload funktion kommer snart')}
+          className="flex items-center justify-center gap-1.5" 
+          style={{ minHeight: '44px', background: '#007AFF', color: '#fff', padding: '8px 16px', borderRadius: '12px', fontSize: '14px', fontWeight: 500, border: 'none', cursor: 'pointer' }}
+        >
           <Icon name="upload" size={14} /> Upload Dokument
         </button>
       </div>

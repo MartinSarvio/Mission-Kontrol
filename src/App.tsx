@@ -1,6 +1,7 @@
 import { useState, useEffect, lazy, Suspense } from 'react'
 import { LiveDataProvider } from './api/LiveDataContext'
 import { NotificationProvider } from './api/NotificationContext'
+import { ToastProvider } from './components/Toast'
 import Layout from './components/Layout'
 import UpdateBanner from './components/UpdateBanner'
 import CommandPalette from './components/CommandPalette'
@@ -79,16 +80,18 @@ export default function App() {
   return (
     <LiveDataProvider>
       <NotificationProvider>
-      <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} onNavigate={setPage} />
-      <UpdateBanner />
-      <Layout activePage={page} onNavigate={setPage}>
-        <Suspense fallback={<LoadingFallback />}>
-          <ErrorBoundary>
-            <Page />
-          </ErrorBoundary>
-        </Suspense>
-      </Layout>
-          </NotificationProvider>
+        <ToastProvider>
+          <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} onNavigate={setPage} />
+          <UpdateBanner />
+          <Layout activePage={page} onNavigate={setPage}>
+            <Suspense fallback={<LoadingFallback />}>
+              <ErrorBoundary>
+                <Page />
+              </ErrorBoundary>
+            </Suspense>
+          </Layout>
+        </ToastProvider>
+      </NotificationProvider>
     </LiveDataProvider>
   )
 }
