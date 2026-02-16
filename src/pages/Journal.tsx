@@ -52,30 +52,116 @@ function getDateKey(timestamp: string | number): string {
 }
 
 function renderMarkdown(content: string): JSX.Element {
-  // Simple markdown rendering - kunne bruges marked eller remark i produktion
-  // For nu: behold markdown som pre-formatted med styling
-  return (
-    <div 
-      className="prose prose-invert max-w-none"
-      style={{ 
-        color: 'rgba(255,255,255,0.8)',
-        fontSize: '14px',
-        lineHeight: '1.6',
-      }}
-    >
-      <pre 
-        className="whitespace-pre-wrap font-sans"
-        style={{ 
-          background: 'transparent',
-          padding: 0,
-          margin: 0,
-          border: 'none',
-        }}
-      >
-        {content}
-      </pre>
-    </div>
-  )
+  const lines = content.split('\n')
+  const elements: JSX.Element[] = []
+  let i = 0
+  let listItems: string[] = []
+  let inTable = false
+  let tableRows: string[][] = []
+
+  const flushList = () => {
+    if (listItems.length > 0) {
+      elements.push(
+        <ul key={`list-${elements.length}`} style={{ margin: '8px 0', paddingLeft: '20px', color: 'rgba(255,255,255,0.7)' }}>
+          {listItems.map((item, idx) => {
+            const checked = item.startsWith('[x] ') || item.startsWith('[X] ')
+            const unchecked = item.startsWith('[ ] ')
+            const text = (checked || unchecked) ? item.slice(4) : item
+            return (
+              <li key={idx} style={{ fontSize: '13px', lineHeight: '1.8', listStyleType: (checked || unchecked) ? 'none' : undefined, marginLeft: (checked || unchecked) ? '-20px' : undefined }}>
+                {(checked || unchecked) && <span style={{ marginRight: '6px' }}>{checked ? '✅' : '⬜'}</span>}
+                <span dangerouslySetInnerHTML={{ __html: inlineFormat(text) }} />
+              </li>
+            )
+          })}
+        </ul>
+      )
+      listItems = []
+    }
+  }
+
+  const flushTable = () => {
+    if (tableRows.length > 0) {
+      elements.push(
+        <div key={`table-${elements.length}`} style={{ overflowX: 'auto', margin: '12px 0' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+            <thead>
+              <tr>{tableRows[0].map((cell, ci) => <th key={ci} style={{ padding: '8px 12px', textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>{cell.trim()}</th>)}</tr>
+            </thead>
+            <tbody>
+              {tableRows.slice(2).map((row, ri) => (
+                <tr key={ri}>{row.map((cell, ci) => <td key={ci} style={{ padding: '6px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.7)' }}><span dangerouslySetInnerHTML={{ __html: inlineFormat(cell.trim()) }} /></td>)}</tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )
+      tableRows = []
+      inTable = false
+    }
+  }
+
+  function inlineFormat(text: string): string {
+    return text
+      .replace(/\*\*(.+?)\*\*/g, '<strong style="color:rgba(255,255,255,0.95)">$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      .replace(/`(.+?)`/g, '<code style="background:rgba(255,255,255,0.08);padding:1px 5px;border-radius:4px;font-size:12px">$1</code>')
+      .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" target="_blank" style="color:#5AC8FA;text-decoration:none">$1</a>')
+  }
+
+  while (i < lines.length) {
+    const line = lines[i]
+    const trimmed = line.trim()
+
+    // Table
+    if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
+      flushList()
+      if (!inTable) inTable = true
+      const cells = trimmed.split('|').slice(1, -1)
+      if (!trimmed.match(/^\|[\s\-:|]+\|$/)) tableRows.push(cells)
+      else if (tableRows.length === 1) tableRows.push(cells) // separator row
+      i++
+      continue
+    } else if (inTable) {
+      flushTable()
+    }
+
+    // Headings
+    if (trimmed.startsWith('# ')) {
+      flushList()
+      elements.push(<h1 key={i} style={{ fontSize: '20px', fontWeight: 700, color: '#fff', margin: '20px 0 8px' }}>{trimmed.slice(2)}</h1>)
+    } else if (trimmed.startsWith('## ')) {
+      flushList()
+      elements.push(<h2 key={i} style={{ fontSize: '16px', fontWeight: 700, color: '#fff', margin: '16px 0 6px', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '6px' }}>{trimmed.slice(3)}</h2>)
+    } else if (trimmed.startsWith('### ')) {
+      flushList()
+      elements.push(<h3 key={i} style={{ fontSize: '14px', fontWeight: 600, color: 'rgba(255,255,255,0.9)', margin: '12px 0 4px' }}>{trimmed.slice(4)}</h3>)
+    }
+    // Horizontal rule
+    else if (trimmed === '---' || trimmed === '***') {
+      flushList()
+      elements.push(<hr key={i} style={{ border: 'none', borderTop: '1px solid rgba(255,255,255,0.08)', margin: '16px 0' }} />)
+    }
+    // List items
+    else if (trimmed.match(/^[-*]\s/) || trimmed.match(/^\d+\.\s/)) {
+      const text = trimmed.replace(/^[-*]\s+/, '').replace(/^\d+\.\s+/, '')
+      listItems.push(text)
+    }
+    // Empty line
+    else if (trimmed === '') {
+      flushList()
+    }
+    // Paragraph
+    else {
+      flushList()
+      elements.push(<p key={i} style={{ fontSize: '13px', lineHeight: '1.7', color: 'rgba(255,255,255,0.7)', margin: '6px 0' }} dangerouslySetInnerHTML={{ __html: inlineFormat(trimmed) }} />)
+    }
+    i++
+  }
+  flushList()
+  flushTable()
+
+  return <div style={{ maxWidth: '100%' }}>{elements}</div>
 }
 
 /* ── Session Card ────────────────────────────── */
