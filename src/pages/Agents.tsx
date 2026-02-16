@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import Icon from '../components/Icon'
+import { useToast } from '../components/Toast'
 import { useLiveData } from '../api/LiveDataContext'
 import { createAgent, ApiSession, invokeToolRaw } from '../api/openclaw'
 import { usePageTitle } from '../hooks/usePageTitle'
@@ -992,6 +993,7 @@ function DetailPanel({ agent, onClose }: { agent: OrgAgent; onClose: () => void 
 
 /* ── Create Modal ────────────────────────────────────────────── */
 function CreateModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { showToast } = useToast()
   const [name, setName] = useState('')
   const [task, setTask] = useState('')
   const [creating, setCreating] = useState(false)
@@ -1006,11 +1008,13 @@ function CreateModal({ open, onClose }: { open: boolean; onClose: () => void }) 
         model: 'sonnet', 
         label: name.trim().toLowerCase().replace(/\s+/g, '-') 
       })
+      showToast('success', `Agent oprettet: ${name.trim()}`)
       onClose()
       setName('')
       setTask('')
     } catch (e) {
       console.error('Fejl ved oprettelse:', e)
+      showToast('error', 'Kunne ikke oprette agent')
     } finally {
       setCreating(false)
     }

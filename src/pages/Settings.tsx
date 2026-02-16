@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import Card from '../components/Card'
 import Icon from '../components/Icon'
+import { useToast } from '../components/Toast'
 import { useLiveData } from '../api/LiveDataContext'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { getGatewayUrl, getGatewayToken, setGatewayUrl, setGatewayToken, testConnection, fetchSystemInfo } from '../api/openclaw'
@@ -25,6 +26,7 @@ interface SystemInfo {
 
 function ApiConnectionSection() {
   const { isConnected, lastUpdated } = useLiveData()
+  const { showToast } = useToast()
   const [url, setUrl] = useState(() => getGatewayUrl())
   const [token, setToken] = useState(() => getGatewayToken())
   const [saved, setSaved] = useState(false)
@@ -38,6 +40,7 @@ function ApiConnectionSection() {
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
     window.dispatchEvent(new Event('openclaw-settings-changed'))
+    showToast('success', 'Indstillinger gemt')
   }
 
   const handleTest = async () => {
@@ -50,6 +53,9 @@ function ApiConnectionSection() {
     setTesting(false)
     if (result.ok) {
       window.dispatchEvent(new Event('openclaw-settings-changed'))
+      showToast('success', 'Forbindelse testet OK')
+    } else {
+      showToast('error', `Test fejlede: ${result.error || 'Ukendt fejl'}`)
     }
   }
 

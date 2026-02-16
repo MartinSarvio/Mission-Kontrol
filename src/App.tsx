@@ -2,6 +2,7 @@ import { useState, lazy, Suspense } from 'react'
 import { LiveDataProvider } from './api/LiveDataContext'
 import { NotificationProvider } from './api/NotificationContext'
 import { ToastProvider } from './components/Toast'
+import ConnectionToast from './components/ConnectionToast'
 import Layout from './components/Layout'
 import UpdateBanner from './components/UpdateBanner'
 import CommandPalette from './components/CommandPalette'
@@ -85,6 +86,7 @@ export default function App() {
     <LiveDataProvider>
       <NotificationProvider>
         <ToastProvider>
+          <ConnectionToast />
           <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} onNavigate={setPage} />
           <UpdateBanner />
           <Layout activePage={page} onNavigate={setPage}>

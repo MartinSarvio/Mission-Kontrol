@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import Icon from './Icon'
+import { useToast } from './Toast'
 import { NUMBER_SHORTCUTS } from '../hooks/useKeyboardShortcuts'
 
 interface CommandPaletteProps {
@@ -48,16 +49,23 @@ export default function CommandPalette({ open, onClose, onNavigate }: CommandPal
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
+  const { showToast } = useToast()
 
   const filtered = query
     ? items.filter(i => fuzzyMatch(query, i.label) || fuzzyMatch(query, i.id))
     : items
 
   const go = useCallback((id: string) => {
+    const item = items.find(i => i.id === id)
     onNavigate(id)
     onClose()
     setQuery('')
-  }, [onNavigate, onClose])
+    
+    // Show info toast with navigation confirmation
+    if (item) {
+      showToast('info', `Navigeret til ${item.label}`)
+    }
+  }, [onNavigate, onClose, showToast])
 
   useEffect(() => {
     if (open) {

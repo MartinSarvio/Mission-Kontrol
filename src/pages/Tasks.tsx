@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
 import Icon from '../components/Icon'
+import { useToast } from '../components/Toast'
 import { useLiveData } from '../api/LiveDataContext'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { formatRelativeTime } from '../hooks/useRelativeTime'
@@ -835,6 +836,7 @@ function ArchiveModal({ open, onClose, tasks, onSelectTask }: {
 export default function Tasks() {
   usePageTitle('Opgaver')
   
+  const { showToast } = useToast()
   const { sessions, cronJobs } = useLiveData()
   const [allSessions, setAllSessions] = useState<TranscriptSession[]>([])
   const [loading, setLoading] = useState(true)
@@ -953,6 +955,7 @@ export default function Tasks() {
         try {
           await invokeToolRaw('cron', { action: 'remove', jobId: cronId })
         } catch (_) { /* ignore */ }
+        showToast('success', `Opgave startet: ${task.title}`)
       } else {
         await createAgent({
           name: task.title,
@@ -960,9 +963,11 @@ export default function Tasks() {
           model: 'sonnet',
           label: task.label || task.title.toLowerCase().replace(/\s+/g, '-'),
         })
+        showToast('success', `Opgave startet: ${task.title}`)
       }
     } catch (e) {
       console.error('Fejl ved start:', e)
+      showToast('error', `Kunne ikke starte opgave: ${task.title}`)
     }
   }
 
