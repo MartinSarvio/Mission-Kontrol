@@ -13,6 +13,7 @@ interface SidebarProps {
 const nav = [
   { id: 'dashboard', label: 'Oversigt', icon: 'grid' },
   { id: 'communication', label: 'Kommunikation', icon: 'chat-bubble' },
+  { id: 'agent-chat', label: 'Agent Chat', icon: 'chat' },
   { id: 'journal', label: 'Journal', icon: 'list' },
   { id: 'tasks', label: 'Opgaver', icon: 'checklist' },
   { id: 'documents', label: 'Dokumenter', icon: 'doc' },

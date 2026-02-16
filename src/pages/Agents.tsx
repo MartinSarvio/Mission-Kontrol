@@ -293,65 +293,319 @@ function OrgChartView({ orgChart, onSelectAgent }: { orgChart: OrgAgent; onSelec
 }
 
 /* ── Standups View ──────────────────────────────────────────── */
+interface StandupSession {
+  key: string
+  label: string
+  updatedAt: number
+  status: string
+  lastMessage?: string
+}
+
 function StandupsView() {
+  const [showModal, setShowModal] = useState(false)
+  const [topic, setTopic] = useState('')
+  const [participants, setParticipants] = useState<Record<string, boolean>>({
+    maison: true, elon: true, gary: true, warren: true,
+  })
+  const [submitting, setSubmitting] = useState(false)
+  const [standups, setStandups] = useState<StandupSession[]>([])
+  const [loading, setLoading] = useState(true)
+  const [expandedKey, setExpandedKey] = useState<string | null>(null)
+  const [expandedMessages, setExpandedMessages] = useState<{ role: string; text: string }[]>([])
+  const [actionItems, setActionItems] = useState<{ text: string; done: boolean }[]>([])
+
+  const participantList = [
+    { id: 'maison', name: 'Maison', color: '#007AFF', bg: 'rgba(0,122,255,0.15)' },
+    { id: 'elon', name: 'Elon', color: '#FF3B30', bg: 'rgba(255,59,48,0.15)' },
+    { id: 'gary', name: 'Gary', color: '#FF9F0A', bg: 'rgba(255,159,10,0.15)' },
+    { id: 'warren', name: 'Warren', color: '#30D158', bg: 'rgba(48,209,88,0.15)' },
+  ]
+
+  // Fetch standup sessions
+  useEffect(() => {
+    const fetch = async () => {
+      try {
+        const data = await invokeToolRaw('sessions_list', { messageLimit: 5, limit: 50 }) as any
+        const text = data.result?.content?.[0]?.text
+        let raw: any[] = []
+        if (text) { try { raw = JSON.parse(text).sessions || [] } catch { /* */ } }
+        if (!raw.length && data.result?.details?.sessions) raw = data.result.details.sessions
+
+        const standupSessions = raw
+          .filter((s: any) => (s.label || '').startsWith('standup-'))
+          .map((s: any) => {
+            const lastMsg = s.lastMessages?.filter((m: any) => m.role === 'assistant')?.pop()
+            return {
+              key: s.key,
+              label: s.label || '',
+              updatedAt: s.updatedAt,
+              status: Date.now() - s.updatedAt < 120000 ? 'active' : 'done',
+              lastMessage: typeof lastMsg?.content === 'string' ? lastMsg.content : lastMsg?.content?.[0]?.text || lastMsg?.text || '',
+            }
+          })
+          .sort((a: StandupSession, b: StandupSession) => b.updatedAt - a.updatedAt)
+
+        setStandups(standupSessions)
+      } catch (e) {
+        console.error('Fejl ved hentning af standups:', e)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetch()
+    const interval = setInterval(fetch, 10000)
+    return () => clearInterval(interval)
+  }, [])
+
+  // Start standup
+  const handleStartStandup = async () => {
+    if (!topic.trim()) return
+    setSubmitting(true)
+    const activeParticipants = Object.entries(participants).filter(([, v]) => v).map(([k]) => k)
+    const today = new Date().toISOString().split('T')[0]
+    const prompt = `Du er facilitator for et standup-moede.
+
+Emne: ${topic}
+Deltagere: ${activeParticipants.join(', ')}
+
+Instruktioner:
+1. Start med at prasentere emnet
+2. Gaa igennem hver deltager og bed om status/input
+3. Diskuter eventuelle blokeringer
+4. Opsummer med konkrete action items i formatet:
+   - [ ] Action item beskrivelse (@ansvarlig)
+
+Hold moedet kort og fokuseret. Alle tekster paa dansk.`
+
+    try {
+      await invokeToolRaw('sessions_spawn', {
+        task: prompt,
+        label: `standup-${today}`,
+        agentId: 'main',
+      })
+      setShowModal(false)
+      setTopic('')
+    } catch (e) {
+      console.error('Fejl ved start af standup:', e)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  // Expand standup to see result
+  const handleExpand = async (standup: StandupSession) => {
+    if (expandedKey === standup.key) {
+      setExpandedKey(null)
+      return
+    }
+    setExpandedKey(standup.key)
+
+    try {
+      const data = await invokeToolRaw('sessions_history', { sessionKey: standup.key, limit: 50, includeTools: false }) as any
+      const text = data.result?.content?.[0]?.text
+      let msgs: any[] = []
+      if (text) { try { msgs = JSON.parse(text).messages || [] } catch { /* */ } }
+      if (!msgs.length && data.result?.details?.messages) msgs = data.result.details.messages
+
+      const mapped = msgs.map((m: any) => ({
+        role: m.role,
+        text: typeof m.content === 'string' ? m.content : m.content?.[0]?.text || m.text || '',
+      }))
+      setExpandedMessages(mapped)
+
+      // Parse action items from last assistant message
+      const lastAssistant = mapped.filter((m: { role: string }) => m.role === 'assistant').pop()
+      if (lastAssistant) {
+        const items: { text: string; done: boolean }[] = []
+        const lines = lastAssistant.text.split('\n')
+        for (const line of lines) {
+          const checkMatch = line.match(/- \[([ x])\]\s*(.+)/)
+          if (checkMatch) {
+            items.push({ text: checkMatch[2], done: checkMatch[1] === 'x' })
+          }
+        }
+        setActionItems(items)
+      }
+    } catch (e) {
+      console.error('Fejl ved hentning af standup historik:', e)
+    }
+  }
+
+  const toggleAction = (idx: number) => {
+    setActionItems(prev => prev.map((item, i) => i === idx ? { ...item, done: !item.done } : item))
+  }
+
   return (
     <div className="py-8">
+      {/* Start Standup Button */}
       <div className="text-center mb-8">
-        <div className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-white mb-6"
-          style={{ background: 'linear-gradient(135deg, #007AFF, #AF52DE)', cursor: 'not-allowed', opacity: 0.6 }}
+        <button
+          onClick={() => setShowModal(true)}
+          className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-white transition-all"
+          style={{ background: 'linear-gradient(135deg, #007AFF, #AF52DE)' }}
+          onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,122,255,0.4)' }}
+          onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none' }}
         >
           <Icon name="chat" size={18} />
-          Start Standup (kommer snart)
-        </div>
-        
-        <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>
-          Standup funktion kommer snart - agenter vil kunne holde autonome møder
-        </p>
+          Start Standup
+        </button>
       </div>
-      
-      {/* Mock Standup History */}
-      <div className="max-w-2xl mx-auto space-y-4">
-        <div className="rounded-xl p-6" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-          <div className="flex items-start justify-between mb-4">
-            <div>
-              <h3 className="text-base font-bold text-white mb-1">Sprint Planning — Mission Kontrol v2</h3>
-              <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                15. februar 2026 · 14:30
-              </p>
+
+      {/* Modal */}
+      {showModal && (
+        <>
+          <div className="fixed inset-0 z-50" style={{ background: 'rgba(0,0,0,0.85)' }} onClick={() => setShowModal(false)} />
+          <div
+            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md z-50 p-6 rounded-xl"
+            style={{ background: 'rgba(20,20,24,0.98)', border: '1px solid rgba(255,255,255,0.1)' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-white">Nyt Standup</h2>
+              <button onClick={() => setShowModal(false)} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.06)' }}>
+                <Icon name="xmark" size={14} className="text-white/60" />
+              </button>
             </div>
-            <Icon name="clock" size={16} style={{ color: 'rgba(255,255,255,0.3)' }} />
+
+            <div className="space-y-5">
+              <div>
+                <label className="block text-sm font-medium mb-2 text-white">Emne</label>
+                <input
+                  type="text"
+                  value={topic}
+                  onChange={e => setTopic(e.target.value)}
+                  placeholder="f.eks. Sprint Planning, Ugens status..."
+                  className="w-full px-4 py-2.5 rounded-xl text-sm text-white placeholder-white/30"
+                  style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', outline: 'none' }}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-3 text-white">Deltagere</label>
+                <div className="space-y-2">
+                  {participantList.map(p => (
+                    <label
+                      key={p.id}
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-all"
+                      style={{
+                        background: participants[p.id] ? p.bg : 'rgba(255,255,255,0.03)',
+                        border: `1px solid ${participants[p.id] ? p.color + '40' : 'rgba(255,255,255,0.06)'}`,
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={participants[p.id]}
+                        onChange={e => setParticipants(prev => ({ ...prev, [p.id]: e.target.checked }))}
+                        className="rounded"
+                      />
+                      <span className="text-sm font-medium" style={{ color: participants[p.id] ? p.color : 'rgba(255,255,255,0.5)' }}>
+                        {p.name}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <button
+                onClick={handleStartStandup}
+                disabled={submitting || !topic.trim()}
+                className="w-full py-3 rounded-xl font-semibold text-white transition-all"
+                style={{
+                  background: submitting || !topic.trim() ? 'rgba(0,122,255,0.3)' : 'linear-gradient(135deg, #007AFF, #AF52DE)',
+                  opacity: submitting || !topic.trim() ? 0.6 : 1,
+                }}
+              >
+                {submitting ? 'Starter...' : 'Start Standup'}
+              </button>
+            </div>
           </div>
-          
-          <div className="flex items-center gap-2 mb-4 flex-wrap">
-            <span className="text-xs px-2 py-1 rounded-full" style={{ background: 'rgba(0,122,255,0.15)', color: '#5AC8FA' }}>
-              Maison
-            </span>
-            <span className="text-xs px-2 py-1 rounded-full" style={{ background: 'rgba(255,59,48,0.15)', color: '#FF6B35' }}>
-              Elon
-            </span>
-            <span className="text-xs px-2 py-1 rounded-full" style={{ background: 'rgba(255,159,10,0.15)', color: '#FF9F0A' }}>
-              Gary
-            </span>
-            <span className="text-xs px-2 py-1 rounded-full" style={{ background: 'rgba(48,209,88,0.15)', color: '#30D158' }}>
-              Warren
-            </span>
+        </>
+      )}
+
+      {/* Standup History */}
+      <div className="max-w-2xl mx-auto space-y-4">
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
           </div>
-          
-          <div className="space-y-2">
-            <label className="flex items-center gap-2 text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>
-              <input type="checkbox" checked readOnly className="rounded" />
-              Implementer org chart view
-            </label>
-            <label className="flex items-center gap-2 text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>
-              <input type="checkbox" readOnly className="rounded" />
-              Opret standup automation
-            </label>
-            <label className="flex items-center gap-2 text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>
-              <input type="checkbox" readOnly className="rounded" />
-              Launch marketing kampagne
-            </label>
-          </div>
-        </div>
+        ) : standups.length === 0 ? (
+          <p className="text-center py-8 text-sm" style={{ color: 'rgba(255,255,255,0.3)' }}>
+            Ingen standups endnu. Start det foerste standup ovenfor.
+          </p>
+        ) : (
+          standups.map(s => (
+            <div
+              key={s.key}
+              className="rounded-xl p-6 cursor-pointer transition-all"
+              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}
+              onClick={() => handleExpand(s)}
+            >
+              <div className="flex items-start justify-between mb-3">
+                <div>
+                  <h3 className="text-base font-bold text-white mb-1">{s.label}</h3>
+                  <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                    {new Date(s.updatedAt).toLocaleDateString('da-DK', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    {' · '}
+                    {new Date(s.updatedAt).toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                </div>
+                <span
+                  className="text-xs px-2.5 py-1 rounded-full font-medium"
+                  style={{
+                    background: s.status === 'active' ? 'rgba(0,122,255,0.15)' : 'rgba(48,209,88,0.15)',
+                    color: s.status === 'active' ? '#5AC8FA' : '#30D158',
+                  }}
+                >
+                  {s.status === 'active' ? 'Koerer' : 'Afsluttet'}
+                </span>
+              </div>
+
+              {/* Expanded view */}
+              {expandedKey === s.key && (
+                <div className="mt-4 pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                  {/* Last assistant message as result */}
+                  {expandedMessages.filter(m => m.role === 'assistant').length > 0 && (
+                    <div className="mb-4">
+                      <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                        Resultat
+                      </p>
+                      <p className="text-sm whitespace-pre-wrap" style={{ color: 'rgba(255,255,255,0.7)' }}>
+                        {expandedMessages.filter(m => m.role === 'assistant').pop()?.text.slice(0, 1000)}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Action items */}
+                  {actionItems.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                        Action Items
+                      </p>
+                      <div className="space-y-2">
+                        {actionItems.map((item, idx) => (
+                          <label
+                            key={idx}
+                            className="flex items-center gap-2 text-sm cursor-pointer"
+                            style={{ color: item.done ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.7)' }}
+                            onClick={e => e.stopPropagation()}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={item.done}
+                              onChange={() => toggleAction(idx)}
+                              className="rounded"
+                            />
+                            <span style={{ textDecoration: item.done ? 'line-through' : 'none' }}>{item.text}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ))
+        )}
       </div>
     </div>
   )
