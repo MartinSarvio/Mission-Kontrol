@@ -12,7 +12,7 @@ interface CardProps {
 
 export default function Card({ children, className = '', title, subtitle, action, style, onClick }: CardProps) {
   return (
-    <div className={`card ${className}`} style={style} onClick={onClick}>
+    <div className={`card animate-card-in ${className}`} style={style} onClick={onClick}>
       {(title || action) && (
         <div className="flex items-center justify-between mb-4">
           <div>

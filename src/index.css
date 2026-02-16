@@ -344,3 +344,32 @@ select.input option {
 .animate-fadeIn { animation: fadeIn 0.3s ease-out; }
 
 @keyframes slideIn { from { opacity: 0; transform: scaleY(0); } to { opacity: 1; transform: scaleY(1); } }
+
+/* Page transition */
+@keyframes pageFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-page-in {
+  animation: pageFadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+/* Card mount animation */
+@keyframes cardSlideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-card-in {
+  animation: cardSlideUp 0.35s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+/* Skeleton pulse */
+@keyframes skeletonPulse {
+  0%, 100% { opacity: 0.06; }
+  50% { opacity: 0.12; }
+}
+.skeleton-pulse {
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: var(--glass-radius);
+  animation: skeletonPulse 1.5s ease-in-out infinite;
+}

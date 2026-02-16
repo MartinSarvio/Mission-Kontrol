@@ -47,8 +47,15 @@ const pages: Record<string, React.ComponentType> = {
 
 function LoadingFallback() {
   return (
-    <div className="flex items-center justify-center h-64">
-      <p className="text-white/50">Indlæser...</p>
+    <div className="space-y-4 p-2">
+      <div className="skeleton-pulse h-8 w-48" />
+      <div className="skeleton-pulse h-4 w-72" />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+        <div className="skeleton-pulse h-32" />
+        <div className="skeleton-pulse h-32" />
+        <div className="skeleton-pulse h-32" />
+      </div>
+      <div className="skeleton-pulse h-64 mt-4" />
     </div>
   )
 }
@@ -86,7 +93,9 @@ export default function App() {
           <Layout activePage={page} onNavigate={setPage}>
             <Suspense fallback={<LoadingFallback />}>
               <ErrorBoundary>
-                <Page />
+                <div key={page} className="animate-page-in">
+                  <Page />
+                </div>
               </ErrorBoundary>
             </Suspense>
           </Layout>
