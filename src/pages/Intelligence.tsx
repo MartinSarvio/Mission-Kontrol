@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import Icon from '../components/Icon'
 import { useLiveData } from '../api/LiveDataContext'
 import { usePageTitle } from '../hooks/usePageTitle'
+import { SkeletonCard } from '../components/SkeletonLoader'
 
 /* ── Types ──────────────────────────────────── */
 interface Article {
@@ -280,6 +281,7 @@ export default function Intelligence() {
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [isSearching, setIsSearching] = useState(false)
+  const [isLoadingInitial, setIsLoadingInitial] = useState(true)
 
   // Auto-load analyses from pre-generated static JSON
   useEffect(() => {
@@ -287,6 +289,7 @@ export default function Intelligence() {
   }, [])
 
   const loadAnalyses = useCallback(async () => {
+    setIsLoadingInitial(true)
     try {
       const res = await fetch('/intelligence-data.json?t=' + Date.now())
       if (!res.ok) return
@@ -302,6 +305,8 @@ export default function Intelligence() {
       }
     } catch (err) {
       console.error('Failed to load analyses:', err)
+    } finally {
+      setIsLoadingInitial(false)
     }
   }, [])
 
@@ -374,6 +379,30 @@ export default function Intelligence() {
     )
   }
 
+  // Show loading skeleton during initial load
+  if (isLoadingInitial) {
+    return (
+      <div className="h-full flex flex-col">
+        <div className="mb-4">
+          <h1 className="text-2xl font-bold text-white mb-4">Intelligens</h1>
+          <div className="flex gap-2">
+            <div className="flex-1 px-4 py-2.5 rounded-lg" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', height: 42 }}></div>
+            <div className="px-5 py-2.5 rounded-lg" style={{ background: 'rgba(255,255,255,0.06)', width: 80 }}></div>
+            <div className="px-4 py-2.5 rounded-lg" style={{ background: 'rgba(255,255,255,0.06)', width: 50 }}></div>
+          </div>
+        </div>
+        <div className="flex-1 flex gap-4 overflow-hidden">
+          <div className="w-80 flex-shrink-0 rounded-lg p-4 space-y-3" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
+            {[1, 2, 3, 4, 5].map(i => <SkeletonCard key={i} lines={3} />)}
+          </div>
+          <div className="flex-1 rounded-lg p-6" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
+            <SkeletonCard lines={10} />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="h-full flex flex-col">
       {/* Header & Search */}
@@ -424,13 +453,13 @@ export default function Intelligence() {
             </p>
           </div>
           
-          {articles.length === 0 && (
+          {articles.length === 0 && !isLoadingInitial && (
             <div className="p-8 text-center">
-              <Icon name="magnifying-glass" size={32} className="mx-auto mb-3 opacity-20" />
-              <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
+              <Icon name="document" size={32} className="mx-auto mb-3 opacity-20" />
+              <p className="text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.4)' }}>
                 Ingen artikler endnu
               </p>
-              <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.2)' }}>
+              <p className="text-xs" style={{ color: 'rgba(255,255,255,0.2)' }}>
                 Søg for at finde artikler
               </p>
             </div>

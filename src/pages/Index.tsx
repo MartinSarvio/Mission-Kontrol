@@ -1,10 +1,11 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import Card from '../components/Card'
 import SearchBar from '../components/SearchBar'
 import Icon from '../components/Icon'
 import { useLiveData } from '../api/LiveDataContext'
 import { searchWorkspace, invokeToolRaw } from '../api/openclaw'
 import { usePageTitle } from '../hooks/usePageTitle'
+import { SkeletonRow } from '../components/SkeletonLoader'
 
 type Category = 'all' | 'workspace' | 'sessions' | 'cron' | 'web'
 
@@ -27,13 +28,21 @@ interface SearchResult {
 export default function Index() {
   usePageTitle('Søg')
   
-  const { sessions, cronJobs } = useLiveData()
+  const { sessions, cronJobs, isLoading } = useLiveData()
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState<Category>('all')
   const [workspaceResults, setWorkspaceResults] = useState<SearchResult[]>([])
   const [webResults, setWebResults] = useState<SearchResult[]>([])
   const [isSearching, setIsSearching] = useState(false)
   const [isSearchingWeb, setIsSearchingWeb] = useState(false)
+  const [initialLoad, setInitialLoad] = useState(true)
+
+  // Set initialLoad to false after data is loaded
+  useEffect(() => {
+    if (!isLoading && (sessions.length > 0 || cronJobs.length > 0)) {
+      setInitialLoad(false)
+    }
+  }, [isLoading, sessions, cronJobs])
 
   // Søg i workspace files når search opdateres
   const performWorkspaceSearch = async (query: string) => {
@@ -164,6 +173,26 @@ export default function Index() {
     return combined
   }, [webResults, workspaceResults, sessionResults, cronResults, category])
 
+  // Show loading skeleton during initial load
+  if (initialLoad && isLoading) {
+    return (
+      <div>
+        <h1 className="text-xl sm:text-2xl font-bold mb-1">Søgning</h1>
+        <p className="caption mb-6">Universel søgning på tværs af workspace, sessions og jobs</p>
+        <div className="w-full">
+          <SearchBar value="" onChange={() => {}} placeholder="Søg i workspace filer, sessions, cron jobs..." />
+          <div className="mt-6 space-y-3">
+            {[1, 2, 3, 4, 5].map(i => (
+              <Card key={i}>
+                <SkeletonRow />
+              </Card>
+            ))}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div>
       <h1 className="text-xl sm:text-2xl font-bold mb-1">Søgning</h1>
@@ -210,9 +239,11 @@ export default function Index() {
           </div>
         )}
 
-        {search && !isSearching && allResults.length === 0 && (
+        {search && !isSearching && !isSearchingWeb && allResults.length === 0 && (
           <div className="text-center py-16 px-4">
+            <Icon name="magnifying-glass" size={40} className="text-white/20 mx-auto mb-4" />
             <p style={{ color: 'rgba(255,255,255,0.4)' }}>Ingen resultater fundet for &quot;{search}&quot;</p>
+            <p className="caption mt-2">Prøv en anden søgning eller skift kategori</p>
           </div>
         )}
 

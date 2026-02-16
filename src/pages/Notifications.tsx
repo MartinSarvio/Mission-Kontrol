@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Card from '../components/Card'
 import Icon from '../components/Icon'
 import { useNotifications, NotificationType } from '../api/NotificationContext'
 import { usePageTitle } from '../hooks/usePageTitle'
+import { SkeletonCard, SkeletonRow } from '../components/SkeletonLoader'
 
 const typeConfig: Record<NotificationType, { icon: string; color: string; bg: string; label: string }> = {
   error: { icon: 'exclamation-triangle', color: '#FF3B30', bg: 'rgba(255,59,48,0.1)', label: 'Fejl' },
@@ -22,6 +23,13 @@ export default function Notifications() {
   
   const { notifications, unreadCount, markAsRead, markAllAsRead, clearAll, dismissNotification } = useNotifications()
   const [filter, setFilter] = useState<Filter>('all')
+  const [isLoading, setIsLoading] = useState(true)
+
+  // Simulate initial load - notifications load instantly from context but we want smooth UX
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 500)
+    return () => clearTimeout(timer)
+  }, [])
 
   const filtered = filter === 'all' ? notifications : notifications.filter(n => n.type === filter)
   const errorCount = notifications.filter(n => n.type === 'error').length
@@ -34,6 +42,29 @@ export default function Notifications() {
     { id: 'info', label: 'Info' },
     { id: 'success', label: 'Succes' },
   ]
+
+  // Show loading skeleton
+  if (isLoading) {
+    return (
+      <div>
+        <div className="flex items-center justify-between mb-1">
+          <h1 className="text-xl sm:text-2xl font-bold text-white">Notifikationer</h1>
+        </div>
+        <p className="text-sm mb-6" style={{ color: 'rgba(255,255,255,0.5)' }}>
+          Alerts for fejl, advarsler og vigtige hændelser
+        </p>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+          {[1, 2, 3, 4].map(i => <SkeletonCard key={i} lines={2} />)}
+        </div>
+        <div className="mb-4" style={{ height: 32, background: 'rgba(255,255,255,0.03)', borderRadius: 8 }}></div>
+        <Card>
+          <div className="space-y-3">
+            {[1, 2, 3, 4, 5].map(i => <SkeletonRow key={i} />)}
+          </div>
+        </Card>
+      </div>
+    )
+  }
 
   return (
     <div>
@@ -100,8 +131,13 @@ export default function Notifications() {
       <Card>
         {filtered.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '48px 20px', color: 'rgba(255,255,255,0.35)' }}>
-            <Icon name="bell" size={40} className="text-white/15" style={{ marginBottom: 16 }} />
-            <p style={{ fontSize: 14 }}>Ingen notifikationer{filter !== 'all' ? ` af typen "${typeConfig[filter as NotificationType]?.label}"` : ''}</p>
+            <Icon name="bell" size={40} className="text-white/15" style={{ marginBottom: 16, display: 'inline-flex' }} />
+            <p style={{ fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.4)', marginBottom: 8 }}>
+              Ingen notifikationer{filter !== 'all' ? ` af typen "${typeConfig[filter as NotificationType]?.label}"` : ''}
+            </p>
+            <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.25)' }}>
+              {filter !== 'all' ? 'Prøv et andet filter' : 'Du er helt opdateret'}
+            </p>
           </div>
         ) : (
           <div>
