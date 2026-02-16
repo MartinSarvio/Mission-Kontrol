@@ -347,11 +347,12 @@ select.input option {
 
 /* Page transition */
 @keyframes pageFadeIn {
-  from { opacity: 0; transform: translateY(6px); }
+  from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
 .animate-page-in {
-  animation: pageFadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) both;
+  animation: pageFadeIn 200ms ease-out both;
+  will-change: opacity, transform;
 }
 
 /* Card mount animation */

@@ -7,6 +7,7 @@ import Layout from './components/Layout'
 import UpdateBanner from './components/UpdateBanner'
 import CommandPalette from './components/CommandPalette'
 import ErrorBoundary from './components/ErrorBoundary'
+import PageTransition from './components/PageTransition'
 import { useHashRouter } from './hooks/useHashRouter'
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
 
@@ -92,9 +93,9 @@ export default function App() {
           <Layout activePage={page} onNavigate={setPage}>
             <Suspense fallback={<LoadingFallback />}>
               <ErrorBoundary>
-                <div key={page} className="animate-page-in">
+                <PageTransition key={page}>
                   <Page />
-                </div>
+                </PageTransition>
               </ErrorBoundary>
             </Suspense>
           </Layout>
