@@ -686,21 +686,42 @@ export async function fetchAllSessions(): Promise<TranscriptSession[]> {
   return []
 }
 
-// Fetch memory files for Journal
+// Fetch memory files for Journal via Gateway API
 export async function fetchMemoryFiles(): Promise<MemoryEntry[]> {
+  // Try static archive first
   try {
     const archive = await fetchStaticArchive('memory-archive.json')
-    if (archive?.entries) return archive.entries
-  } catch {
-    try {
-      const url = resolveApiUrl(getGatewayUrl())
-      const res = await smartFetch(`${url.replace('/api/gateway', '')}/memory-archive.json?t=${Date.now()}`)
-      if (res.ok) {
-        const archive = await res.json()
-        if (archive?.entries) return archive.entries
-      }
-    } catch {}
-  }
+    if (archive?.entries?.length) return archive.entries
+  } catch {}
+
+  // Fallback: read memory directory via Gateway exec tool
+  try {
+    const listResult = await invokeToolRaw('exec', { command: 'ls -1 /data/.openclaw/workspace/memory/*.md 2>/dev/null' }) as any
+    const listText = listResult.result?.content?.[0]?.text || ''
+    const files = listText.split('\n').filter((f: string) => f.endsWith('.md'))
+    
+    if (files.length === 0) return []
+
+    const entries: MemoryEntry[] = []
+    for (const filePath of files.slice(0, 30)) {
+      const filename = filePath.split('/').pop() || ''
+      const dateMatch = filename.match(/^(\d{4}-\d{2}-\d{2})/)
+      if (!dateMatch) continue
+      
+      try {
+        const readResult = await invokeToolRaw('exec', { command: `cat "${filePath}"` }) as any
+        const content = readResult.result?.content?.[0]?.text || ''
+        if (content) {
+          entries.push({
+            date: dateMatch[1],
+            filename,
+            content,
+          })
+        }
+      } catch {}
+    }
+    return entries.sort((a, b) => b.date.localeCompare(a.date))
+  } catch {}
   return []
 }
 
