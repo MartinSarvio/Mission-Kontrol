@@ -108,6 +108,27 @@ export default function Dashboard() {
   const tokensMatch = tokensText.match(/([\d.]+[kM]?)\s*in/)
   const tokensValue = tokensMatch ? tokensMatch[1] : '0'
 
+  // Calculate estimated cost from tokens
+  function parseTokenValue(val: string): number {
+    const match = val.match(/([\d.]+)([kM]?)/)
+    if (!match) return 0
+    const num = parseFloat(match[1])
+    const unit = match[2]
+    if (unit === 'M') return num * 1000000
+    if (unit === 'k') return num * 1000
+    return num
+  }
+
+  const inMatch = tokensText.match(/([\d.]+[kM]?)\s*in/)
+  const outMatch = tokensText.match(/([\d.]+[kM]?)\s*out/)
+  const tokensIn = inMatch ? parseTokenValue(inMatch[1]) : 0
+  const tokensOut = outMatch ? parseTokenValue(outMatch[1]) : 0
+
+  // Opus 4 pricing: ~$15/M input, ~$75/M output
+  const costUSD = (tokensIn / 1000000 * 15) + (tokensOut / 1000000 * 75)
+  const costDKK = costUSD * 7
+  const formattedCost = costDKK < 1 ? `${(costDKK * 100).toFixed(0)} øre` : `${costDKK.toFixed(2)} kr`
+
   return (
     <div>
       <div className="flex items-center gap-3 mb-1">
@@ -204,18 +225,18 @@ export default function Dashboard() {
             </Card>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-8">
             <Card title="System">
-              <div className="space-y-2 text-sm">
-                {parsedStatus.version && <div className="flex justify-between"><span className="caption">Version</span><span className="font-medium">{parsedStatus.version}</span></div>}
-                {parsedStatus.runtime && <div className="flex justify-between"><span className="caption">Runtime</span><span className="font-medium">{parsedStatus.runtime}</span></div>}
-                {parsedStatus.session && <div className="flex justify-between"><span className="caption">Session</span><span className="font-medium">{parsedStatus.session}</span></div>}
-                {parsedStatus.queue && <div className="flex justify-between"><span className="caption">Kø</span><span className="font-medium">{parsedStatus.queue}</span></div>}
-                {systemInfo.host && <div className="flex justify-between"><span className="caption">Vært</span><span className="font-medium">{systemInfo.host}</span></div>}
-                {systemInfo.os && <div className="flex justify-between"><span className="caption">OS</span><span className="font-medium">{systemInfo.os}</span></div>}
-                {systemInfo.ramUsed && systemInfo.ramTotal && <div className="flex justify-between"><span className="caption">RAM</span><span className="font-medium">{systemInfo.ramUsed} / {systemInfo.ramTotal}</span></div>}
-                {systemInfo.diskUsed && systemInfo.diskTotal && <div className="flex justify-between"><span className="caption">Disk</span><span className="font-medium">{systemInfo.diskUsed} / {systemInfo.diskTotal} ({systemInfo.diskPercent}%)</span></div>}
-                {systemInfo.uptime && <div className="flex justify-between"><span className="caption">Oppetid</span><span className="font-medium">{systemInfo.uptime}</span></div>}
+              <div className="space-y-2 text-sm min-w-0">
+                {parsedStatus.version && <div className="flex justify-between"><span className="caption">Version</span><span className="font-medium truncate ml-2">{parsedStatus.version}</span></div>}
+                {parsedStatus.runtime && <div className="flex justify-between"><span className="caption">Runtime</span><span className="font-medium truncate ml-2">{parsedStatus.runtime}</span></div>}
+                {parsedStatus.session && <div className="flex justify-between gap-2 min-w-0"><span className="caption flex-shrink-0">Session</span><span className="font-medium truncate">{parsedStatus.session}</span></div>}
+                {parsedStatus.queue && <div className="flex justify-between"><span className="caption">Kø</span><span className="font-medium truncate ml-2">{parsedStatus.queue}</span></div>}
+                {systemInfo.host && <div className="flex justify-between"><span className="caption">Vært</span><span className="font-medium truncate ml-2">{systemInfo.host}</span></div>}
+                {systemInfo.os && <div className="flex justify-between"><span className="caption">OS</span><span className="font-medium truncate ml-2">{systemInfo.os}</span></div>}
+                {systemInfo.ramUsed && systemInfo.ramTotal && <div className="flex justify-between"><span className="caption">RAM</span><span className="font-medium truncate ml-2">{systemInfo.ramUsed} / {systemInfo.ramTotal}</span></div>}
+                {systemInfo.diskUsed && systemInfo.diskTotal && <div className="flex justify-between"><span className="caption">Disk</span><span className="font-medium truncate ml-2">{systemInfo.diskUsed} / {systemInfo.diskTotal} ({systemInfo.diskPercent}%)</span></div>}
+                {systemInfo.uptime && <div className="flex justify-between"><span className="caption">Oppetid</span><span className="font-medium truncate ml-2">{systemInfo.uptime}</span></div>}
               </div>
             </Card>
             <Card title="Agentstatus" className="col-span-1">
@@ -228,24 +249,41 @@ export default function Dashboard() {
                 ].filter(s => s.value > 0)} />
               )}
             </Card>
-            <Card title="API Forbrug (7 dage)">
-              <div className="text-center py-8 text-white/50 text-sm">Historik ikke tilgængelig</div>
+            <Card title="Estimeret Forbrug">
+              <div className="text-center py-8 min-w-0">
+                <p className="text-3xl font-bold text-white mb-2">{formattedCost}</p>
+                <p className="caption mb-4">Aktuel session</p>
+                <div className="space-y-1 text-sm">
+                  <div className="flex justify-between items-center">
+                    <span className="caption">Input tokens</span>
+                    <span className="font-medium">{tokensIn >= 1000000 ? `${(tokensIn / 1000000).toFixed(2)}M` : `${Math.round(tokensIn / 1000)}k`}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="caption">Output tokens</span>
+                    <span className="font-medium">{tokensOut >= 1000000 ? `${(tokensOut / 1000000).toFixed(2)}M` : `${Math.round(tokensOut / 1000)}k`}</span>
+                  </div>
+                  <div className="flex justify-between items-center pt-2 border-t border-white/10">
+                    <span className="caption">Estimeret USD</span>
+                    <span className="font-medium">${costUSD.toFixed(4)}</span>
+                  </div>
+                </div>
+              </div>
             </Card>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
             <Card title="Kanaler" subtitle={`${channels.filter(c => c.enabled).length} aktiverede`}>
               {channels.length === 0 ? (
                 <div className="text-center py-8 text-white/50 text-sm">Ingen kanaler konfigureret</div>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-3 min-w-0">
                   {channels.map(ch => (
-                    <div key={ch.name} className="flex items-center justify-between py-2 glass-row">
-                      <div className="flex items-center gap-3">
+                    <div key={ch.name} className="flex items-center justify-between py-2 glass-row min-w-0 overflow-hidden">
+                      <div className="flex items-center gap-3 min-w-0">
                         <StatusBadge status={ch.status === 'ok' ? 'active' : ch.status === 'warning' ? 'warning' : ch.status === 'setup' ? 'idle' : 'paused'} />
-                        <span className="text-sm font-medium">{ch.name}</span>
+                        <span className="text-sm font-medium truncate">{ch.name}</span>
                       </div>
-                      <span className="caption">{ch.detail}</span>
+                      <span className="caption truncate ml-2 flex-shrink-0">{ch.detail}</span>
                     </div>
                   ))}
                 </div>
@@ -256,12 +294,12 @@ export default function Dashboard() {
               {cronJobs.length === 0 ? (
                 <div className="text-center py-8 text-white/50 text-sm">Ingen cron jobs konfigureret</div>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-3 min-w-0">
                   {cronJobs.slice(0, 5).map((job: any, i: number) => (
-                    <div key={i} className="flex items-center justify-between py-2 glass-row">
-                      <div>
-                        <p className="text-sm font-medium">{job.name || job.label || 'Unavngiven job'}</p>
-                        <p className="caption">{typeof job.schedule === 'object' ? (job.schedule?.expr || job.schedule?.kind || 'Planlagt') : (job.schedule || 'Ukendt tidsplan')}</p>
+                    <div key={i} className="flex items-center justify-between py-2 glass-row min-w-0 overflow-hidden">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium truncate">{job.name || job.label || 'Unavngiven job'}</p>
+                        <p className="caption truncate">{typeof job.schedule === 'object' ? (job.schedule?.expr || job.schedule?.kind || 'Planlagt') : (job.schedule || 'Ukendt tidsplan')}</p>
                       </div>
                       <StatusBadge status={job.enabled === false ? 'paused' : 'active'} />
                     </div>
@@ -276,7 +314,7 @@ export default function Dashboard() {
               {sessions.length === 0 ? (
                 <div className="text-center py-8 text-white/50 text-sm">Ingen aktivitet</div>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-3 min-w-0">
                   {sessions.slice(0, 5).map(s => {
                     const isActive = Date.now() - s.updatedAt < 120000
                     const timeAgo = formatTimeAgo(s.updatedAt)
@@ -284,23 +322,23 @@ export default function Dashboard() {
                     const agentName = s.displayName || s.label || s.key.split(':')[1] || 'Unavngiven'
                     
                     return (
-                      <div key={s.key} className="py-2 glass-row">
-                        <div className="flex items-center justify-between mb-1">
-                          <div className="flex items-center gap-2">
+                      <div key={s.key} className="py-2 glass-row min-w-0 overflow-hidden">
+                        <div className="flex items-center justify-between mb-1 min-w-0">
+                          <div className="flex items-center gap-2 min-w-0 overflow-hidden">
                             <StatusBadge status={isActive ? 'running' : 'completed'} />
-                            <span className="text-sm font-medium">{agentName}</span>
-                            <span className="caption text-xs">· {sessionType}</span>
+                            <span className="text-sm font-medium truncate">{agentName}</span>
+                            <span className="caption text-xs flex-shrink-0">· {sessionType}</span>
                           </div>
-                          <span className="caption text-xs">{timeAgo}</span>
+                          <span className="caption text-xs flex-shrink-0 ml-2">{timeAgo}</span>
                         </div>
-                        <div className="flex items-center gap-2 text-xs">
-                          <span className="caption">{s.channel || 'ingen kanal'}</span>
-                          <span className="text-white/20">·</span>
-                          <span className="font-mono caption">{s.model}</span>
+                        <div className="flex items-center gap-2 text-xs min-w-0 overflow-hidden">
+                          <span className="caption flex-shrink-0">{s.channel || 'ingen kanal'}</span>
+                          <span className="text-white/20 flex-shrink-0">·</span>
+                          <span className="font-mono caption truncate">{s.model}</span>
                           {s.contextTokens && (
                             <>
-                              <span className="text-white/20">·</span>
-                              <span className="caption">{Math.round(s.contextTokens / 1000)}k ctx</span>
+                              <span className="text-white/20 flex-shrink-0">·</span>
+                              <span className="caption flex-shrink-0">{Math.round(s.contextTokens / 1000)}k ctx</span>
                             </>
                           )}
                         </div>
@@ -315,20 +353,20 @@ export default function Dashboard() {
               {sessions.length === 0 ? (
                 <div className="text-center py-8 text-white/50 text-sm">Ingen aktive sessioner</div>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-3 min-w-0">
                   {sessions.map(s => {
                     const isActive = Date.now() - s.updatedAt < 120000
                     const timeAgo = formatTimeAgo(s.updatedAt)
                     return (
-                      <div key={s.key} className="flex items-center justify-between py-2 glass-row">
-                        <div>
-                          <p className="text-sm font-medium">{s.displayName || s.label || (s.key === 'agent:main:main' ? 'Hovedagent' : s.key)}</p>
-                          <p className="caption">{s.key} · {s.channel || 'ingen kanal'}</p>
+                      <div key={s.key} className="flex items-center justify-between py-2 glass-row min-w-0 overflow-hidden gap-4">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium truncate">{s.displayName || s.label || (s.key === 'agent:main:main' ? 'Hovedagent' : s.key)}</p>
+                          <p className="caption truncate">{s.key} · {s.channel || 'ingen kanal'}</p>
                         </div>
-                        <div className="flex items-center gap-4">
-                          <span className="caption">{timeAgo}</span>
-                          <span className="text-xs font-mono px-2 py-0.5 rounded-lg" style={{ background: 'rgba(255,255,255,0.06)' }}>{s.model}</span>
-                          {s.contextTokens && <span className="caption">{Math.round(s.contextTokens / 1000)}k ctx</span>}
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <span className="caption hidden sm:inline">{timeAgo}</span>
+                          <span className="text-xs font-mono px-2 py-0.5 rounded-lg truncate max-w-[120px]" style={{ background: 'rgba(255,255,255,0.06)' }}>{s.model}</span>
+                          {s.contextTokens && <span className="caption hidden md:inline">{Math.round(s.contextTokens / 1000)}k ctx</span>}
                           <StatusBadge status={isActive ? 'running' : 'completed'} />
                         </div>
                       </div>
