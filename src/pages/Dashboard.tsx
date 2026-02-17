@@ -10,6 +10,7 @@ import { DashboardSkeleton } from '../components/SkeletonLoader'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { useRelativeTime, formatRelativeTime } from '../hooks/useRelativeTime'
 import ConnectionStatus from '../components/ConnectionStatus'
+import { useToast } from '../hooks/useToast'
 
 interface SystemInfo {
   host?: string
@@ -590,6 +591,7 @@ export default function Dashboard() {
 function QuickActions({ onHealthcheck }: { onHealthcheck: () => void }) {
   const [loadingAction, setLoadingAction] = useState<string | null>(null)
   const [confirmRestart, setConfirmRestart] = useState(false)
+  const toast = useToast()
 
   const btnBase: React.CSSProperties = {
     display: 'flex', alignItems: 'center', gap: 8,
@@ -617,6 +619,7 @@ function QuickActions({ onHealthcheck }: { onHealthcheck: () => void }) {
               <div style={{ display: 'flex', gap: 8 }}>
                 <button
                   onClick={() => { setConfirmRestart(false); handleAction('restart', async () => {
+                    toast.warning('Genstarter Gateway...')
                     try { await fetch('/api/gateway/restart', { method: 'POST', headers: { 'Authorization': `Bearer ${localStorage.getItem('gateway_token') || ''}` } }) } catch {}
                   }) }}
                   style={{ padding: '6px 16px', borderRadius: 8, border: 'none', background: '#FF3B30', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
@@ -644,7 +647,7 @@ function QuickActions({ onHealthcheck }: { onHealthcheck: () => void }) {
             style={btnBase}
             onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)' }}
             onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)' }}
-            onClick={() => handleAction('cache', async () => { localStorage.clear(); window.location.reload() })}
+            onClick={() => handleAction('cache', async () => { toast.info('Cache ryddet — genindlæser...'); localStorage.clear(); window.location.reload() })}
             disabled={loadingAction === 'cache'}
           >
             <Icon name="xmark" size={16} /> {loadingAction === 'cache' ? 'Rydder...' : 'Ryd Cache'}
@@ -655,7 +658,7 @@ function QuickActions({ onHealthcheck }: { onHealthcheck: () => void }) {
             style={btnBase}
             onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)' }}
             onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)' }}
-            onClick={() => handleAction('health', async () => { onHealthcheck() })}
+            onClick={() => handleAction('health', async () => { onHealthcheck(); toast.success('Healthcheck startet') })}
             disabled={loadingAction === 'health'}
           >
             <Icon name="gauge" size={16} /> {loadingAction === 'health' ? 'Tjekker...' : 'Koer Healthcheck'}
