@@ -56,7 +56,8 @@ export default function CronJobs() {
     return String(schedule)
   }
 
-  const selectedJob = cronJobs.find(j => j.id === selectedJobId)
+  const jobs = Array.isArray(cronJobs) ? cronJobs : []
+  const selectedJob = jobs.find(j => j.id === selectedJobId)
 
   return (
     <div>
@@ -71,7 +72,7 @@ export default function CronJobs() {
         <DataFreshness className="ml-auto" />
       </div>
       <p className="caption mb-6">
-        {isLoading ? 'Indlæser...' : `${cronJobs.length} ${cronJobs.length === 1 ? 'job' : 'jobs'}`}
+        {isLoading ? 'Indlæser...' : `${jobs.length} ${jobs.length === 1 ? 'job' : 'jobs'}`}
         {isConnected && <span className="text-green-400 ml-1">(live)</span>}
       </p>
 
@@ -97,7 +98,7 @@ export default function CronJobs() {
             {[1, 2, 3, 4, 5].map(i => <SkeletonRow key={i} />)}
           </div>
         </Card>
-      ) : cronJobs.length === 0 ? (
+      ) : jobs.length === 0 ? (
         <Card>
           <div className="text-center py-16 px-4">
             <Icon name="clock" size={40} className="text-white/30 mx-auto mb-4" />
@@ -112,7 +113,7 @@ export default function CronJobs() {
         </Card>
       ) : (
         <div className="space-y-3">
-          {cronJobs.map((job, i) => (
+          {jobs.map((job, i) => (
             <Card key={job.id || i}>
               <div 
                 className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 cursor-pointer"

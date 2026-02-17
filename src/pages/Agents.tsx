@@ -1213,7 +1213,24 @@ function AgentChatView() {
       let msgs: any[] = []
       if (text) { try { msgs = JSON.parse(text).messages || [] } catch {} }
       if (!msgs.length && data.result?.details?.messages) msgs = data.result.details.messages
-      setMessages(msgs.map((m: any) => ({ role: m.role, text: typeof m.content === 'string' ? m.content : m.content?.[0]?.text || m.text || '', timestamp: m.timestamp })))
+      setMessages(msgs.map((m: any) => {
+        let text = ''
+        if (typeof m.content === 'string') {
+          text = m.content
+        } else if (Array.isArray(m.content)) {
+          // Find first text-type block (skip thinking blocks)
+          const textBlock = m.content.find((b: any) => b.type === 'text')
+          text = textBlock?.text || ''
+          // Fallback: try any block with text property
+          if (!text) {
+            for (const b of m.content) {
+              if (b.text && b.type !== 'thinking') { text = b.text; break }
+            }
+          }
+        }
+        if (!text) text = m.text || ''
+        return { role: m.role, text, timestamp: m.timestamp }
+      }).filter((m: any) => m.text.trim().length > 0))
       setTimeout(scrollToBottom, 100)
     } catch {} finally { setLoadingMessages(false) }
   }, [scrollToBottom])

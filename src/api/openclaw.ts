@@ -573,7 +573,7 @@ export async function fetchCronRuns(jobId: string): Promise<any[]> {
   const data = await invokeToolRaw('cron', { action: 'runs', jobId }) as any
   const text = data.result?.content?.[0]?.text
   if (text) {
-    try { const p = JSON.parse(text); return p.runs || p || [] } catch { /* */ }
+    try { const p = JSON.parse(text); const r = p.runs || p; return Array.isArray(r) ? r : [] } catch { /* */ }
   }
   return []
 }
