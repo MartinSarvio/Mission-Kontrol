@@ -11,25 +11,61 @@ interface SidebarProps {
   onMaisonClick: () => void
 }
 
-const nav = [
-  { id: 'dashboard', label: 'Oversigt', icon: 'grid' },
-  { id: 'communication', label: 'Kommunikation', icon: 'chat-bubble' },
-  { id: 'journal', label: 'Journal', icon: 'list' },
-  { id: 'tasks', label: 'Opgaver', icon: 'checklist' },
-  { id: 'documents', label: 'Dokumenter', icon: 'doc' },
-  { id: 'agents', label: 'Agenter', icon: 'person-circle' },
-  { id: 'skills', label: 'Færdigheder', icon: 'sparkle' },
-  { id: 'intelligence', label: 'Intelligens', icon: 'lightbulb' },
-  { id: 'weekly', label: 'Ugerapport', icon: 'calendar-week' },
-  { id: 'clients', label: 'Projekter', icon: 'folder' },
-  { id: 'cron', label: 'Planlagte Jobs', icon: 'clock' },
-  { id: 'api', label: 'API Forbrug', icon: 'chart-bar' },
-  { id: 'upload', label: 'Fil Upload', icon: 'upload' },
-  { id: 'workshop', label: 'Værksted', icon: 'wrench' },
-  { id: 'index', label: 'Søgning', icon: 'magnifying-glass' },
-  { id: 'evals', label: 'Evalueringer', icon: 'gauge' },
-  { id: 'notifications', label: 'Notifikationer', icon: 'bell' },
-  { id: 'settings', label: 'Indstillinger', icon: 'gear' },
+interface NavItem {
+  id: string
+  label: string
+  icon: string
+}
+
+interface NavGroup {
+  heading: string
+  items: NavItem[]
+}
+
+const navGroups: NavGroup[] = [
+  {
+    heading: 'Overblik',
+    items: [
+      { id: 'dashboard', label: 'Oversigt', icon: 'grid' },
+      { id: 'communication', label: 'Kommunikation', icon: 'chat-bubble' },
+      { id: 'journal', label: 'Journal', icon: 'list' },
+    ],
+  },
+  {
+    heading: 'Arbejde',
+    items: [
+      { id: 'tasks', label: 'Opgaver', icon: 'checklist' },
+      { id: 'documents', label: 'Dokumenter', icon: 'doc' },
+      { id: 'agents', label: 'Agenter', icon: 'person-circle' },
+      { id: 'skills', label: 'Færdigheder', icon: 'sparkle' },
+    ],
+  },
+  {
+    heading: 'Analyse',
+    items: [
+      { id: 'intelligence', label: 'Intelligens', icon: 'lightbulb' },
+      { id: 'weekly', label: 'Ugerapport', icon: 'calendar-week' },
+      { id: 'clients', label: 'Projekter', icon: 'folder' },
+      { id: 'api', label: 'API Forbrug', icon: 'chart-bar' },
+    ],
+  },
+  {
+    heading: 'Drift',
+    items: [
+      { id: 'cron', label: 'Planlagte Jobs', icon: 'clock' },
+      { id: 'upload', label: 'Fil Upload', icon: 'upload' },
+      { id: 'workshop', label: 'Værksted', icon: 'wrench' },
+      { id: 'index', label: 'Søgning', icon: 'magnifying-glass' },
+      { id: 'evals', label: 'Evalueringer', icon: 'gauge' },
+    ],
+  },
+  {
+    heading: 'System',
+    items: [
+      { id: 'notifications', label: 'Notifikationer', icon: 'bell' },
+      { id: 'settings', label: 'Indstillinger', icon: 'gear' },
+    ],
+  },
 ]
 
 export default function Sidebar({ active, onNavigate, isOpen, onClose, onMaisonClick }: SidebarProps) {
@@ -154,42 +190,51 @@ export default function Sidebar({ active, onNavigate, isOpen, onClose, onMaisonC
         </div>
       </div>
 
-      <nav role="navigation" aria-label="Hovednavigation" className="flex-1 px-2 space-y-0.5 overflow-y-auto">
-        {nav.map(item => {
-          const badgeCount = getBadgeCount(item.id)
-          return (
-            <a
-              key={item.id}
-              href={`#${item.id}`}
-              onClick={(e) => {
-                e.preventDefault()
-                onNavigate(item.id)
-              }}
-              aria-current={active === item.id ? 'page' : undefined}
-              className={`sidebar-item ${active === item.id ? 'active' : ''}`}
-              style={{ position: 'relative', textDecoration: 'none', display: 'flex', alignItems: 'center' }}
-            >
-              {active === item.id && (
-                <span
-                  style={{
-                    position: 'absolute',
-                    left: 0,
-                    top: '20%',
-                    bottom: '20%',
-                    width: 3,
-                    borderRadius: 2,
-                    background: '#007AFF',
-                    boxShadow: '0 0 8px rgba(0,122,255,0.6)',
-                    animation: 'slideIn 200ms ease-out',
-                  }}
-                />
-              )}
-              <Icon name={item.icon} size={20} className={active === item.id ? 'text-blue-400' : 'text-white/50'} />
-              <span style={{ flex: 1 }}>{item.label}</span>
-              <Badge count={badgeCount} />
-            </a>
-          )
-        })}
+      <nav role="navigation" aria-label="Hovednavigation" className="flex-1 px-2 overflow-y-auto">
+        {navGroups.map(group => (
+          <div key={group.heading}>
+            <p className="text-[10px] uppercase tracking-wider text-white/25 px-3 pt-4 pb-1" aria-hidden="true">
+              {group.heading}
+            </p>
+            <div className="space-y-0.5">
+              {group.items.map(item => {
+                const badgeCount = getBadgeCount(item.id)
+                return (
+                  <a
+                    key={item.id}
+                    href={`#${item.id}`}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      onNavigate(item.id)
+                    }}
+                    aria-current={active === item.id ? 'page' : undefined}
+                    className={`sidebar-item ${active === item.id ? 'active' : ''}`}
+                    style={{ position: 'relative', textDecoration: 'none', display: 'flex', alignItems: 'center' }}
+                  >
+                    {active === item.id && (
+                      <span
+                        style={{
+                          position: 'absolute',
+                          left: 0,
+                          top: '20%',
+                          bottom: '20%',
+                          width: 3,
+                          borderRadius: 2,
+                          background: '#007AFF',
+                          boxShadow: '0 0 8px rgba(0,122,255,0.6)',
+                          animation: 'slideIn 200ms ease-out',
+                        }}
+                      />
+                    )}
+                    <Icon name={item.icon} size={20} className={active === item.id ? 'text-blue-400' : 'text-white/50'} />
+                    <span style={{ flex: 1 }}>{item.label}</span>
+                    <Badge count={badgeCount} />
+                  </a>
+                )
+              })}
+            </div>
+          </div>
+        ))}
       </nav>
 
       <div className="px-5 py-4 border-t border-white/10 space-y-2">
