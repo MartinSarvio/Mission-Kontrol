@@ -2,12 +2,13 @@ import { useState, useEffect, useMemo, useCallback, memo } from 'react'
 import Card from '../components/Card'
 import Icon from '../components/Icon'
 import StatusBadge from '../components/StatusBadge'
-import { DonutChart, BarChart } from '../components/Chart'
+import { DonutChart, BarChart, MiniLineChart } from '../components/Chart'
 import { useLiveData } from '../api/LiveDataContext'
 import { fetchSystemInfo, ApiSession, CronJobApi } from '../api/openclaw'
 import { Status } from '../types'
 import { DashboardSkeleton } from '../components/SkeletonLoader'
 import { usePageTitle } from '../hooks/usePageTitle'
+import { useResourceHistory } from '../hooks/useResourceHistory'
 import { useRelativeTime, formatRelativeTime } from '../hooks/useRelativeTime'
 import ConnectionStatus from '../components/ConnectionStatus'
 import DataFreshness from '../components/DataFreshness'
@@ -138,6 +139,17 @@ export default function Dashboard() {
     () => cronJobs.filter((j: any) => j.enabled !== false).length,
     [cronJobs]
   )
+
+  // RAM og Disk procent — bruges til sparklines
+  const ramPct = useMemo(() => {
+    return systemInfo.ramUsed && systemInfo.ramTotal
+      ? Math.round((parseFloat(systemInfo.ramUsed) / parseFloat(systemInfo.ramTotal)) * 100)
+      : null
+  }, [systemInfo.ramUsed, systemInfo.ramTotal])
+
+  const diskPctValue = systemInfo.diskPercent ?? null
+
+  const { ramHistory, diskHistory } = useResourceHistory(ramPct, diskPctValue)
 
   // Estimeret dagligt forbrug baseret på sessions
   const dailySpend = useMemo(() => {
@@ -371,9 +383,6 @@ export default function Dashboard() {
 
               {/* RAM */}
               {(() => {
-                const ramPct = systemInfo.ramUsed && systemInfo.ramTotal
-                  ? Math.round((parseFloat(systemInfo.ramUsed) / parseFloat(systemInfo.ramTotal)) * 100)
-                  : null
                 const ramColor = ramPct === null ? '#8E8E93' : ramPct > 90 ? '#FF3B30' : ramPct > 70 ? '#FF9F0A' : '#34C759'
                 return (
                   <div className="flex items-start gap-3">
@@ -386,6 +395,11 @@ export default function Dashboard() {
                         {ramPct !== null ? `${ramPct}%` : 'N/A'}
                       </p>
                       <p className="caption text-xs truncate">{systemInfo.ramUsed && systemInfo.ramTotal ? `${systemInfo.ramUsed} / ${systemInfo.ramTotal}` : ''}</p>
+                      {ramHistory.length >= 2 && (
+                        <div style={{ marginTop: 4 }}>
+                          <MiniLineChart data={ramHistory} color="#007AFF" width={80} height={28} />
+                        </div>
+                      )}
                     </div>
                   </div>
                 )
@@ -393,8 +407,7 @@ export default function Dashboard() {
 
               {/* Disk */}
               {(() => {
-                const diskPct = systemInfo.diskPercent ?? null
-                const diskColor = diskPct === null ? '#8E8E93' : diskPct > 90 ? '#FF3B30' : diskPct > 70 ? '#FF9F0A' : '#34C759'
+                const diskColor = diskPctValue === null ? '#8E8E93' : diskPctValue > 90 ? '#FF3B30' : diskPctValue > 70 ? '#FF9F0A' : '#34C759'
                 return (
                   <div className="flex items-start gap-3">
                     <div style={{ flexShrink: 0, width: 32, height: 32, borderRadius: 8, background: `${diskColor}15`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -403,9 +416,14 @@ export default function Dashboard() {
                     <div className="min-w-0">
                       <p className="caption text-xs">Disk</p>
                       <p className="text-sm font-semibold text-white truncate">
-                        {diskPct !== null ? `${diskPct}%` : 'N/A'}
+                        {diskPctValue !== null ? `${diskPctValue}%` : 'N/A'}
                       </p>
                       <p className="caption text-xs truncate">{systemInfo.diskUsed && systemInfo.diskTotal ? `${systemInfo.diskUsed} / ${systemInfo.diskTotal}` : ''}</p>
+                      {diskHistory.length >= 2 && (
+                        <div style={{ marginTop: 4 }}>
+                          <MiniLineChart data={diskHistory} color="#30D158" width={80} height={28} />
+                        </div>
+                      )}
                     </div>
                   </div>
                 )
