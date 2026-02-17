@@ -1,4 +1,4 @@
-import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { ReactNode, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Icon from './Icon'
 
 export interface Column<T> {
@@ -107,7 +107,7 @@ function buildPageRange(current: number, total: number): number[] {
   return pages
 }
 
-export default function Table<T extends { id: string }>({
+function Table<T extends { id: string }>({
   data,
   columns,
   onRowClick,
@@ -685,3 +685,6 @@ export default function Table<T extends { id: string }>({
     </div>
   )
 }
+
+// Wrap in memo — type-cast preserves the generic signature
+export default memo(Table) as typeof Table

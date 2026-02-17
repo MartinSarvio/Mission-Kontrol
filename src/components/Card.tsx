@@ -1,4 +1,4 @@
-import { ReactNode } from 'react'
+import { ReactNode, memo } from 'react'
 
 interface CardProps {
   children: ReactNode
@@ -10,7 +10,7 @@ interface CardProps {
   onClick?: React.MouseEventHandler<HTMLDivElement>
 }
 
-export default function Card({ children, className = '', title, subtitle, action, style, onClick }: CardProps) {
+const Card = memo(function Card({ children, className = '', title, subtitle, action, style, onClick }: CardProps) {
   const isClickable = !!onClick
   
   return (
@@ -39,4 +39,6 @@ export default function Card({ children, className = '', title, subtitle, action
       {children}
     </div>
   )
-}
+})
+
+export default Card

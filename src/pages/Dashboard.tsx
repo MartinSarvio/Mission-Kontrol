@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback, memo } from 'react'
 import Card from '../components/Card'
 import Icon from '../components/Icon'
 import StatusBadge from '../components/StatusBadge'
@@ -597,7 +597,7 @@ export default function Dashboard() {
 }
 
 // ── Hurtige handlinger ───────────────────────────────────────────────
-function HurtigeHandlinger() {
+const HurtigeHandlinger = memo(function HurtigeHandlinger() {
   const handlinger = [
     {
       icon: 'sparkle',
@@ -682,10 +682,10 @@ function HurtigeHandlinger() {
       </div>
     </Card>
   )
-}
+})
 
 // ── Dagens Forbrug Cost Tracker ──────────────────────────────────────
-function DagensForbrug({ sessions }: { sessions: ApiSession[] }) {
+const DagensForbrug = memo(function DagensForbrug({ sessions }: { sessions: ApiSession[] }) {
   const costData = useMemo(() => {
     const today = new Date()
     const isSameDay = (ts: number) => {
@@ -829,9 +829,9 @@ function DagensForbrug({ sessions }: { sessions: ApiSession[] }) {
       )}
     </Card>
   )
-}
+})
 
-function QuickActions({ onHealthcheck }: { onHealthcheck: () => void }) {
+const QuickActions = memo(function QuickActions({ onHealthcheck }: { onHealthcheck: () => void }) {
   const [loadingAction, setLoadingAction] = useState<string | null>(null)
   const [confirmRestart, setConfirmRestart] = useState(false)
   const toast = useToast()
@@ -920,9 +920,9 @@ function QuickActions({ onHealthcheck }: { onHealthcheck: () => void }) {
       </Card>
     </div>
   )
-}
+})
 
-function RecentActivity({ sessions, cronJobs }: { sessions: ApiSession[], cronJobs: CronJobApi[] }) {
+const RecentActivity = memo(function RecentActivity({ sessions, cronJobs }: { sessions: ApiSession[], cronJobs: CronJobApi[] }) {
   interface ActivityEvent {
     id: string
     type: 'session_start' | 'session_end' | 'cron_run' | 'error'
@@ -1013,9 +1013,9 @@ function RecentActivity({ sessions, cronJobs }: { sessions: ApiSession[], cronJo
       </Card>
     </div>
   )
-}
+})
 
-function ActivityEventRow({ event, isLast }: { event: { type: string; timestamp: number; icon: string; title: string; description: string }; isLast: boolean }) {
+const ActivityEventRow = memo(function ActivityEventRow({ event, isLast }: { event: { type: string; timestamp: number; icon: string; title: string; description: string }; isLast: boolean }) {
   const timeAgo = useRelativeTime(event.timestamp)
   
   const iconColor = event.type === 'session_start' 
@@ -1071,7 +1071,7 @@ function ActivityEventRow({ event, isLast }: { event: { type: string; timestamp:
       </div>
     </div>
   )
-}
+})
 
 function formatTimeAgo(timestamp: number): string {
   const diff = Date.now() - timestamp

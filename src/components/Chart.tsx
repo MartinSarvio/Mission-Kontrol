@@ -1,10 +1,12 @@
+import { memo } from 'react'
+
 interface BarChartProps {
   data: { label: string; value: number; color?: string }[]
   height?: number
   showValues?: boolean
 }
 
-export function BarChart({ data, height = 160, showValues = true }: BarChartProps) {
+export const BarChart = memo(function BarChart({ data, height = 160, showValues = true }: BarChartProps) {
   const max = Math.max(...data.map(d => d.value))
   return (
     <div className="flex items-end gap-2" style={{ height }}>
@@ -24,7 +26,7 @@ export function BarChart({ data, height = 160, showValues = true }: BarChartProp
       ))}
     </div>
   )
-}
+})
 
 interface MiniLineChartProps {
   data: number[]
@@ -33,7 +35,7 @@ interface MiniLineChartProps {
   height?: number
 }
 
-export function MiniLineChart({ data, color = '#007AFF', width = 120, height = 40 }: MiniLineChartProps) {
+export const MiniLineChart = memo(function MiniLineChart({ data, color = '#007AFF', width = 120, height = 40 }: MiniLineChartProps) {
   if (data.length < 2) return null
   const max = Math.max(...data)
   const min = Math.min(...data)
@@ -49,14 +51,14 @@ export function MiniLineChart({ data, color = '#007AFF', width = 120, height = 4
       <polyline fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" points={points} />
     </svg>
   )
-}
+})
 
 interface DonutChartProps {
   segments: { value: number; color: string; label: string }[]
   size?: number
 }
 
-export function DonutChart({ segments, size = 120 }: DonutChartProps) {
+export const DonutChart = memo(function DonutChart({ segments, size = 120 }: DonutChartProps) {
   const total = segments.reduce((s, seg) => s + seg.value, 0)
   const r = (size - 8) / 2
   const cx = size / 2
@@ -96,4 +98,4 @@ export function DonutChart({ segments, size = 120 }: DonutChartProps) {
       </div>
     </div>
   )
-}
+})

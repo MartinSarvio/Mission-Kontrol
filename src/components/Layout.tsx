@@ -1,4 +1,4 @@
-import { ReactNode, useState, useEffect, useRef } from 'react'
+import { ReactNode, useState, useEffect, useRef, useCallback } from 'react'
 import Sidebar from './Sidebar'
 import Icon from './Icon'
 import MaisonFlyout from './MaisonFlyout'
@@ -24,10 +24,15 @@ export default function Layout({ children, activePage, onNavigate }: LayoutProps
     }
   }, [activePage])
 
-  const handleNavigate = (page: string) => {
+  const handleNavigate = useCallback((page: string) => {
     onNavigate(page)
     setSidebarOpen(false)
-  }
+  }, [onNavigate])
+
+  const handleSidebarClose = useCallback(() => setSidebarOpen(false), [])
+  const handleSidebarOpen = useCallback(() => setSidebarOpen(true), [])
+  const handleMaisonOpen = useCallback(() => setMaisonOpen(true), [])
+  const handleMaisonClose = useCallback(() => setMaisonOpen(false), [])
 
   return (
     <div style={{ 
@@ -89,7 +94,7 @@ export default function Layout({ children, activePage, onNavigate }: LayoutProps
       {sidebarOpen && (
         <div
           className="glass-overlay fixed inset-0 z-40 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
+          onClick={handleSidebarClose}
         />
       )}
 
@@ -98,12 +103,12 @@ export default function Layout({ children, activePage, onNavigate }: LayoutProps
         active={activePage}
         onNavigate={handleNavigate}
         isOpen={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-        onMaisonClick={() => setMaisonOpen(true)}
+        onClose={handleSidebarClose}
+        onMaisonClick={handleMaisonOpen}
       />
 
       {/* Maison Flyout */}
-      <MaisonFlyout isOpen={maisonOpen} onClose={() => setMaisonOpen(false)} />
+      <MaisonFlyout isOpen={maisonOpen} onClose={handleMaisonClose} />
 
       {/* Tauri drag region - allows window to be moved on desktop app */}
       {'__TAURI__' in (typeof window !== 'undefined' ? window : {}) && (
@@ -137,7 +142,7 @@ export default function Layout({ children, activePage, onNavigate }: LayoutProps
           }}
         >
           <button
-            onClick={() => setSidebarOpen(true)}
+            onClick={handleSidebarOpen}
             className="p-2 -ml-2 rounded-lg active:bg-white/10"
           >
             <Icon name="menu" size={22} className="text-white/80" />

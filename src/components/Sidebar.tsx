@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, memo } from 'react'
 import Icon from './Icon'
 import { useLiveData } from '../api/LiveDataContext'
 import ConnectionStatus from './ConnectionStatus'
@@ -68,8 +68,34 @@ const navGroups: NavGroup[] = [
   },
 ]
 
-export default function Sidebar({ active, onNavigate, isOpen, onClose, onMaisonClick }: SidebarProps) {
-  const { isConnected, lastUpdated, isLoading, isRefreshing, sessions, cronJobs } = useLiveData()
+// Extract Badge outside Sidebar to avoid re-creation on every render
+const Badge = memo(function Badge({ count }: { count: number }) {
+  if (count === 0) return null
+  return (
+    <span
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minWidth: 18,
+        height: 18,
+        padding: '0 6px',
+        borderRadius: 9,
+        background: '#007AFF',
+        color: 'white',
+        fontSize: 11,
+        fontWeight: 600,
+        lineHeight: 1,
+        animation: 'badgeFadeIn 200ms ease-out',
+      }}
+    >
+      {count > 99 ? '99+' : count}
+    </span>
+  )
+})
+
+const Sidebar = memo(function Sidebar({ active, onNavigate, isOpen, onClose, onMaisonClick }: SidebarProps) {
+  const { isConnected, lastUpdated, isRefreshing, sessions, cronJobs } = useLiveData()
   const [pulse, setPulse] = useState(true)
 
   // Calculate badge counts
@@ -84,41 +110,15 @@ export default function Sidebar({ active, onNavigate, isOpen, onClose, onMaisonC
 
   const now = new Date().toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' })
 
-  // Badge counts per nav item
-  const getBadgeCount = (id: string): number => {
+  // Badge counts per nav item — memoized to avoid creating new functions per render
+  const getBadgeCount = useCallback((id: string): number => {
     switch (id) {
       case 'agents': return agentCount
       case 'cron': return cronCount
       case 'notifications': return notificationCount
       default: return 0
     }
-  }
-
-  // Badge component
-  const Badge = ({ count }: { count: number }) => {
-    if (count === 0) return null
-    return (
-      <span
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          minWidth: 18,
-          height: 18,
-          padding: '0 6px',
-          borderRadius: 9,
-          background: '#007AFF',
-          color: 'white',
-          fontSize: 11,
-          fontWeight: 600,
-          lineHeight: 1,
-          animation: 'badgeFadeIn 200ms ease-out',
-        }}
-      >
-        {count > 99 ? '99+' : count}
-      </span>
-    )
-  }
+  }, [agentCount, cronCount, notificationCount])
 
   return (
     <aside
@@ -253,4 +253,6 @@ export default function Sidebar({ active, onNavigate, isOpen, onClose, onMaisonC
       </div>
     </aside>
   )
-}
+})
+
+export default Sidebar

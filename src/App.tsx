@@ -1,4 +1,4 @@
-import { useState, lazy, Suspense } from 'react'
+import { useState, lazy, Suspense, useCallback, memo } from 'react'
 import { LiveDataProvider } from './api/LiveDataContext'
 import { NotificationProvider } from './api/NotificationContext'
 import { ToastProvider } from './components/Toast'
@@ -79,12 +79,12 @@ const pageNames: Record<string, string> = {
 }
 
 /** Intern komponent der aktiverer favicon-badge (kræver at være inside LiveDataProvider) */
-function FaviconBadge() {
+const FaviconBadge = memo(function FaviconBadge() {
   useFaviconBadge()
   return null
-}
+})
 
-function LoadingFallback() {
+const LoadingFallback = memo(function LoadingFallback() {
   return (
     <div className="space-y-4 p-2">
       <div className="skeleton-pulse h-8 w-48" />
@@ -97,7 +97,7 @@ function LoadingFallback() {
       <div className="skeleton-pulse h-64 mt-4" />
     </div>
   )
-}
+})
 
 export default function App() {
   const [page, setPage] = useHashRouter('dashboard')
@@ -105,25 +105,34 @@ export default function App() {
   const [helpOpen, setHelpOpen] = useState(false)
   const Page = pages[page] || NotFound
 
+  const handleCommandK = useCallback(() => {
+    setCmdOpen(o => !o)
+    setHelpOpen(false)
+  }, [])
+
+  const handleHelp = useCallback(() => {
+    setHelpOpen(o => !o)
+    setCmdOpen(false)
+  }, [])
+
+  const handleEscape = useCallback(() => {
+    if (cmdOpen) {
+      setCmdOpen(false)
+    } else if (helpOpen) {
+      setHelpOpen(false)
+    } else {
+      window.dispatchEvent(new CustomEvent('modal-close'))
+    }
+  }, [cmdOpen, helpOpen])
+
+  const handleCmdClose = useCallback(() => setCmdOpen(false), [])
+  const handleHelpClose = useCallback(() => setHelpOpen(false), [])
+
   // Global keyboard shortcuts
   useKeyboardShortcuts({
-    onCommandK: () => {
-      setCmdOpen(o => !o)
-      setHelpOpen(false)
-    },
-    onHelp: () => {
-      setHelpOpen(o => !o)
-      setCmdOpen(false)
-    },
-    onEscape: () => {
-      if (cmdOpen) {
-        setCmdOpen(false)
-      } else if (helpOpen) {
-        setHelpOpen(false)
-      } else {
-        window.dispatchEvent(new CustomEvent('modal-close'))
-      }
-    },
+    onCommandK: handleCommandK,
+    onHelp: handleHelp,
+    onEscape: handleEscape,
     onNavigate: setPage,
     isCommandPaletteOpen: cmdOpen,
   })
@@ -135,8 +144,8 @@ export default function App() {
         <ToastProvider>
           <ConnectionToast />
           <ConnectionBanner />
-          <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} onNavigate={setPage} />
-          <KeyboardShortcutsHelp open={helpOpen} onClose={() => setHelpOpen(false)} />
+          <CommandPalette open={cmdOpen} onClose={handleCmdClose} onNavigate={setPage} />
+          <KeyboardShortcutsHelp open={helpOpen} onClose={handleHelpClose} />
           <UpdateBanner />
           <Layout activePage={page} onNavigate={setPage}>
             <Suspense fallback={<LoadingFallback />}>
