@@ -53,6 +53,38 @@ function resolveApiUrl(base: string): string {
   return base
 }
 
+function sleep(ms: number) {
+  return new Promise<void>((resolve) => setTimeout(resolve, ms))
+}
+
+function isRetryableError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err || '')
+  if (!msg) return true
+  if (msg.includes('Ingen auth token')) return false
+  // Do not retry typical client errors
+  if (/HTTP\s+4\d\d/.test(msg)) return false
+  return true
+}
+
+export async function fetchWithRetry<T>(fn: () => Promise<T>, options?: { retries?: number; delaysMs?: number[] }): Promise<T> {
+  const retries = options?.retries ?? 3
+  const delaysMs = options?.delaysMs ?? [500, 1000, 2000]
+
+  let lastErr: unknown
+  for (let attempt = 0; attempt < retries; attempt++) {
+    try {
+      return await fn()
+    } catch (e) {
+      lastErr = e
+      const canRetry = isRetryableError(e)
+      const delay = delaysMs[Math.min(attempt, delaysMs.length - 1)]
+      if (!canRetry || attempt === retries - 1) break
+      await sleep(delay)
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error(String(lastErr || 'Ukendt fejl'))
+}
+
 export async function invokeToolRaw(tool: string, args: Record<string, unknown>): Promise<unknown> {
   const url = resolveApiUrl(getGatewayUrl())
   const token = getGatewayToken()
@@ -176,7 +208,7 @@ export async function getSessionHistory(sessionKey: string): Promise<DetailedSes
 }
 
 export async function fetchSessions(): Promise<SessionsResponse> {
-  const data = await invokeToolRaw('sessions_list', { messageLimit: 2 }) as any
+  const data = await fetchWithRetry(() => invokeToolRaw('sessions_list', { messageLimit: 2 })) as any
   // The result text is JSON string
   const text = data.result?.content?.[0]?.text
   if (text) {
@@ -188,14 +220,14 @@ export async function fetchSessions(): Promise<SessionsResponse> {
 }
 
 export async function fetchStatus(): Promise<string> {
-  const data = await invokeToolRaw('session_status', {}) as any
+  const data = await fetchWithRetry(() => invokeToolRaw('session_status', {})) as any
   const text = data.result?.content?.[0]?.text
   if (text) return text
   throw new Error('Ugyldigt status svar')
 }
 
 export async function fetchCronJobs(): Promise<CronJobApi[]> {
-  const data = await invokeToolRaw('cron', { action: 'list', includeDisabled: true }) as any
+  const data = await fetchWithRetry(() => invokeToolRaw('cron', { action: 'list', includeDisabled: true })) as any
   const text = data.result?.content?.[0]?.text
   if (text) {
     try {
@@ -208,7 +240,7 @@ export async function fetchCronJobs(): Promise<CronJobApi[]> {
 }
 
 export async function fetchConfig(): Promise<Record<string, any>> {
-  const data = await invokeToolRaw('gateway', { action: 'config.get' }) as any
+  const data = await fetchWithRetry(() => invokeToolRaw('gateway', { action: 'config.get' })) as any
   const text = data.result?.content?.[0]?.text
   if (text) {
     try {
