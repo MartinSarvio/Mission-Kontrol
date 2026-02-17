@@ -347,6 +347,9 @@ export default function Dashboard() {
             </Card>
           </div>
 
+          {/* Dagens Forbrug - Cost Tracker */}
+          <DagensForbrug sessions={sessions} />
+
           {/* Systemhelbred */}
           <Card title="Systemhelbred" subtitle="Server- og forbindelsesstatus" className="mb-8">
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

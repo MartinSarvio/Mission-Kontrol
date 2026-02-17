@@ -10,6 +10,8 @@ interface Message {
   content: string
   timestamp: number
   sessionKey: string
+  hasToolCalls?: boolean
+  toolCalls?: string[]
 }
 
 export default function Communication() {
@@ -70,12 +72,56 @@ export default function Communication() {
         const parsed = JSON.parse(text)
         const msgs = parsed.messages || []
         
-        setMessages(msgs.map((m: any) => ({
-          role: m.role,
-          content: typeof m.content === 'string' ? m.content : m.content?.[0]?.text || m.text || '',
-          timestamp: m.timestamp || Date.now(),
-          sessionKey
-        })))
+        const parsed_msgs = msgs.map((m: any) => {
+          let content = ''
+          const toolCalls: string[] = []
+          
+          if (typeof m.content === 'string') {
+            content = m.content
+          } else if (Array.isArray(m.content)) {
+            const textParts: string[] = []
+            for (const block of m.content) {
+              if (block.type === 'text' && block.text) {
+                textParts.push(block.text)
+              } else if (block.type === 'tool_use' || block.type === 'toolCall') {
+                const name = block.name || block.toolName || 'tool'
+                const argsPreview = block.input || block.args
+                const argStr = argsPreview
+                  ? JSON.stringify(argsPreview).slice(0, 60)
+                  : '...'
+                toolCalls.push(`${name}(${argStr})`)
+              }
+              // Skip 'thinking' blocks entirely
+            }
+            content = textParts.join('\n')
+          } else {
+            content = m.text || ''
+          }
+          
+          // Append tool call badges if present
+          if (toolCalls.length > 0) {
+            const toolLine = toolCalls.map(t => `[${t}]`).join(' ')
+            content = content ? `${content}\n${toolLine}` : toolLine
+          }
+          
+          return {
+            role: m.role as Message['role'],
+            content,
+            timestamp: m.timestamp || Date.now(),
+            sessionKey,
+            hasToolCalls: toolCalls.length > 0,
+            toolCalls,
+          }
+        })
+        // Filter out empty messages and NO_REPLY/HEARTBEAT_OK
+        .filter((m: any) => {
+          if (!m.content || !m.content.trim()) return false
+          const t = m.content.trim()
+          if (t === 'NO_REPLY' || t === 'HEARTBEAT_OK') return false
+          return true
+        })
+        
+        setMessages(parsed_msgs)
       }
     } catch (error) {
       console.error('Failed to fetch messages:', error)
@@ -248,9 +294,35 @@ export default function Communication() {
                             })}
                           </span>
                         </div>
-                        <p className="text-sm text-white whitespace-pre-wrap break-words">
-                          {msg.content}
-                        </p>
+                        {msg.hasToolCalls && msg.toolCalls && (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: msg.content.replace(/\[.*?\]/g, '').trim() ? '6px' : '0' }}>
+                            {msg.toolCalls.map((tc, ti) => (
+                              <span
+                                key={ti}
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  background: 'rgba(255,255,255,0.08)',
+                                  border: '1px solid rgba(255,255,255,0.12)',
+                                  borderRadius: '6px',
+                                  padding: '2px 8px',
+                                  fontSize: '11px',
+                                  color: 'rgba(255,255,255,0.5)',
+                                  fontFamily: 'monospace',
+                                }}
+                              >
+                                <Icon name="wrench" size={10} />
+                                {tc}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        {msg.content.replace(/\[.*?\]/g, '').trim() && (
+                          <p className="text-sm text-white whitespace-pre-wrap break-words">
+                            {msg.content.replace(/\[.*?\(.*?\)\]/g, '').trim()}
+                          </p>
+                        )}
                       </div>
                     </div>
                   ))
