@@ -85,11 +85,14 @@ export default function Table<T extends { id: string }>({
 }: TableProps<T>) {
   const [sortKey, setSortKey] = useState<string | null>(null)
   const [sortDir, setSortDir] = useState<SortDirection | null>(null)
+  const [activeRowIndex, setActiveRowIndex] = useState<number | null>(null)
 
   // Search state: rawQuery mirrors the input, query is debounced
   const [rawQuery, setRawQuery] = useState('')
   const [query, setQuery] = useState('')
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const tableRef = useRef<HTMLTableElement>(null)
+  const searchRef = useRef<HTMLInputElement>(null)
 
   const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value
@@ -111,6 +114,16 @@ export default function Table<T extends { id: string }>({
   useEffect(() => {
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
   }, [])
+
+  // Auto-focus search field on mount
+  useEffect(() => {
+    if (searchable && searchRef.current) searchRef.current.focus()
+  }, [searchable])
+
+  // Reset active row when data changes
+  useEffect(() => {
+    setActiveRowIndex(null)
+  }, [data, query])
 
   // Columns to search in: searchKeys ▸ all columns
   const searchCols = useMemo(() => {
@@ -152,6 +165,25 @@ export default function Table<T extends { id: string }>({
     return next
   }, [filteredData, columns, sortKey, sortDir])
 
+  const handleTableKeyDown = useCallback((e: React.KeyboardEvent<HTMLTableElement>) => {
+    const rowCount = sortedData.length
+    if (rowCount === 0) return
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      setActiveRowIndex(prev => prev === null ? 0 : Math.min(prev + 1, rowCount - 1))
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      setActiveRowIndex(prev => prev === null ? 0 : Math.max(prev - 1, 0))
+    } else if (e.key === 'Enter' && activeRowIndex !== null && onRowClick) {
+      e.preventDefault()
+      onRowClick(sortedData[activeRowIndex])
+    } else if (e.key === 'Escape') {
+      setActiveRowIndex(null)
+      tableRef.current?.blur()
+    }
+  }, [sortedData, activeRowIndex, onRowClick])
+
   const toggleSort = (col: Column<T>) => {
     if (!col.sortable) return
     if (sortKey !== col.key) {
@@ -192,6 +224,7 @@ export default function Table<T extends { id: string }>({
               <Icon name="magnifying-glass" size={14} />
             </span>
             <input
+              ref={searchRef}
               type="text"
               value={rawQuery}
               onChange={handleSearchChange}
@@ -265,7 +298,7 @@ export default function Table<T extends { id: string }>({
       )}
 
       <div className="overflow-x-auto">
-        <table className="w-full">
+        <table className="w-full" ref={tableRef} tabIndex={0} onKeyDown={handleTableKeyDown} style={{ outline: 'none' }}>
           <thead>
             <tr
               style={{
@@ -316,18 +349,21 @@ export default function Table<T extends { id: string }>({
             </tr>
           </thead>
           <tbody>
-            {sortedData.map(item => (
+            {sortedData.map((item, idx) => {
+              const isActive = activeRowIndex === idx
+              const baseBg = isActive ? 'rgba(255,255,255,0.04)' : 'transparent'
+              return (
               <tr
                 key={item.id}
                 onClick={() => onRowClick?.(item)}
                 className={onRowClick ? 'cursor-pointer' : ''}
                 style={{
                   borderBottom: '1px solid rgba(255,255,255,0.04)',
-                  background: 'transparent',
+                  background: baseBg,
                   transition: 'background 0.15s',
                 }}
                 onMouseOver={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.03)')}
-                onMouseOut={e => (e.currentTarget.style.background = 'transparent')}
+                onMouseOut={e => (e.currentTarget.style.background = baseBg)}
               >
                 {columns.map(col => (
                   <td key={col.key} className={`px-4 py-3 text-sm ${col.className || ''}`}>
@@ -335,7 +371,8 @@ export default function Table<T extends { id: string }>({
                   </td>
                 ))}
               </tr>
-            ))}
+              )
+            })}
             {isFiltering && filteredData.length === 0 && (
               <tr>
                 <td
