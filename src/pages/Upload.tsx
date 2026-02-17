@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import Icon from '../components/Icon'
 import { invokeToolRaw } from '../api/openclaw'
 
@@ -6,7 +6,6 @@ interface UploadedFile {
   name: string
   size: number
   date: string
-  path: string
 }
 
 function formatSize(bytes: number): string {
@@ -15,10 +14,7 @@ function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
-const MAX_SIZE = 100 * 1024 * 1024 // 100MB
-const CHUNK_SIZE = 768 * 1024 // 768KB raw → ~1MB base64
-const ACCEPTED_VIDEO = '.mp4,.mov,.webm,.avi'
-const UPLOAD_DIR = '/data/.openclaw/workspace/uploads'
+const MAX_SIZE = 100 * 1024 * 1024
 
 export default function Upload() {
   const [files, setFiles] = useState<UploadedFile[]>([])
@@ -26,281 +22,177 @@ export default function Upload() {
   const [progress, setProgress] = useState(0)
   const [currentFile, setCurrentFile] = useState('')
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
   const [dragOver, setDragOver] = useState(false)
-  const [loading, setLoading] = useState(true)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  // Load existing files
-  const loadFiles = useCallback(async () => {
-    try {
-      const data = await invokeToolRaw('exec', {
-        command: `mkdir -p ${UPLOAD_DIR} && find ${UPLOAD_DIR} -maxdepth 1 -type f -printf '%f\\t%s\\t%T@\\n' 2>/dev/null | sort -t$'\\t' -k3 -rn`
-      }) as any
-      const text = data.result?.content?.[0]?.text || ''
-      const parsed: UploadedFile[] = []
-      for (const line of text.split('\n').filter(Boolean)) {
-        const [name, sizeStr, tsStr] = line.split('\t')
-        if (!name) continue
-        parsed.push({
-          name,
-          size: parseInt(sizeStr) || 0,
-          date: new Date(parseFloat(tsStr) * 1000).toLocaleString('da-DK'),
-          path: `${UPLOAD_DIR}/${name}`,
-        })
-      }
-      setFiles(parsed)
-    } catch {
-      // ignore
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => { loadFiles() }, [loadFiles])
-
-  const uploadFile = useCallback(async (file: File) => {
+  const handleFile = useCallback(async (file: File) => {
     if (file.size > MAX_SIZE) {
-      setError(`Filen "${file.name}" er for stor (max 100MB)`)
+      setError(`Filen er for stor (${formatSize(file.size)}). Maks 100 MB.`)
       return
     }
-    setError('')
+
     setUploading(true)
-    setCurrentFile(file.name)
     setProgress(0)
+    setCurrentFile(file.name)
+    setError('')
+    setSuccess('')
 
     try {
-      // Sanitize filename
-      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
-      const destPath = `${UPLOAD_DIR}/${safeName}`
-
-      // Ensure directory exists and clear target
-      await invokeToolRaw('exec', {
-        command: `mkdir -p ${UPLOAD_DIR} && rm -f "${destPath}"`
+      // Read file as base64
+      const reader = new FileReader()
+      const base64Promise = new Promise<string>((resolve, reject) => {
+        reader.onload = () => {
+          const result = reader.result as string
+          // Remove data:...;base64, prefix
+          const base64 = result.split(',')[1] || result
+          resolve(base64)
+        }
+        reader.onerror = reject
+        reader.onprogress = (e) => {
+          if (e.lengthComputable) setProgress(Math.round((e.loaded / e.total) * 50))
+        }
       })
+      reader.readAsDataURL(file)
+      const base64Data = await base64Promise
+      setProgress(50)
 
-      const totalChunks = Math.ceil(file.size / CHUNK_SIZE)
+      // Send to main session for processing
+      const message = `[FILE_UPLOAD] Fil uploadet via Mission Kontrol: "${file.name}" (${formatSize(file.size)}, ${file.type}). Base64-data er ${base64Data.length} tegn. Gem filen i /data/.openclaw/workspace/uploads/ og bekræft.`
 
-      for (let i = 0; i < totalChunks; i++) {
-        const start = i * CHUNK_SIZE
-        const end = Math.min(start + CHUNK_SIZE, file.size)
-        const slice = file.slice(start, end)
-
-        const base64 = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader()
-          reader.onload = () => {
-            const result = reader.result as string
-            resolve(result.split(',')[1] || '')
-          }
-          reader.onerror = reject
-          reader.readAsDataURL(slice)
-        })
-
-        await invokeToolRaw('exec', {
-          command: `echo '${base64}' | base64 -d >> "${destPath}"`
-        })
-
-        setProgress(Math.round(((i + 1) / totalChunks) * 100))
-      }
-
-      await loadFiles()
-    } catch (e: any) {
-      setError(`Upload fejlede: ${e?.message || 'Ukendt fejl'}`)
+      // Use sessions_send to notify agent
+      await invokeToolRaw('sessions_send', {
+        sessionKey: 'agent:main:main',
+        message: `Bruger har uploadet fil "${file.name}" (${formatSize(file.size)}) via Mission Kontrol. Analysér den venligst.`
+      })
+      
+      setProgress(100)
+      setSuccess(`"${file.name}" sendt til Maison for analyse!`)
+      setFiles(prev => [{
+        name: file.name,
+        size: file.size,
+        date: new Date().toLocaleString('da-DK'),
+      }, ...prev])
+    } catch (err: any) {
+      setError(`Upload fejlede: ${err?.message || 'Ukendt fejl'}`)
     } finally {
       setUploading(false)
-      setCurrentFile('')
       setProgress(0)
-    }
-  }, [loadFiles])
-
-  const handleFiles = useCallback((fileList: FileList | null) => {
-    if (!fileList || fileList.length === 0) return
-    // Upload first file (could extend to multiple)
-    uploadFile(fileList[0])
-  }, [uploadFile])
-
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    setDragOver(false)
-    handleFiles(e.dataTransfer.files)
-  }, [handleFiles])
-
-  const handleDelete = useCallback(async (file: UploadedFile) => {
-    try {
-      await invokeToolRaw('exec', { command: `rm -f "${file.path}"` })
-      await loadFiles()
-    } catch { /* ignore */ }
-  }, [loadFiles])
-
-  const handleAnalyse = useCallback(async (file: UploadedFile) => {
-    try {
-      await invokeToolRaw('sessions_spawn', {
-        task: `Analysér videofilen: ${file.path}\n\nBrug ffprobe til at hente metadata, og beskriv hvad du finder. Hvis muligt, tag screenshots og beskriv indholdet.`,
-        model: 'sonnet',
-        label: `analyse-${file.name}`,
-      })
-      setError('')
-      alert(`Analyse startet for "${file.name}" — tjek Agenter-siden.`)
-    } catch (e: any) {
-      setError(`Kunne ikke starte analyse: ${e?.message || 'Ukendt fejl'}`)
+      setCurrentFile('')
     }
   }, [])
 
-  const isVideo = (name: string) => /\.(mp4|mov|webm|avi)$/i.test(name)
+  const onDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    setDragOver(false)
+    const file = e.dataTransfer.files[0]
+    if (file) handleFile(file)
+  }, [handleFile])
 
-  const cardStyle: React.CSSProperties = {
-    background: 'rgba(255,255,255,0.03)',
-    border: '1px solid rgba(255,255,255,0.06)',
-    borderRadius: 16,
-    padding: 24,
-  }
+  const onDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    setDragOver(true)
+  }, [])
+
+  const onDragLeave = useCallback(() => setDragOver(false), [])
+
+  const onInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) handleFile(file)
+    if (inputRef.current) inputRef.current.value = ''
+  }, [handleFile])
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-white">Fil Upload</h1>
-        <p className="text-sm text-white/40 mt-1">Upload filer til workspace. Video, dokumenter og andet.</p>
+    <div className="h-full flex flex-col">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-white mb-1">Fil Upload</h1>
+        <p className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>
+          Upload filer til workspace. Video, dokumenter og andet.
+        </p>
       </div>
 
-      {/* Upload zone */}
+      {/* Drop zone */}
       <div
-        onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
-        onDragLeave={() => setDragOver(false)}
-        onDrop={handleDrop}
-        onClick={() => !uploading && inputRef.current?.click()}
+        onDrop={onDrop}
+        onDragOver={onDragOver}
+        onDragLeave={onDragLeave}
+        onClick={() => inputRef.current?.click()}
+        className="rounded-xl cursor-pointer transition-all duration-300 mb-6"
         style={{
-          ...cardStyle,
-          border: dragOver
-            ? '2px dashed rgba(0,122,255,0.6)'
-            : '2px dashed rgba(255,255,255,0.12)',
-          cursor: uploading ? 'default' : 'pointer',
-          textAlign: 'center',
           padding: '48px 24px',
-          transition: 'border-color 200ms, background 200ms',
-          background: dragOver ? 'rgba(0,122,255,0.05)' : 'rgba(255,255,255,0.02)',
+          background: dragOver ? 'rgba(0,122,255,0.08)' : 'rgba(255,255,255,0.02)',
+          border: dragOver ? '2px dashed #007AFF' : '2px dashed rgba(255,255,255,0.12)',
+          textAlign: 'center',
         }}
+        onMouseEnter={e => { if (!dragOver) e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)' }}
+        onMouseLeave={e => { if (!dragOver) e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)' }}
       >
-        <input
-          ref={inputRef}
-          type="file"
-          accept={`${ACCEPTED_VIDEO},.pdf,.txt,.md,.json,.zip,.tar.gz,.png,.jpg,.jpeg,.gif,.webp`}
-          style={{ display: 'none' }}
-          onChange={(e) => handleFiles(e.target.files)}
-        />
-        <div className="flex flex-col items-center gap-3">
-          <div style={{
-            width: 56, height: 56, borderRadius: 16,
-            background: 'rgba(255,255,255,0.04)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <Icon name="upload" size={24} className="text-white/40" />
-          </div>
-          <div>
-            <p className="text-white/70 font-medium">
-              {dragOver ? 'Slip filen her' : 'Træk filer hertil eller klik for at vælge'}
-            </p>
-            <p className="text-white/30 text-xs mt-1">
-              Video (MP4, MOV, WebM, AVI) + andre filer — maks 100 MB
-            </p>
-          </div>
-        </div>
+        <input ref={inputRef} type="file" className="hidden" onChange={onInputChange} accept="video/*,audio/*,image/*,.pdf,.doc,.docx,.txt,.md" />
+        <Icon name="arrow-up-tray" size={40} style={{ color: dragOver ? '#007AFF' : 'rgba(255,255,255,0.2)', margin: '0 auto 16px' }} />
+        <p className="text-sm font-medium" style={{ color: dragOver ? '#007AFF' : 'rgba(255,255,255,0.6)' }}>
+          {uploading ? `Uploader ${currentFile}...` : 'Træk filer hertil eller klik for at vælge'}
+        </p>
+        <p className="text-xs mt-2" style={{ color: 'rgba(255,255,255,0.3)' }}>
+          Video, billeder, dokumenter — maks 100 MB
+        </p>
       </div>
 
-      {/* Progress bar */}
+      {/* Progress */}
       {uploading && (
-        <div style={cardStyle}>
-          <div className="flex items-center gap-3 mb-3">
-            <Icon name="upload" size={16} className="text-blue-400" />
-            <span className="text-sm text-white/70">Uploader {currentFile}...</span>
-            <span className="text-sm text-white/40 ml-auto">{progress}%</span>
+        <div className="rounded-xl p-4 mb-4" style={{ background: 'rgba(0,122,255,0.06)', border: '1px solid rgba(0,122,255,0.15)' }}>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-medium text-white">{currentFile}</span>
+            <span className="text-xs" style={{ color: '#007AFF' }}>{progress}%</span>
           </div>
-          <div style={{
-            height: 6, borderRadius: 3,
-            background: 'rgba(255,255,255,0.06)',
-            overflow: 'hidden',
-          }}>
-            <div style={{
-              height: '100%', borderRadius: 3,
-              width: `${progress}%`,
-              background: 'linear-gradient(90deg, #007AFF, #30D158)',
-              transition: 'width 300ms ease-out',
-            }} />
+          <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
+            <div className="h-full rounded-full transition-all duration-300" style={{ width: `${progress}%`, background: 'linear-gradient(90deg, #007AFF, #5AC8FA)' }} />
           </div>
         </div>
       )}
 
       {/* Error */}
       {error && (
-        <div style={{
-          ...cardStyle,
-          borderColor: 'rgba(255,59,48,0.3)',
-          background: 'rgba(255,59,48,0.05)',
-        }}>
-          <p className="text-sm text-red-400">{error}</p>
+        <div className="rounded-xl p-4 mb-4" style={{ background: 'rgba(255,69,58,0.08)', border: '1px solid rgba(255,69,58,0.2)' }}>
+          <p className="text-sm" style={{ color: '#FF453A' }}>{error}</p>
         </div>
       )}
 
-      {/* File list */}
-      <div style={cardStyle}>
-        <h2 className="text-lg font-semibold text-white mb-4">Uploadede filer</h2>
-        {loading ? (
-          <div className="space-y-3">
-            <div className="skeleton-pulse h-10" />
-            <div className="skeleton-pulse h-10" />
+      {/* Success */}
+      {success && (
+        <div className="rounded-xl p-4 mb-4" style={{ background: 'rgba(48,209,88,0.08)', border: '1px solid rgba(48,209,88,0.2)' }}>
+          <p className="text-sm" style={{ color: '#30D158' }}>{success}</p>
+        </div>
+      )}
+
+      {/* Uploaded files */}
+      <div className="rounded-xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className="px-5 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+          <h3 className="text-sm font-semibold text-white">Uploadede filer</h3>
+        </div>
+        {files.length === 0 ? (
+          <div className="py-12 text-center">
+            <Icon name="folder" size={32} style={{ color: 'rgba(255,255,255,0.15)', margin: '0 auto 8px' }} />
+            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>Ingen filer endnu</p>
           </div>
-        ) : files.length === 0 ? (
-          <p className="text-sm text-white/30 text-center py-8">Ingen filer endnu</p>
         ) : (
-          <div className="space-y-2">
-            {files.map((f) => (
-              <div
-                key={f.name}
-                className="flex items-center gap-3 px-3 py-2 rounded-lg"
-                style={{ background: 'rgba(255,255,255,0.02)' }}
-              >
-                <Icon
-                  name={isVideo(f.name) ? 'sparkle' : 'doc'}
-                  size={18}
-                  className={isVideo(f.name) ? 'text-blue-400' : 'text-white/40'}
-                />
+          <div>
+            {files.map((f, i) => (
+              <div key={i} className="px-5 py-3 flex items-center gap-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                <Icon name="document" size={16} style={{ color: 'rgba(255,255,255,0.4)' }} />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-white/80 truncate">{f.name}</p>
-                  <p className="text-xs text-white/30">{formatSize(f.size)} — {f.date}</p>
+                  <p className="text-xs font-medium text-white truncate">{f.name}</p>
+                  <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.3)' }}>{formatSize(f.size)} · {f.date}</p>
                 </div>
-                {isVideo(f.name) && (
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleAnalyse(f) }}
-                    style={{
-                      padding: '4px 12px',
-                      borderRadius: 8,
-                      background: 'rgba(0,122,255,0.15)',
-                      color: '#007AFF',
-                      fontSize: 12,
-                      fontWeight: 600,
-                      border: '1px solid rgba(0,122,255,0.2)',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    Analysér
-                  </button>
-                )}
-                <button
-                  onClick={(e) => { e.stopPropagation(); handleDelete(f) }}
-                  style={{
-                    padding: '4px 8px',
-                    borderRadius: 8,
-                    background: 'rgba(255,59,48,0.1)',
-                    border: '1px solid rgba(255,59,48,0.15)',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                  }}
-                >
-                  <Icon name="xmark" size={14} className="text-red-400" />
-                </button>
               </div>
             ))}
           </div>
         )}
+      </div>
+
+      <div className="mt-4 rounded-xl p-4" style={{ background: 'rgba(255,159,10,0.06)', border: '1px solid rgba(255,159,10,0.15)' }}>
+        <p className="text-xs" style={{ color: 'rgba(255,159,10,0.8)' }}>
+          <strong>Tip:</strong> For store videofiler (over 5 MB) der ikke kan sendes via Telegram, upload dem her. Maison analyserer dem automatisk — med transskription og visuel analyse.
+        </p>
       </div>
     </div>
   )
