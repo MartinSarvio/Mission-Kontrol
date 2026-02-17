@@ -32,6 +32,7 @@ const Index = lazy(() => import('./pages/Index'))
 const Evals = lazy(() => import('./pages/Evals'))
 const Settings = lazy(() => import('./pages/Settings'))
 const Notifications = lazy(() => import('./pages/Notifications'))
+const Upload = lazy(() => import('./pages/Upload'))
 
 const pages: Record<string, React.ComponentType> = {
   dashboard: Dashboard,
@@ -51,6 +52,7 @@ const pages: Record<string, React.ComponentType> = {
   evals: Evals,
   settings: Settings,
   notifications: Notifications,
+  upload: Upload,
 }
 
 const pageNames: Record<string, string> = {
@@ -71,6 +73,7 @@ const pageNames: Record<string, string> = {
   evals: 'Evaluering',
   settings: 'Indstillinger',
   notifications: 'Notifikationer',
+  upload: 'Upload',
 }
 
 /** Intern komponent der aktiverer favicon-badge (kræver at være inside LiveDataProvider) */

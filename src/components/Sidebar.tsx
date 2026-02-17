@@ -24,6 +24,7 @@ const nav = [
   { id: 'clients', label: 'Projekter', icon: 'folder' },
   { id: 'cron', label: 'Planlagte Jobs', icon: 'clock' },
   { id: 'api', label: 'API Forbrug', icon: 'chart-bar' },
+  { id: 'upload', label: 'Fil Upload', icon: 'upload' },
   { id: 'workshop', label: 'Værksted', icon: 'wrench' },
   { id: 'index', label: 'Søgning', icon: 'magnifying-glass' },
   { id: 'evals', label: 'Evalueringer', icon: 'gauge' },
