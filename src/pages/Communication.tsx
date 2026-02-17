@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import Card from '../components/Card'
 import Icon from '../components/Icon'
 import { usePageTitle } from '../hooks/usePageTitle'
@@ -14,9 +14,14 @@ interface Message {
   toolCalls?: string[]
 }
 
+type FilterType = 'alle' | 'aktive' | 'sub-agenter'
+
+const ACTIVE_THRESHOLD_MS = 60 * 60 * 1000 // 1 time
+const POLL_INTERVAL_MS = 3000              // Auto-refresh beskeder hvert 3s
+
 export default function Communication() {
   usePageTitle('Kommunikation')
-  
+
   const [sessions, setSessions] = useState<ApiSession[]>([])
   const [selectedSession, setSelectedSession] = useState<string | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
@@ -24,26 +29,76 @@ export default function Communication() {
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
   const [allExpanded, setAllExpanded] = useState(false)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const [filter, setFilter] = useState<FilterType>('alle')
+  const [unreadSessions, setUnreadSessions] = useState<Set<string>>(new Set())
 
-  // Scroll to bottom when messages change
+  // Ref til "sidst set" tidspunkt pr. session
+  const lastSeenRef = useRef<Record<string, number>>({})
+  // Ref til seneste kendte besked-tidspunkt pr. session (til unread-detektion)
+  const latestMsgTimestampRef = useRef<Record<string, number>>({})
+
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const selectedSessionRef = useRef<string | null>(null)
+  const sendingRef = useRef(false)
+
+  // Hold refs synkrone med state
+  useEffect(() => { selectedSessionRef.current = selectedSession }, [selectedSession])
+  useEffect(() => { sendingRef.current = sending }, [sending])
+
+  // Scroll ned når beskeder ændres
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  // Fetch sessions on mount and every 5 seconds
+  // --- Hent sessioner hvert 5s (og brug lastMessages til unread-detektion) ---
   useEffect(() => {
     fetchSessions()
     const interval = setInterval(fetchSessions, 5000)
     return () => clearInterval(interval)
   }, [])
 
-  // Fetch messages when session is selected
+  // --- Auto-refresh beskeder hvert 3s for valgte session ---
+  useEffect(() => {
+    if (!selectedSession) return
+    const interval = setInterval(() => {
+      // Spring over hvis vi sender en besked
+      if (sendingRef.current) return
+      fetchMessages(selectedSession, /* silent */ true)
+    }, POLL_INTERVAL_MS)
+    return () => clearInterval(interval)
+  }, [selectedSession])
+
+  // Hent beskeder første gang session vælges
   useEffect(() => {
     if (selectedSession) {
       fetchMessages(selectedSession)
+      // Marker som "set" nu
+      markAsSeen(selectedSession)
     }
   }, [selectedSession])
+
+  // --- Filtrer sessions ---
+  const filteredSessions = sessions.filter(s => {
+    if (filter === 'aktive') return Date.now() - s.updatedAt < ACTIVE_THRESHOLD_MS
+    if (filter === 'sub-agenter') return s.kind !== 'main'
+    return true
+  })
+
+  function markAsSeen(sessionKey: string) {
+    lastSeenRef.current[sessionKey] = Date.now()
+    setUnreadSessions(prev => {
+      if (!prev.has(sessionKey)) return prev
+      const next = new Set(prev)
+      next.delete(sessionKey)
+      return next
+    })
+  }
+
+  function handleSelectSession(sessionKey: string) {
+    setSelectedSession(sessionKey)
+    markAsSeen(sessionKey)
+    setMessages([])
+  }
 
   async function fetchSessions() {
     try {
@@ -51,31 +106,60 @@ export default function Communication() {
       const text = data.result?.content?.[0]?.text
       if (text) {
         const parsed = JSON.parse(text)
-        setSessions(parsed.sessions || [])
-        // Auto-select first session if none selected
-        if (!selectedSession && parsed.sessions?.length > 0) {
-          setSelectedSession(parsed.sessions[0].key)
+        const incoming: ApiSession[] = parsed.sessions || []
+        setSessions(incoming)
+
+        // Auto-vælg første session
+        if (!selectedSessionRef.current && incoming.length > 0) {
+          setSelectedSession(incoming[0].key)
+          markAsSeen(incoming[0].key)
         }
+
+        // Opdater unread-indikatorer baseret på lastMessages
+        incoming.forEach(session => {
+          const lastMsgs = session.lastMessages
+          if (!lastMsgs || lastMsgs.length === 0) return
+          // Seneste besked-timestamp
+          const latestTs = lastMsgs.reduce((max: number, m: any) => {
+            const ts = m.timestamp || 0
+            return ts > max ? ts : max
+          }, 0)
+          if (latestTs === 0) return
+
+          const prevLatest = latestMsgTimestampRef.current[session.key] || 0
+          latestMsgTimestampRef.current[session.key] = Math.max(prevLatest, latestTs)
+
+          // Ny besked siden sidst set? Og ikke den valgte session?
+          const lastSeen = lastSeenRef.current[session.key] || 0
+          if (latestTs > lastSeen && session.key !== selectedSessionRef.current) {
+            setUnreadSessions(prev => {
+              if (prev.has(session.key)) return prev
+              const next = new Set(prev)
+              next.add(session.key)
+              return next
+            })
+          }
+        })
       }
       setLoading(false)
     } catch (error) {
-      console.error('Failed to fetch sessions:', error)
+      console.error('Fejl ved hentning af sessioner:', error)
       setLoading(false)
     }
   }
 
-  async function fetchMessages(sessionKey: string) {
+  const fetchMessages = useCallback(async (sessionKey: string, silent = false) => {
     try {
       const data = await invokeToolRaw('sessions_history', { sessionKey, limit: 50 }) as any
       const text = data.result?.content?.[0]?.text
       if (text) {
         const parsed = JSON.parse(text)
         const msgs = parsed.messages || []
-        
-        const parsed_msgs = msgs.map((m: any) => {
+
+        const parsedMsgs = msgs.map((m: any) => {
           let content = ''
           const toolCalls: string[] = []
-          
+
           if (typeof m.content === 'string') {
             content = m.content
           } else if (Array.isArray(m.content)) {
@@ -91,19 +175,18 @@ export default function Communication() {
                   : '...'
                 toolCalls.push(`${name}(${argStr})`)
               }
-              // Skip 'thinking' blocks entirely
+              // Spring 'thinking'-blokke over
             }
             content = textParts.join('\n')
           } else {
             content = m.text || ''
           }
-          
-          // Append tool call badges if present
+
           if (toolCalls.length > 0) {
-            const toolLine = toolCalls.map(t => `[${t}]`).join(' ')
+            const toolLine = toolCalls.map((t: string) => `[${t}]`).join(' ')
             content = content ? `${content}\n${toolLine}` : toolLine
           }
-          
+
           return {
             role: m.role as Message['role'],
             content,
@@ -112,38 +195,41 @@ export default function Communication() {
             hasToolCalls: toolCalls.length > 0,
             toolCalls,
           }
-        })
-        // Filter out empty messages and NO_REPLY/HEARTBEAT_OK
-        .filter((m: any) => {
+        }).filter((m: any) => {
           if (!m.content || !m.content.trim()) return false
           const t = m.content.trim()
           if (t === 'NO_REPLY' || t === 'HEARTBEAT_OK') return false
           return true
         })
-        
-        setMessages(parsed_msgs)
+
+        // Kun opdater state hvis det er den stadig valgte session
+        if (sessionKey === selectedSessionRef.current) {
+          setMessages(parsedMsgs)
+        }
+
+        // Opdater sidst-set ved auto-refresh (session er aktiv og set)
+        if (silent && sessionKey === selectedSessionRef.current) {
+          lastSeenRef.current[sessionKey] = Date.now()
+        }
       }
     } catch (error) {
-      console.error('Failed to fetch messages:', error)
+      if (!silent) console.error('Fejl ved hentning af beskeder:', error)
     }
-  }
+  }, [])
 
   async function sendMessage() {
     if (!messageInput.trim() || !selectedSession) return
-    
+
     setSending(true)
     try {
-      // Send message into the selected session (agent turn)
       await invokeToolRaw('sessions_send', {
         sessionKey: selectedSession,
         message: messageInput,
       })
-      
       setMessageInput('')
-      // Refresh messages after sending
       setTimeout(() => fetchMessages(selectedSession), 1000)
     } catch (error) {
-      console.error('Failed to send message:', error)
+      console.error('Fejl ved afsendelse:', error)
     } finally {
       setSending(false)
     }
@@ -154,6 +240,21 @@ export default function Communication() {
   }
 
   const selectedSessionData = sessions.find(s => s.key === selectedSession)
+
+  // Filterknapstyle helper
+  const filterBtnStyle = (active: boolean): React.CSSProperties => ({
+    background: active ? 'rgba(0,122,255,0.18)' : 'rgba(255,255,255,0.05)',
+    border: `1px solid ${active ? 'rgba(0,122,255,0.35)' : 'rgba(255,255,255,0.08)'}`,
+    color: active ? '#5AC8FA' : 'rgba(255,255,255,0.55)',
+    padding: '5px 12px',
+    borderRadius: '8px',
+    fontSize: '12px',
+    fontWeight: active ? 600 : 400,
+    cursor: 'pointer',
+    transition: 'all 0.15s',
+    backdropFilter: 'blur(8px)',
+    WebkitBackdropFilter: 'blur(8px)',
+  })
 
   return (
     <div>
@@ -180,25 +281,60 @@ export default function Communication() {
           {allExpanded ? 'Fold sammen' : 'Udvid alle'}
         </button>
       </div>
-      <p className="text-sm mb-8" style={{ color: 'rgba(255,255,255,0.5)' }}>
+      <p className="text-sm mb-6" style={{ color: 'rgba(255,255,255,0.5)' }}>
         Live beskeder fra Telegram og andre kanaler
       </p>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 h-[calc(100vh-240px)]">
         {/* Sessions sidebar */}
-        <Card className="lg:col-span-1 overflow-y-auto">
-          <h3 className="text-sm font-semibold text-white mb-3">Aktive Sessioner</h3>
-          {sessions.length === 0 ? (
+        <Card className="lg:col-span-1 overflow-y-auto flex flex-col gap-0">
+          {/* Filter-bar */}
+          <div style={{ marginBottom: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '8px' }}>
+              <Icon name="filter" size={13} style={{ color: 'rgba(255,255,255,0.4)' }} />
+              <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', fontWeight: 500, letterSpacing: '0.03em' }}>
+                FILTER
+              </span>
+            </div>
+            <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+              <button style={filterBtnStyle(filter === 'alle')} onClick={() => setFilter('alle')}>
+                Alle
+              </button>
+              <button style={filterBtnStyle(filter === 'aktive')} onClick={() => setFilter('aktive')}>
+                Aktive
+              </button>
+              <button style={filterBtnStyle(filter === 'sub-agenter')} onClick={() => setFilter('sub-agenter')}>
+                Sub-agenter
+              </button>
+            </div>
+            <div style={{
+              marginTop: '8px',
+              height: '1px',
+              background: 'rgba(255,255,255,0.06)',
+            }} />
+          </div>
+
+          <h3 className="text-sm font-semibold text-white mb-3">
+            Sessioner
+            {filteredSessions.length !== sessions.length && (
+              <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)', fontWeight: 400, marginLeft: '6px' }}>
+                ({filteredSessions.length}/{sessions.length})
+              </span>
+            )}
+          </h3>
+
+          {filteredSessions.length === 0 ? (
             <p className="text-sm text-white/50 text-center py-8">Ingen sessioner</p>
           ) : (
             <div className="space-y-2">
-              {sessions.map(session => {
+              {filteredSessions.map(session => {
                 const isActive = Date.now() - session.updatedAt < 120000
                 const isSelected = session.key === selectedSession
+                const hasUnread = unreadSessions.has(session.key)
                 return (
                   <button
                     key={session.key}
-                    onClick={() => setSelectedSession(session.key)}
+                    onClick={() => handleSelectSession(session.key)}
                     className="w-full text-left px-3 py-2 rounded-lg transition-all"
                     style={{
                       background: isSelected ? 'rgba(0, 122, 255, 0.15)' : 'rgba(255,255,255,0.03)',
@@ -206,13 +342,28 @@ export default function Communication() {
                     }}
                   >
                     <div className="flex items-center gap-2 mb-1">
+                      {/* Status-prik (online/offline) */}
                       <span
-                        className="w-2 h-2 rounded-full"
+                        className="w-2 h-2 rounded-full flex-shrink-0"
                         style={{ background: isActive ? '#34C759' : '#8E8E93' }}
                       />
-                      <span className="text-sm font-medium text-white truncate">
+                      <span className="text-sm font-medium text-white truncate flex-1">
                         {session.displayName || session.label || session.key}
                       </span>
+                      {/* Unread indikator */}
+                      {hasUnread && !isSelected && (
+                        <span
+                          title="Nye beskeder"
+                          style={{
+                            width: '8px',
+                            height: '8px',
+                            borderRadius: '50%',
+                            background: '#007AFF',
+                            flexShrink: 0,
+                            boxShadow: '0 0 6px rgba(0,122,255,0.6)',
+                          }}
+                        />
+                      )}
                     </div>
                     <p className="caption text-xs truncate">{session.channel || 'ingen kanal'}</p>
                     {allExpanded && (
@@ -228,7 +379,7 @@ export default function Communication() {
           )}
         </Card>
 
-        {/* Messages area */}
+        {/* Besked-område */}
         <Card className="lg:col-span-3 flex flex-col">
           {!selectedSession ? (
             <div className="flex-1 flex items-center justify-center text-white/50">
@@ -242,20 +393,41 @@ export default function Communication() {
                   <h3 className="text-sm font-semibold text-white">
                     {selectedSessionData?.displayName || selectedSessionData?.label || selectedSession}
                   </h3>
-                  <p className="caption text-xs">
-                    {selectedSessionData?.channel} · {selectedSessionData?.model}
-                  </p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <p className="caption text-xs">
+                      {selectedSessionData?.channel} · {selectedSessionData?.model}
+                    </p>
+                    {/* Auto-refresh indikator */}
+                    <span style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      fontSize: '10px',
+                      color: 'rgba(52,199,89,0.7)',
+                    }}>
+                      <span style={{
+                        width: '5px',
+                        height: '5px',
+                        borderRadius: '50%',
+                        background: '#34C759',
+                        display: 'inline-block',
+                        animation: 'pulse 2s infinite',
+                      }} />
+                      Live
+                    </span>
+                  </div>
                 </div>
                 <button
                   onClick={() => fetchMessages(selectedSession)}
                   className="p-2 rounded-lg transition-all"
                   style={{ background: 'rgba(255,255,255,0.06)' }}
+                  title="Genindlæs beskeder"
                 >
                   <Icon name="arrow-path" size={16} className="text-white/70" />
                 </button>
               </div>
 
-              {/* Messages */}
+              {/* Beskeder */}
               <div className="flex-1 overflow-y-auto space-y-3 mb-4">
                 {messages.length === 0 ? (
                   <p className="text-sm text-white/50 text-center py-8">Ingen beskeder</p>
@@ -354,6 +526,7 @@ export default function Communication() {
                     background: 'rgba(0, 122, 255, 0.2)',
                     border: '1px solid rgba(0, 122, 255, 0.3)',
                     color: '#007AFF',
+                    cursor: sending || !messageInput.trim() ? 'not-allowed' : 'pointer',
                   }}
                 >
                   {sending ? 'Sender...' : 'Send'}
@@ -363,6 +536,14 @@ export default function Communication() {
           )}
         </Card>
       </div>
+
+      {/* CSS animation til Live-prik */}
+      <style>{`
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.3; }
+        }
+      `}</style>
     </div>
   )
 }
