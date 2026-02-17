@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import Card from '../components/Card'
 import Icon from '../components/Icon'
+import PageHeader from '../components/PageHeader'
 import { useNotifications, NotificationType } from '../api/NotificationContext'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { SkeletonCard, SkeletonRow } from '../components/SkeletonLoader'
@@ -47,12 +48,11 @@ export default function Notifications() {
   if (isLoading) {
     return (
       <div>
-        <div className="flex items-center justify-between mb-1">
-          <h1 className="text-xl sm:text-2xl font-bold text-white">Notifikationer</h1>
-        </div>
-        <p className="text-sm mb-6" style={{ color: 'rgba(255,255,255,0.5)' }}>
-          Alerts for fejl, advarsler og vigtige hændelser
-        </p>
+        <PageHeader
+          title="Notifikationer"
+          description="Alerts for fejl, advarsler og vigtige hændelser"
+          breadcrumb={[{ label: 'Dashboard', href: '#dashboard' }, { label: 'Notifikationer' }]}
+        />
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
           {[1, 2, 3, 4].map(i => <SkeletonCard key={i} lines={2} />)}
         </div>
@@ -68,17 +68,16 @@ export default function Notifications() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-1">
-        <h1 className="text-xl sm:text-2xl font-bold text-white">Notifikationer</h1>
-        {unreadCount > 0 && (
+      <PageHeader
+        title="Notifikationer"
+        description="Alerts for fejl, advarsler og vigtige hændelser"
+        breadcrumb={[{ label: 'Dashboard', href: '#dashboard' }, { label: 'Notifikationer' }]}
+        actions={unreadCount > 0 ? (
           <span style={{ background: 'rgba(255,59,48,0.15)', color: '#FF3B30', fontSize: 12, fontWeight: 600, padding: '4px 12px', borderRadius: 10 }}>
             {unreadCount} ulæste
           </span>
-        )}
-      </div>
-      <p className="text-sm mb-6" style={{ color: 'rgba(255,255,255,0.5)' }}>
-        Alerts for fejl, advarsler og vigtige hændelser
-      </p>
+        ) : undefined}
+      />
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
         {(['error', 'warning', 'info', 'success'] as NotificationType[]).map(type => {

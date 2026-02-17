@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import Card from '../components/Card'
 import Icon from '../components/Icon'
+import PageHeader from '../components/PageHeader'
 import { invokeToolRaw } from '../api/openclaw'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { EvalsSkeleton } from '../components/SkeletonLoader'
@@ -112,10 +113,11 @@ export default function Evals() {
 
   return (
     <div>
-      <h1 className="text-xl sm:text-2xl font-bold mb-1">Evalueringer</h1>
-      <p className="caption mb-6">
-        Evalueringsdatasæt og kvalitetssporing · {evals.length} test cases
-      </p>
+      <PageHeader
+        title="Evalueringer"
+        description={`Evalueringsdatasæt og kvalitetssporing · ${evals.length} test cases`}
+        breadcrumb={[{ label: 'Dashboard', href: '#dashboard' }, { label: 'Evalueringer' }]}
+      />
 
       <div className="flex flex-wrap gap-3 mb-6">
         <button 
