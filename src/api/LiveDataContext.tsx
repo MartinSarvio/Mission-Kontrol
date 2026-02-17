@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react'
-import { fetchSessions, fetchStatus, fetchCronJobs, fetchConfig, getGatewayToken, ApiSession, CronJobApi } from './openclaw'
+import { fetchSessions, fetchStatus, fetchCronJobs, fetchConfig, fetchInstalledSkills, getGatewayToken, ApiSession, CronJobApi, SkillInfo } from './openclaw'
 
 interface LiveData {
   isConnected: boolean
@@ -12,6 +12,7 @@ interface LiveData {
   statusText: string | null
   cronJobs: CronJobApi[]
   gatewayConfig: Record<string, any> | null
+  skills: SkillInfo[]
   refresh: () => Promise<void>
 }
 
@@ -26,6 +27,7 @@ const LiveDataContext = createContext<LiveData>({
   statusText: null,
   cronJobs: [],
   gatewayConfig: null,
+  skills: [],
   refresh: async () => {},
 })
 
@@ -35,17 +37,26 @@ export function useLiveData() {
 
 const CACHE_KEY = 'openclaw-live-cache'
 
-function loadCache(): { sessions: ApiSession[], statusText: string | null, cronJobs: CronJobApi[], gatewayConfig: Record<string, any> | null } {
+function loadCache(): { sessions: ApiSession[], statusText: string | null, cronJobs: CronJobApi[], gatewayConfig: Record<string, any> | null, skills: SkillInfo[] } {
   try {
     const raw = localStorage.getItem(CACHE_KEY)
-    if (raw) return JSON.parse(raw)
+    if (raw) {
+      const parsed = JSON.parse(raw)
+      return {
+        sessions: parsed.sessions || [],
+        statusText: parsed.statusText || null,
+        cronJobs: parsed.cronJobs || [],
+        gatewayConfig: parsed.gatewayConfig || null,
+        skills: parsed.skills || [],
+      }
+    }
   } catch {}
-  return { sessions: [], statusText: null, cronJobs: [], gatewayConfig: null }
+  return { sessions: [], statusText: null, cronJobs: [], gatewayConfig: null, skills: [] }
 }
 
-function saveCache(sessions: ApiSession[], statusText: string | null, cronJobs: CronJobApi[], gatewayConfig: Record<string, any> | null) {
+function saveCache(sessions: ApiSession[], statusText: string | null, cronJobs: CronJobApi[], gatewayConfig: Record<string, any> | null, skills: SkillInfo[]) {
   try {
-    localStorage.setItem(CACHE_KEY, JSON.stringify({ sessions, statusText, cronJobs, gatewayConfig }))
+    localStorage.setItem(CACHE_KEY, JSON.stringify({ sessions, statusText, cronJobs, gatewayConfig, skills }))
   } catch {}
 }
 
@@ -60,6 +71,7 @@ export function LiveDataProvider({ children }: { children: ReactNode }) {
   const [statusText, setStatusText] = useState<string | null>(cached.current.statusText)
   const [cronJobs, setCronJobs] = useState<CronJobApi[]>(cached.current.cronJobs)
   const [gatewayConfig, setGatewayConfig] = useState<Record<string, any> | null>(cached.current.gatewayConfig)
+  const [skills, setSkills] = useState<SkillInfo[]>(cached.current.skills)
   const [consecutiveErrors, setConsecutiveErrors] = useState(0)
   
   // Track previous data hash to only update when data actually changes
@@ -67,6 +79,7 @@ export function LiveDataProvider({ children }: { children: ReactNode }) {
   const prevStatusHash = useRef<string>('')
   const prevCronHash = useRef<string>('')
   const prevConfigHash = useRef<string>('')
+  const prevSkillsHash = useRef<string>('')
   
   // Track if this is first load (show loading only on first load)
   const isFirstLoad = useRef(true)
@@ -80,14 +93,15 @@ export function LiveDataProvider({ children }: { children: ReactNode }) {
 
     setIsRefreshing(true)
     try {
-      const [sessionsData, statusData, cronData, configData] = await Promise.all([
+      const [sessionsData, statusData, cronData, configData, skillsData] = await Promise.all([
         fetchSessions().catch(() => null),
         fetchStatus().catch(() => null),
         fetchCronJobs().catch(() => null),
         fetchConfig().catch(() => null),
+        fetchInstalledSkills().catch(() => null),
       ])
 
-      const anySuccess = sessionsData || statusData || cronData !== null || configData
+      const anySuccess = sessionsData || statusData || cronData !== null || configData || skillsData
       if (anySuccess) {
         setIsConnected(true)
         setError(null)
@@ -131,6 +145,14 @@ export function LiveDataProvider({ children }: { children: ReactNode }) {
             setGatewayConfig(configData)
           }
         }
+
+        if (skillsData) {
+          const newHash = JSON.stringify(skillsData.map(s => ({ name: s.name, desc: s.description, loc: s.location })))
+          if (newHash !== prevSkillsHash.current) {
+            prevSkillsHash.current = newHash
+            setSkills(skillsData)
+          }
+        }
         
         // After first successful load, never show loading again
         isFirstLoad.current = false
@@ -140,7 +162,8 @@ export function LiveDataProvider({ children }: { children: ReactNode }) {
           sessionsData ? sessionsData.sessions : sessions,
           statusData || statusText,
           cronData || cronJobs,
-          configData || gatewayConfig
+          configData || gatewayConfig,
+          skillsData || skills
         )
       } else {
         setIsConnected(false)
@@ -199,7 +222,8 @@ export function LiveDataProvider({ children }: { children: ReactNode }) {
       sessions, 
       statusText, 
       cronJobs, 
-      gatewayConfig, 
+      gatewayConfig,
+      skills,
       refresh 
     }}>
       {children}
