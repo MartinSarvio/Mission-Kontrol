@@ -39,7 +39,6 @@ const navGroups: NavGroup[] = [
       { id: 'documents', label: 'Dokumenter', icon: 'doc' },
       { id: 'agents', label: 'Agenter', icon: 'person-circle' },
       { id: 'skills', label: 'Færdigheder', icon: 'sparkle' },
-      { id: 'media', label: 'Medier', icon: 'play' },
     ],
   },
   {

@@ -32,7 +32,6 @@ const Evals = lazy(() => import('./pages/Evals'))
 const Settings = lazy(() => import('./pages/Settings'))
 const Notifications = lazy(() => import('./pages/Notifications'))
 const Upload = lazy(() => import('./pages/Upload'))
-const Media = lazy(() => import('./pages/Media'))
 const NotFound = lazy(() => import('./pages/NotFound'))
 
 const pages: Record<string, React.ComponentType> = {
@@ -54,7 +53,6 @@ const pages: Record<string, React.ComponentType> = {
   settings: Settings,
   notifications: Notifications,
   upload: Upload,
-  media: Media,
 }
 
 const pageNames: Record<string, string> = {
@@ -76,7 +74,6 @@ const pageNames: Record<string, string> = {
   settings: 'Indstillinger',
   notifications: 'Notifikationer',
   upload: 'Upload',
-  media: 'Medier',
 }
 
 /** Aktiverer favicon-badge (kræver at være inside LiveDataProvider) */
