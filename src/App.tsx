@@ -3,7 +3,6 @@ import { LiveDataProvider } from './api/LiveDataContext'
 import { NotificationProvider } from './api/NotificationContext'
 import { ToastProvider } from './components/Toast'
 import ConnectionToast from './components/ConnectionToast'
-import ConnectionBanner from './components/ConnectionBanner'
 import Layout from './components/Layout'
 import UpdateBanner from './components/UpdateBanner'
 import { KeyboardShortcutsProvider } from './components/KeyboardShortcuts'
@@ -107,7 +106,6 @@ export default function App() {
         <FaviconBadge />
         <ToastProvider>
           <ConnectionToast />
-          <ConnectionBanner />
           {/*
            * KeyboardShortcutsProvider håndterer:
            *   Ctrl+K / Cmd+K  → kommandopalet

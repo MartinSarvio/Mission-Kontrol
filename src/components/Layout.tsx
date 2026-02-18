@@ -4,6 +4,7 @@ import Icon from './Icon'
 import MaisonFlyout from './MaisonFlyout'
 import NotificationCenter from './NotificationCenter'
 import ScrollToTop from './ScrollToTop'
+import OfflineBanner from './OfflineBanner'
 
 interface LayoutProps {
   children: ReactNode
@@ -40,6 +41,8 @@ export default function Layout({ children, activePage, onNavigate }: LayoutProps
       minHeight: '100vh',
       position: 'relative'
     }}>
+      {/* Global offline-banner — slider ned fra toppen ved forbindelsestab */}
+      <OfflineBanner />
       {/* Skip to content link for keyboard navigation */}
       <a
         href="#main-content"
