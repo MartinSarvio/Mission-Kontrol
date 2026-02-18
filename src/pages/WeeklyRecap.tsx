@@ -97,7 +97,7 @@ export default function WeeklyRecap() {
   }
 
   return (
-    <div>
+    <div className="animate-page-in">
       <PageHeader
         title="Ugerapport"
         description={weekRange}
@@ -112,7 +112,7 @@ export default function WeeklyRecap() {
           { label: 'Fejl', value: metrics.errorSessions.toString(), color: 'text-[#FF3B30]' },
           { label: 'Est. Omkostning', value: `$${metrics.estimatedCost.toFixed(2)}`, color: 'text-white' },
         ].map((s, i) => (
-          <Card key={i}>
+          <Card key={i} style={{ animationDelay: `${i * 60}ms` }}>
             <p className="caption">{s.label}</p>
             <p className={`text-2xl font-bold mt-1 ${s.color}`}>{s.value}</p>
           </Card>
@@ -120,7 +120,7 @@ export default function WeeklyRecap() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        <Card title="Aktivitetsoversigt">
+        <Card title="Aktivitetsoversigt" style={{ animationDelay: '240ms' }}>
           <div className="space-y-3">
             <div className="flex items-center justify-between py-2 glass-row">
               <span style={{ color: 'rgba(255,255,255,0.7)' }}>Sessions Sidst 7 Dage</span>
@@ -141,7 +141,7 @@ export default function WeeklyRecap() {
           </div>
         </Card>
 
-        <Card title="Planlagte Jobs">
+        <Card title="Planlagte Jobs" style={{ animationDelay: '300ms' }}>
           {cronJobs.length === 0 ? (
             <p className="text-center py-8" style={{ color: 'rgba(255,255,255,0.4)' }}>Ingen planlagte jobs</p>
           ) : (
@@ -168,7 +168,7 @@ export default function WeeklyRecap() {
         </Card>
       </div>
 
-      <Card title="Daglig Aktivitet" className="mb-6">
+      <Card title="Daglig Aktivitet" className="mb-6" style={{ animationDelay: '360ms' }}>
         <div className="space-y-4">
           {metrics.dailyActivity.map((day, i) => (
             <div key={i} className="flex items-center gap-3">
@@ -195,7 +195,7 @@ export default function WeeklyRecap() {
         </div>
       </Card>
 
-      <Card title="Seneste Sessions">
+      <Card title="Seneste Sessions" style={{ animationDelay: '420ms' }}>
         {sessions.length === 0 ? (
           <p className="text-center py-8" style={{ color: 'rgba(255,255,255,0.4)' }}>Ingen sessions</p>
         ) : (

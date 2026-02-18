@@ -156,7 +156,7 @@ export default function Settings() {
   const allModels = [primaryModel, ...availableModels.filter((m: string) => m !== primaryModel)]
 
   return (
-    <div>
+    <div className="animate-page-in">
       <div className="flex items-center gap-3 mb-1">
         <h1 className="text-xl sm:text-2xl font-bold text-white">Indstillinger</h1>
         <DataFreshness className="ml-auto" />
@@ -180,7 +180,7 @@ export default function Settings() {
           <ApiConnectionSection />
 
           {isConnected && gatewayConfig && (
-            <Card title="Gateway Konfiguration" subtitle="Live data fra API">
+            <Card title="Gateway Konfiguration" subtitle="Live data fra API" style={{ animationDelay: '0ms' }}>
               <div className="space-y-2 text-sm">
                 {[
                   ['Port', gatewayConfig.gateway?.port],

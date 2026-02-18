@@ -205,7 +205,7 @@ export default function Skills() {
   }
 
   return (
-    <div className="relative">
+    <div className="relative animate-page-in">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 mb-1">
         <h1 className="text-xl sm:text-2xl font-bold text-white">Færdigheder</h1>
         <div className="flex items-center gap-3 w-full sm:w-auto">

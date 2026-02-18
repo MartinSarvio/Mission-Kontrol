@@ -55,7 +55,7 @@ export default function Clients() {
   }, [search, projects])
 
   return (
-    <div>
+    <div className="animate-page-in">
       <div className="flex items-center gap-3 mb-1">
         <h1 className="text-xl sm:text-2xl font-bold">Projekter</h1>
         <DataFreshness className="ml-auto" />
@@ -74,8 +74,8 @@ export default function Clients() {
 
       {!loading && (
         <div className="space-y-3">
-          {filtered.map(project => (
-          <Card key={project.id}>
+          {filtered.map((project, projIdx) => (
+          <Card key={project.id} style={{ animationDelay: `${projIdx * 50}ms` }}>
             <div 
               className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 cursor-pointer"
               onClick={() => setSelected(project)}

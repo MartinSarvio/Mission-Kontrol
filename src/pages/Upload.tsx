@@ -117,7 +117,7 @@ export default function Upload() {
   }
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col animate-page-in">
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-1">
           <h1 className="text-2xl font-bold text-white">Fil Upload</h1>

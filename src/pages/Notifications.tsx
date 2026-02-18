@@ -92,7 +92,7 @@ export default function Notifications() {
   }
 
   return (
-    <div>
+    <div className="animate-page-in">
       <PageHeader
         title="Notifikationer"
         description="Alerts for fejl, advarsler og vigtige hændelser"
@@ -110,11 +110,11 @@ export default function Notifications() {
       />
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-        {(['error', 'warning', 'info', 'success'] as NotificationType[]).map(type => {
+        {(['error', 'warning', 'info', 'success'] as NotificationType[]).map((type, typeIdx) => {
           const config = typeConfig[type]
           const count = notifications.filter(n => n.type === type).length
           return (
-            <Card key={type} style={{ cursor: 'pointer' }} onClick={() => setFilter(type)}>
+            <Card key={type} style={{ cursor: 'pointer', animationDelay: `${typeIdx * 60}ms` }} onClick={() => setFilter(type)}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <div style={{ width: 36, height: 36, borderRadius: 10, background: config.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Icon name={config.icon} size={18} style={{ color: config.color }} />
@@ -157,7 +157,7 @@ export default function Notifications() {
         </div>
       </div>
 
-      <Card>
+      <Card style={{ animationDelay: '240ms' }}>
         {filtered.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '48px 20px', color: 'rgba(255,255,255,0.35)' }}>
             <Icon name="bell" size={40} className="text-white/15" style={{ marginBottom: 16, display: 'inline-flex' }} />

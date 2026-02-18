@@ -864,7 +864,7 @@ export default function Journal() {
   }
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col animate-page-in">
       <style>{`
         @keyframes journal-spin {
           from { transform: rotate(0deg); }

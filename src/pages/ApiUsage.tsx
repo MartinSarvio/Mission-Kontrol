@@ -153,7 +153,7 @@ export default function ApiUsage() {
   const hasAnyData = sessions.length > 0 || statusText || gatewayConfig
 
   return (
-    <div>
+    <div className="animate-page-in">
       <div className="flex items-center gap-3 mb-1">
         <h1 className="text-xl sm:text-2xl font-bold">API Forbrug</h1>
         <DataFreshness className="ml-auto" />
@@ -223,7 +223,7 @@ export default function ApiUsage() {
             trend: [sessionMetrics.totalSessions * 0.6, sessionMetrics.totalSessions * 0.8, sessionMetrics.totalSessions]
           },
         ].map((s, i) => (
-          <Card key={i}>
+          <Card key={i} style={{ animationDelay: `${i * 60}ms` }}>
             <p className="caption">{s.label}</p>
             <div className="flex items-end justify-between mt-1">
               <p className="text-2xl font-bold">{s.value}</p>
@@ -236,10 +236,10 @@ export default function ApiUsage() {
       {/* ── Aktivitetsgrafer ────────────────────────────────────────── */}
       {sessionMetrics.recentActivity.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          <Card title="Sessions Sidst 7 Dage">
+          <Card title="Sessions Sidst 7 Dage" style={{ animationDelay: '240ms' }}>
             <BarChart data={sessionMetrics.recentActivity} height={200} />
           </Card>
-          <Card title="Token Distribution">
+          <Card title="Token Distribution" style={{ animationDelay: '300ms' }}>
             <BarChart
               data={sessionMetrics.sessionTokens.map((t, i) => ({
                 label: `S${i + 1}`,
@@ -252,7 +252,7 @@ export default function ApiUsage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          <Card title="Sessions Sidst 7 Dage">
+          <Card title="Sessions Sidst 7 Dage" style={{ animationDelay: '240ms' }}>
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <div style={{
                 width: 40,
@@ -270,7 +270,7 @@ export default function ApiUsage() {
               <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Data vises her, når der er sessioner</p>
             </div>
           </Card>
-          <Card title="Token Distribution">
+          <Card title="Token Distribution" style={{ animationDelay: '300ms' }}>
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <div style={{
                 width: 40,
@@ -292,7 +292,7 @@ export default function ApiUsage() {
       )}
 
       {/* ── Modeller i Brug ─────────────────────────────────────────── */}
-      <Card title="Modeller i Brug">
+      <Card title="Modeller i Brug" style={{ animationDelay: '360ms' }}>
         {models.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-10 text-center">
             <Icon name="brain" size={28} style={{ color: 'rgba(255,255,255,0.2)', marginBottom: 10 }} />
@@ -314,7 +314,7 @@ export default function ApiUsage() {
       </Card>
 
       {/* ── Live Session Oversigt ────────────────────────────────────── */}
-      <Card title="Live Session Oversigt" className="mt-4">
+      <Card title="Live Session Oversigt" className="mt-4" style={{ animationDelay: '420ms' }}>
         {sessions.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <div style={{

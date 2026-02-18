@@ -260,7 +260,7 @@ export default function Dashboard() {
   }, [parsedStatus.tokens])
 
   return (
-    <div>
+    <div className="animate-page-in">
       <div className="flex items-center gap-3 mb-1">
         <h1 className="text-xl sm:text-2xl font-bold text-white">{greeting}</h1>
         <ConnectionStatus />
@@ -285,7 +285,8 @@ export default function Dashboard() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
             <Card style={{ 
               position: 'relative',
-              overflow: 'visible'
+              overflow: 'visible',
+              animationDelay: '0ms'
             }}>
               <div style={{
                 position: 'absolute',
@@ -303,7 +304,8 @@ export default function Dashboard() {
             </Card>
             <Card style={{ 
               position: 'relative',
-              overflow: 'visible'
+              overflow: 'visible',
+              animationDelay: '60ms'
             }}>
               <div style={{
                 position: 'absolute',
@@ -322,7 +324,8 @@ export default function Dashboard() {
 
             <Card style={{ 
               position: 'relative',
-              overflow: 'visible'
+              overflow: 'visible',
+              animationDelay: '120ms'
             }}>
               <div style={{
                 position: 'absolute',
@@ -346,7 +349,8 @@ export default function Dashboard() {
 
             <Card style={{ 
               position: 'relative',
-              overflow: 'visible'
+              overflow: 'visible',
+              animationDelay: '180ms'
             }}>
               <div style={{
                 position: 'absolute',
@@ -364,7 +368,8 @@ export default function Dashboard() {
             </Card>
             <Card style={{ 
               position: 'relative',
-              overflow: 'visible'
+              overflow: 'visible',
+              animationDelay: '240ms'
             }}>
               <div style={{
                 position: 'absolute',
@@ -392,7 +397,7 @@ export default function Dashboard() {
           <DagensForbrug sessions={sessions} />
 
           {/* Systemhelbred */}
-          <Card title="Systemhelbred" subtitle="Server- og forbindelsesstatus" className="mb-8">
+          <Card title="Systemhelbred" subtitle="Server- og forbindelsesstatus" className="mb-8" style={{ animationDelay: '300ms' }}>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               {/* Gateway Uptime */}
               <div className="flex items-start gap-3">

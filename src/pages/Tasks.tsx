@@ -1065,7 +1065,7 @@ export default function Tasks() {
   )
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col animate-page-in">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>

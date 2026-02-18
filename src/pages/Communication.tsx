@@ -258,7 +258,7 @@ export default function Communication() {
   })
 
   return (
-    <div>
+    <div className="animate-page-in">
       <div className="flex items-center gap-3 mb-1">
         <h1 className="text-xl sm:text-2xl font-bold text-white">Kommunikation</h1>
         <DataFreshness />
@@ -289,7 +289,7 @@ export default function Communication() {
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 h-[calc(100vh-240px)]">
         {/* Sessions sidebar */}
-        <Card className="lg:col-span-1 overflow-y-auto flex flex-col gap-0">
+        <Card className="lg:col-span-1 overflow-y-auto flex flex-col gap-0" style={{ animationDelay: '0ms' }}>
           {/* Filter-bar */}
           <div style={{ marginBottom: '10px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '8px' }}>
@@ -382,7 +382,7 @@ export default function Communication() {
         </Card>
 
         {/* Besked-område */}
-        <Card className="lg:col-span-3 flex flex-col">
+        <Card className="lg:col-span-3 flex flex-col" style={{ animationDelay: '60ms' }}>
           {!selectedSession ? (
             <div className="flex-1 flex items-center justify-center text-white/50">
               Vælg en session for at se beskeder

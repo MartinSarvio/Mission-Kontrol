@@ -405,7 +405,7 @@ export default function Intelligence() {
   }
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col animate-page-in">
       {/* Header & Search */}
       <div className="mb-4">
         <div className="flex items-center gap-3 mb-4">

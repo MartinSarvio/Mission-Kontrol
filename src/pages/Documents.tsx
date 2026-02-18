@@ -83,7 +83,7 @@ export default function Documents() {
   }
 
   return (
-    <div>
+    <div className="animate-page-in">
       <div className="flex items-center gap-3 mb-1">
         <h1 className="text-xl sm:text-2xl font-bold">Dokumenter</h1>
         <DataFreshness className="ml-auto" />
@@ -112,7 +112,7 @@ export default function Documents() {
           }
         />
       ) : (
-        <Card>
+        <Card style={{ animationDelay: '0ms' }}>
           <div className="overflow-x-auto -mx-6 px-6">
             <Table
               data={filtered}

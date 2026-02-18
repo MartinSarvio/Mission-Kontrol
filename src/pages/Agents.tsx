@@ -1330,7 +1330,7 @@ export default function Agents() {
   ]
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col animate-page-in">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-white mb-1">Agenter</h1>

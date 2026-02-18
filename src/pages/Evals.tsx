@@ -113,7 +113,7 @@ export default function Evals() {
   }
 
   return (
-    <div>
+    <div className="animate-page-in">
       <PageHeader
         title="Evalueringer"
         description={`Evalueringsdatasæt og kvalitetssporing · ${evals.length} test cases`}
@@ -191,12 +191,12 @@ export default function Evals() {
 
       {!isLoadingEvals && !evalsError && evals.length > 0 && (
         <div className="space-y-3">
-          {evals.map(evalItem => {
+          {evals.map((evalItem, evalIdx) => {
             const result = results[evalItem.id]
             const isSelected = selectedEval?.id === evalItem.id
 
             return (
-              <Card key={evalItem.id}>
+              <Card key={evalItem.id} style={{ animationDelay: `${evalIdx * 50}ms` }}>
                 <div 
                   className="cursor-pointer"
                   onClick={() => setSelectedEval(evalItem)}

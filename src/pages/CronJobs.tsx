@@ -514,7 +514,7 @@ export default function CronJobs() {
   ], [runningJobs, togglingJobs, runJobNow, toggleEnabled, openHistory])
 
   return (
-    <div>
+    <div className="animate-page-in">
       {/* Header */}
       <div className="flex flex-wrap items-center gap-3 mb-1">
         <h1 className="text-xl sm:text-2xl font-bold">Planlagte Jobs</h1>
@@ -591,7 +591,7 @@ export default function CronJobs() {
           </div>
         </Card>
       ) : (
-        <Card style={{ padding: 0 }}>
+        <Card style={{ padding: 0, animationDelay: '0ms' }}>
           <Table<CronJobRow>
             data={jobs}
             columns={columns}

@@ -170,7 +170,7 @@ export default function Workshop() {
   }
 
   return (
-    <div>
+    <div className="animate-page-in">
       <PageHeader
         title="Værksted"
         description="Prompt-legeplads og workflow-test"
@@ -180,7 +180,7 @@ export default function Workshop() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <div className="col-span-1 lg:col-span-2 space-y-4">
-          <Card title="Prompt Editor">
+          <Card title="Prompt Editor" style={{ animationDelay: '0ms' }}>
             <textarea
               value={prompt}
               onChange={e => setPrompt(e.target.value)}
@@ -234,7 +234,7 @@ export default function Workshop() {
             </div>
           </Card>
 
-          <Card title="Output">
+          <Card title="Output" style={{ animationDelay: '60ms' }}>
             {error && (
               <div className="rounded-xl p-4 mb-3 text-sm" style={{ background: 'rgba(255,59,48,0.1)', color: '#FF3B30' }}>
                 Fejl: {error}
@@ -256,6 +256,7 @@ export default function Workshop() {
           <Card
             title="Historik"
             subtitle={history.length > 0 ? `${history.length} seneste` : 'Ingen gemte prompts'}
+            style={{ animationDelay: '120ms' }}
           >
             <div className="flex items-center justify-between gap-3 mb-3">
               <div className="flex items-center gap-8" style={{ color: 'rgba(255,255,255,0.35)', fontSize: '12px' }}>
@@ -320,7 +321,7 @@ export default function Workshop() {
             )}
           </Card>
 
-          <Card title="Skabeloner" subtitle={`${templates.length} tilgængelige`}>
+          <Card title="Skabeloner" subtitle={`${templates.length} tilgængelige`} style={{ animationDelay: '180ms' }}>
             <div className="space-y-2">
               {templates.map(t => (
                 <div
