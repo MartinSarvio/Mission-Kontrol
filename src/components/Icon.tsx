@@ -362,6 +362,19 @@ const icons: Record<string, (size: number) => JSX.Element> = {
       <line x1="12" y1="8" x2="12" y2="14" /><line x1="6" y1="14" x2="18" y2="14" />
     </svg>
   ),
+  'arrow-counterclockwise': (s) => (
+    <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 12a9 9 0 109-9 9.75 9.75 0 00-6.74 2.74L3 8" />
+      <polyline points="3 3 3 8 8 8" />
+    </svg>
+  ),
+  'drag-handle': (s) => (
+    <svg width={s} height={s} viewBox="0 0 24 24" fill="currentColor">
+      <circle cx="9" cy="7" r="1.5" /><circle cx="15" cy="7" r="1.5" />
+      <circle cx="9" cy="12" r="1.5" /><circle cx="15" cy="12" r="1.5" />
+      <circle cx="9" cy="17" r="1.5" /><circle cx="15" cy="17" r="1.5" />
+    </svg>
+  ),
 }
 
 const Icon = memo(function Icon({ name, size = 16, className = '', style }: IconProps) {

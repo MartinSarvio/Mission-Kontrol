@@ -1,5 +1,6 @@
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import Card from '../components/Card'
+import Icon from '../components/Icon'
 import ConnectionStatus from '../components/ConnectionStatus'
 import DataFreshness from '../components/DataFreshness'
 import { DashboardSkeleton } from '../components/SkeletonLoader'
@@ -23,6 +24,45 @@ import RecentActivity from '../components/dashboard/RecentActivity'
 import { parseStatusText, deriveChannelsFromConfig, getTimeGreeting } from '../components/dashboard/utils'
 import type { SystemInfo } from '../components/dashboard/types'
 
+// ── Drag & Drop Layout ───────────────────────────────────────────
+const LAYOUT_KEY = 'mk-dashboard-layout'
+
+const DEFAULT_WIDGET_ORDER = [
+  'stat-cards',
+  'system-puls',
+  'hurtige-handlinger',
+  'dagens-forbrug',
+  'systemhelb-red',
+  'system-info-grid',
+  'kanaler-og-jobs',
+  'live-aktivitet',
+  'quick-actions',
+  'recent-activity',
+]
+
+function loadLayout(): string[] {
+  try {
+    const stored = localStorage.getItem(LAYOUT_KEY)
+    if (stored) {
+      const parsed = JSON.parse(stored) as string[]
+      // Validate: must contain all default widgets (handles new widgets added later)
+      const valid = DEFAULT_WIDGET_ORDER.every(id => parsed.includes(id))
+      if (valid && parsed.length === DEFAULT_WIDGET_ORDER.length) return parsed
+    }
+  } catch {
+    // ignore parse errors
+  }
+  return [...DEFAULT_WIDGET_ORDER]
+}
+
+function saveLayout(order: string[]) {
+  try {
+    localStorage.setItem(LAYOUT_KEY, JSON.stringify(order))
+  } catch {
+    // ignore storage errors
+  }
+}
+
 export default function Dashboard() {
   usePageTitle('Dashboard')
 
@@ -34,7 +74,66 @@ export default function Dashboard() {
   const [systemInfo, setSystemInfo] = useState<SystemInfo>({})
   const [minuteTick, setMinuteTick] = useState(() => Math.floor(Date.now() / 60000))
 
-  // Opdater hilsen hvert minut
+  // ── Drag & Drop state ────────────────────────────────────────────
+  const [widgetOrder, setWidgetOrder] = useState<string[]>(loadLayout)
+  const draggedId = useRef<string | null>(null)
+  const [dropTargetId, setDropTargetId] = useState<string | null>(null)
+  const [isDragging, setIsDragging] = useState(false)
+
+  const handleDragStart = useCallback((id: string) => {
+    draggedId.current = id
+    setIsDragging(true)
+  }, [])
+
+  const handleDragOver = useCallback((e: React.DragEvent, id: string) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    if (draggedId.current && draggedId.current !== id) {
+      setDropTargetId(id)
+    }
+  }, [])
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    // Only clear if leaving the widget entirely (not a child)
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setDropTargetId(null)
+    }
+  }, [])
+
+  const handleDrop = useCallback((e: React.DragEvent, targetId: string) => {
+    e.preventDefault()
+    const sourceId = draggedId.current
+    if (!sourceId || sourceId === targetId) return
+
+    setWidgetOrder(prev => {
+      const next = [...prev]
+      const fromIdx = next.indexOf(sourceId)
+      const toIdx = next.indexOf(targetId)
+      if (fromIdx === -1 || toIdx === -1) return prev
+      next.splice(fromIdx, 1)
+      next.splice(toIdx, 0, sourceId)
+      saveLayout(next)
+      return next
+    })
+
+    setDropTargetId(null)
+    draggedId.current = null
+    setIsDragging(false)
+  }, [])
+
+  const handleDragEnd = useCallback(() => {
+    draggedId.current = null
+    setDropTargetId(null)
+    setIsDragging(false)
+  }, [])
+
+  const handleResetLayout = useCallback(() => {
+    const defaultOrder = [...DEFAULT_WIDGET_ORDER]
+    setWidgetOrder(defaultOrder)
+    saveLayout(defaultOrder)
+  }, [])
+
+  // ── Opdater hilsen hvert minut ───────────────────────────────────
   useEffect(() => {
     const now = Date.now()
     const msToNextMinute = 60000 - (now % 60000)
@@ -71,7 +170,7 @@ export default function Dashboard() {
             onClick={handleReload}
             style={{ background: '#007AFF', color: '#fff', padding: '8px 20px', borderRadius: 10, fontSize: 14, fontWeight: 600, border: 'none', cursor: 'pointer' }}
           >
-            Prov igen
+            Prøv igen
           </button>
         </div>
       </div>
@@ -172,7 +271,7 @@ export default function Dashboard() {
 
     const cUSD = (tIn / 1_000_000 * 15) + (tOut / 1_000_000 * 75)
     const cDKK = cUSD * 7
-    const fCost = cDKK < 1 ? `${(cDKK * 100).toFixed(0)} oere` : `${cDKK.toFixed(2)} kr`
+    const fCost = cDKK < 1 ? `${(cDKK * 100).toFixed(0)} øre` : `${cDKK.toFixed(2)} kr`
 
     return {
       tokensValue:   inMatch ? inMatch[1] : '0',
@@ -182,6 +281,65 @@ export default function Dashboard() {
       costUSD:   cUSD,
     }
   }, [parsedStatus.tokens])
+
+  // ── Widget render map ────────────────────────────────────────────
+  const widgetMap: Record<string, React.ReactNode> = {
+    'stat-cards': (
+      <StatCards
+        sessionsCount={sessions.length}
+        runningCount={runningCount}
+        completedCount={completedCount}
+        tokensValue={tokensValue}
+        parsedTokens={parsedStatus.tokens || ''}
+        parsedModel={parsedStatus.model || ''}
+        parsedContext={parsedStatus.context || ''}
+        dailySpend={dailySpend}
+        cronActiveCount={cronActiveCount}
+        cronJobsTotal={cronJobs.length}
+      />
+    ),
+    'system-puls': <SystemPuls />,
+    'hurtige-handlinger': <HurtigeHandlinger />,
+    'dagens-forbrug': <DagensForbrug sessions={sessions} />,
+    'systemhelb-red': (
+      <SystemhelbRed
+        systemInfo={systemInfo}
+        ramPct={ramPct}
+        diskPctValue={diskPctValue}
+        ramHistory={ramHistory}
+        diskHistory={diskHistory}
+        consecutiveErrors={consecutiveErrors}
+      />
+    ),
+    'system-info-grid': (
+      <SystemInfoGrid
+        parsedStatus={parsedStatus}
+        systemInfo={systemInfo}
+        runningCount={runningCount}
+        completedCount={completedCount}
+        formattedCost={formattedCost}
+        tokensIn={tokensIn}
+        tokensOut={tokensOut}
+        costUSD={costUSD}
+      />
+    ),
+    'kanaler-og-jobs': (
+      <KanalerOgJobs
+        channels={channels}
+        cronJobs={cronJobs}
+        cronActiveCount={cronActiveCount}
+      />
+    ),
+    'live-aktivitet': <LiveAktivitetOgSessioner sessions={sessions} />,
+    'quick-actions': (
+      <QuickActions
+        onHealthcheck={() => {
+          fetchSystemInfo().then(info => setSystemInfo(info || {})).catch(() => {})
+        }}
+      />
+    ),
+    'recent-activity': <RecentActivity sessions={sessions} cronJobs={cronJobs} />,
+  }
 
   // ── Render ───────────────────────────────────────────────────────
   return (
@@ -199,6 +357,40 @@ export default function Dashboard() {
           </span>
         )}
         <DataFreshness className="ml-auto" />
+
+        {/* Reset layout knap */}
+        <button
+          onClick={handleResetLayout}
+          title="Nulstil widget-rækkefølge"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '6px 12px',
+            borderRadius: 8,
+            border: '1px solid rgba(255,255,255,0.1)',
+            background: 'rgba(255,255,255,0.05)',
+            color: 'rgba(255,255,255,0.55)',
+            fontSize: 12,
+            fontWeight: 500,
+            cursor: 'pointer',
+            transition: 'all 0.15s ease',
+            whiteSpace: 'nowrap',
+          }}
+          onMouseEnter={e => {
+            const el = e.currentTarget
+            el.style.background = 'rgba(255,255,255,0.1)'
+            el.style.color = 'rgba(255,255,255,0.85)'
+          }}
+          onMouseLeave={e => {
+            const el = e.currentTarget
+            el.style.background = 'rgba(255,255,255,0.05)'
+            el.style.color = 'rgba(255,255,255,0.55)'
+          }}
+        >
+          <Icon name="arrow-counterclockwise" size={13} />
+          Nulstil layout
+        </button>
       </div>
       <p className="text-sm mb-8" style={{ color: 'rgba(255,255,255,0.5)' }}>
         Oversigt &mdash; {new Date().toLocaleDateString('da-DK', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
@@ -208,66 +400,95 @@ export default function Dashboard() {
         <Card>
           <div className="text-center py-8">
             <p className="text-white/70 mb-2">Ingen forbindelse til Gateway</p>
-            <p className="text-sm text-white/50">Ga til Indstillinger for at konfigurere API forbindelse</p>
+            <p className="text-sm text-white/50">Gå til Indstillinger for at konfigurere API forbindelse</p>
           </div>
         </Card>
       ) : (
-        <>
-          <StatCards
-            sessionsCount={sessions.length}
-            runningCount={runningCount}
-            completedCount={completedCount}
-            tokensValue={tokensValue}
-            parsedTokens={parsedStatus.tokens || ''}
-            parsedModel={parsedStatus.model || ''}
-            parsedContext={parsedStatus.context || ''}
-            dailySpend={dailySpend}
-            cronActiveCount={cronActiveCount}
-            cronJobsTotal={cronJobs.length}
-          />
+        <div
+          style={{
+            userSelect: isDragging ? 'none' : 'auto',
+          }}
+        >
+          {widgetOrder.map(id => {
+            const widget = widgetMap[id]
+            if (!widget) return null
 
-          <SystemPuls />
+            const isBeingDragged = draggedId.current === id
+            const isDropTarget = dropTargetId === id
 
-          <HurtigeHandlinger />
+            return (
+              <div
+                key={id}
+                draggable
+                onDragStart={() => handleDragStart(id)}
+                onDragOver={e => handleDragOver(e, id)}
+                onDragLeave={handleDragLeave}
+                onDrop={e => handleDrop(e, id)}
+                onDragEnd={handleDragEnd}
+                style={{
+                  opacity: isBeingDragged ? 0.35 : 1,
+                  transition: 'opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease',
+                  transform: isDropTarget ? 'scale(1.01)' : 'scale(1)',
+                  boxShadow: isDropTarget
+                    ? '0 0 0 2px rgba(0, 122, 255, 0.6), 0 8px 32px rgba(0, 122, 255, 0.15)'
+                    : 'none',
+                  borderRadius: isDropTarget ? 14 : 0,
+                  cursor: isDragging ? 'grabbing' : 'grab',
+                  position: 'relative',
+                }}
+              >
+                {/* Drop-target indikator-bjælke øverst */}
+                {isDropTarget && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      height: 3,
+                      background: 'linear-gradient(90deg, #007AFF, #5AC8FA)',
+                      borderRadius: '3px 3px 0 0',
+                      zIndex: 10,
+                      pointerEvents: 'none',
+                    }}
+                  />
+                )}
 
-          <DagensForbrug sessions={sessions} />
+                {/* Drag-håndtag hint — vises kun ved hover */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 10,
+                    right: 10,
+                    zIndex: 5,
+                    opacity: 0,
+                    pointerEvents: 'none',
+                    color: 'rgba(255,255,255,0.3)',
+                    transition: 'opacity 0.15s ease',
+                  }}
+                  className="drag-handle-hint"
+                >
+                  <Icon name="drag-handle" size={14} />
+                </div>
 
-          <SystemhelbRed
-            systemInfo={systemInfo}
-            ramPct={ramPct}
-            diskPctValue={diskPctValue}
-            ramHistory={ramHistory}
-            diskHistory={diskHistory}
-            consecutiveErrors={consecutiveErrors}
-          />
+                {widget}
+              </div>
+            )
+          })}
 
-          <SystemInfoGrid
-            parsedStatus={parsedStatus}
-            systemInfo={systemInfo}
-            runningCount={runningCount}
-            completedCount={completedCount}
-            formattedCost={formattedCost}
-            tokensIn={tokensIn}
-            tokensOut={tokensOut}
-            costUSD={costUSD}
-          />
-
-          <KanalerOgJobs
-            channels={channels}
-            cronJobs={cronJobs}
-            cronActiveCount={cronActiveCount}
-          />
-
-          <LiveAktivitetOgSessioner sessions={sessions} />
-
-          <QuickActions
-            onHealthcheck={() => {
-              fetchSystemInfo().then(info => setSystemInfo(info || {})).catch(() => {})
-            }}
-          />
-
-          <RecentActivity sessions={sessions} cronJobs={cronJobs} />
-        </>
+          {/* Global drag CSS */}
+          <style>{`
+            [draggable="true"]:hover .drag-handle-hint {
+              opacity: 1 !important;
+            }
+            [draggable="true"] {
+              outline: none;
+            }
+            [draggable="true"]:focus {
+              outline: none;
+            }
+          `}</style>
+        </div>
       )}
     </div>
   )
