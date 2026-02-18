@@ -5,6 +5,7 @@ import PageHeader from '../components/PageHeader'
 import { invokeToolRaw } from '../api/openclaw'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { EvalsSkeleton } from '../components/SkeletonLoader'
+import DataFreshness from '../components/DataFreshness'
 
 interface Eval {
   id: string
@@ -117,6 +118,7 @@ export default function Evals() {
         title="Evalueringer"
         description={`Evalueringsdatasæt og kvalitetssporing · ${evals.length} test cases`}
         breadcrumb={[{ label: 'Dashboard', href: '#dashboard' }, { label: 'Evalueringer' }]}
+        actions={<DataFreshness />}
       />
 
       <div className="flex flex-wrap gap-3 mb-6">

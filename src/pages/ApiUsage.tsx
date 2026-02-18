@@ -6,6 +6,7 @@ import { useLiveData } from '../api/LiveDataContext'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { formatRelativeTime } from '../hooks/useRelativeTime'
 import { ApiUsageSkeleton } from '../components/SkeletonLoader'
+import DataFreshness from '../components/DataFreshness'
 
 export default function ApiUsage() {
   usePageTitle('API Forbrug')
@@ -153,7 +154,10 @@ export default function ApiUsage() {
 
   return (
     <div>
-      <h1 className="text-xl sm:text-2xl font-bold mb-1">API Forbrug</h1>
+      <div className="flex items-center gap-3 mb-1">
+        <h1 className="text-xl sm:text-2xl font-bold">API Forbrug</h1>
+        <DataFreshness className="ml-auto" />
+      </div>
       <p className="caption mb-6">Tokenforbrug og omkostningssporing</p>
 
       {/* Soft error banner — forbundet men fejl i baggrunden */}

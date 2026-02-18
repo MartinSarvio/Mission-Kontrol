@@ -4,6 +4,7 @@ import Icon from '../components/Icon'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { invokeToolRaw, ApiSession } from '../api/openclaw'
 import { CommunicationSkeleton } from '../components/SkeletonLoader'
+import DataFreshness from '../components/DataFreshness'
 
 interface Message {
   role: 'user' | 'assistant' | 'system'
@@ -258,8 +259,9 @@ export default function Communication() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-1">
+      <div className="flex items-center gap-3 mb-1">
         <h1 className="text-xl sm:text-2xl font-bold text-white">Kommunikation</h1>
+        <DataFreshness />
         <button
           onClick={() => setAllExpanded(!allExpanded)}
           style={{

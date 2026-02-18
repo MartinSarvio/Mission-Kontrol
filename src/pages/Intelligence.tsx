@@ -3,6 +3,7 @@ import Icon from '../components/Icon'
 import { useLiveData } from '../api/LiveDataContext'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { SkeletonCard } from '../components/SkeletonLoader'
+import DataFreshness from '../components/DataFreshness'
 
 /* ── Types ──────────────────────────────────── */
 interface Article {
@@ -407,7 +408,10 @@ export default function Intelligence() {
     <div className="h-full flex flex-col">
       {/* Header & Search */}
       <div className="mb-4">
-        <h1 className="text-2xl font-bold text-white mb-4">Intelligens</h1>
+        <div className="flex items-center gap-3 mb-4">
+          <h1 className="text-2xl font-bold text-white">Intelligens</h1>
+          <DataFreshness className="ml-auto" />
+        </div>
         <div className="flex gap-2">
           <input
             type="text"

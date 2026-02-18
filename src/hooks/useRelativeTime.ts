@@ -28,12 +28,12 @@ export function formatRelativeTime(date: string | Date | number): string {
   if (seconds < 60) return 'lige nu'
   if (minutes < 60) return `${minutes} min siden`
   if (hours < 24) return `${hours} ${hours === 1 ? 'time' : 'timer'} siden`
-  if (days === 1) return 'i gar'
+  if (days === 1) return 'i går'
   if (days < 30) return `${days} dage siden`
   const months = Math.floor(days / 30)
-  if (months < 12) return `${months} ${months === 1 ? 'maned' : 'maneder'} siden`
+  if (months < 12) return `${months} ${months === 1 ? 'måned' : 'måneder'} siden`
   const years = Math.floor(days / 365)
-  return `${years} ${years === 1 ? 'ar' : 'ar'} siden`
+  return `${years} ${years === 1 ? 'år' : 'år'} siden`
 }
 
 /**

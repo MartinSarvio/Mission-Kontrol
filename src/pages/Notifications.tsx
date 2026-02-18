@@ -5,6 +5,7 @@ import PageHeader from '../components/PageHeader'
 import { useNotifications, NotificationType } from '../api/NotificationContext'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { SkeletonCard, SkeletonRow } from '../components/SkeletonLoader'
+import DataFreshness from '../components/DataFreshness'
 
 const typeConfig: Record<NotificationType, { icon: string; color: string; bg: string; label: string }> = {
   error: { icon: 'exclamation-triangle', color: '#FF3B30', bg: 'rgba(255,59,48,0.1)', label: 'Fejl' },
@@ -96,11 +97,16 @@ export default function Notifications() {
         title="Notifikationer"
         description="Alerts for fejl, advarsler og vigtige hændelser"
         breadcrumb={[{ label: 'Dashboard', href: '#dashboard' }, { label: 'Notifikationer' }]}
-        actions={unreadCount > 0 ? (
-          <span style={{ background: 'rgba(255,59,48,0.15)', color: '#FF3B30', fontSize: 12, fontWeight: 600, padding: '4px 12px', borderRadius: 10 }}>
-            {unreadCount} ulæste
-          </span>
-        ) : undefined}
+        actions={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <DataFreshness />
+            {unreadCount > 0 && (
+              <span style={{ background: 'rgba(255,59,48,0.15)', color: '#FF3B30', fontSize: 12, fontWeight: 600, padding: '4px 12px', borderRadius: 10 }}>
+                {unreadCount} ulæste
+              </span>
+            )}
+          </div>
+        }
       />
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">

@@ -10,6 +10,7 @@ import { useLiveData } from '../api/LiveDataContext'
 import { useToast } from '../components/Toast'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { DocumentsSkeleton } from '../components/SkeletonLoader'
+import DataFreshness from '../components/DataFreshness'
 
 interface WorkspaceFile {
   id: string
@@ -83,7 +84,10 @@ export default function Documents() {
 
   return (
     <div>
-      <h1 className="text-xl sm:text-2xl font-bold mb-1">Dokumenter</h1>
+      <div className="flex items-center gap-3 mb-1">
+        <h1 className="text-xl sm:text-2xl font-bold">Dokumenter</h1>
+        <DataFreshness className="ml-auto" />
+      </div>
       <p className="caption mb-6">Videnbase og filhåndtering</p>
 
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-6">

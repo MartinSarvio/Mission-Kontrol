@@ -6,6 +6,7 @@ import Icon from '../components/Icon'
 import { fetchProjects, type Project } from '../api/openclaw'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { ClientsSkeleton } from '../components/SkeletonLoader'
+import DataFreshness from '../components/DataFreshness'
 
 const statusLabels: Record<string, string> = {
   active: 'Aktiv',
@@ -55,7 +56,10 @@ export default function Clients() {
 
   return (
     <div>
-      <h1 className="text-xl sm:text-2xl font-bold mb-1">Projekter</h1>
+      <div className="flex items-center gap-3 mb-1">
+        <h1 className="text-xl sm:text-2xl font-bold">Projekter</h1>
+        <DataFreshness className="ml-auto" />
+      </div>
       <p className="caption mb-6">
         Projekter du bygger med Mission Kontrol
       </p>

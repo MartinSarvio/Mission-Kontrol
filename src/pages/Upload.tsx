@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react'
 import Icon from '../components/Icon'
 import { invokeToolRaw } from '../api/openclaw'
 import { UploadSkeleton } from '../components/SkeletonLoader'
+import DataFreshness from '../components/DataFreshness'
 
 interface UploadedFile {
   name: string
@@ -118,7 +119,10 @@ export default function Upload() {
   return (
     <div className="h-full flex flex-col">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white mb-1">Fil Upload</h1>
+        <div className="flex items-center gap-3 mb-1">
+          <h1 className="text-2xl font-bold text-white">Fil Upload</h1>
+          <DataFreshness className="ml-auto" />
+        </div>
         <p className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>
           Upload filer til workspace. Video, dokumenter og andet.
         </p>

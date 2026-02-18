@@ -6,6 +6,7 @@ import { useLiveData } from '../api/LiveDataContext'
 import { runPrompt } from '../api/openclaw'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { WorkshopSkeleton } from '../components/SkeletonLoader'
+import DataFreshness from '../components/DataFreshness'
 
 const HISTORY_KEY = 'mk-workshop-history'
 const HISTORY_LIMIT = 10
@@ -174,6 +175,7 @@ export default function Workshop() {
         title="Værksted"
         description="Prompt-legeplads og workflow-test"
         breadcrumb={[{ label: 'Dashboard', href: '#dashboard' }, { label: 'Værksted' }]}
+        actions={<DataFreshness />}
       />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

@@ -6,6 +6,7 @@ import { useLiveData } from '../api/LiveDataContext'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { getGatewayUrl, getGatewayToken, setGatewayUrl, setGatewayToken, testConnection, fetchSystemInfo } from '../api/openclaw'
 import { SettingsSkeleton } from '../components/SkeletonLoader'
+import DataFreshness from '../components/DataFreshness'
 
 interface SystemInfo {
   host?: string
@@ -156,7 +157,10 @@ export default function Settings() {
 
   return (
     <div>
-      <h1 className="text-xl sm:text-2xl font-bold text-white mb-1">Indstillinger</h1>
+      <div className="flex items-center gap-3 mb-1">
+        <h1 className="text-xl sm:text-2xl font-bold text-white">Indstillinger</h1>
+        <DataFreshness className="ml-auto" />
+      </div>
       <p className="caption mb-6">API forbindelse, systemkonfiguration, modeller og sikkerhed</p>
 
       <div className="overflow-x-auto mb-6">

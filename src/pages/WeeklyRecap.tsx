@@ -4,6 +4,7 @@ import PageHeader from '../components/PageHeader'
 import { useLiveData } from '../api/LiveDataContext'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { WeeklyRecapSkeleton } from '../components/SkeletonLoader'
+import DataFreshness from '../components/DataFreshness'
 
 export default function WeeklyRecap() {
   usePageTitle('Ugeoversigt')
@@ -101,6 +102,7 @@ export default function WeeklyRecap() {
         title="Ugerapport"
         description={weekRange}
         breadcrumb={[{ label: 'Dashboard', href: '#dashboard' }, { label: 'Ugerapport' }]}
+        actions={<DataFreshness />}
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-8">
