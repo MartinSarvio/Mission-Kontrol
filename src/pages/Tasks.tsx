@@ -919,6 +919,8 @@ export default function Tasks() {
   const [showArchive, setShowArchive] = useState(false)
   const [statusPopup, setStatusPopup] = useState<'queued' | 'active' | 'completed' | null>(null)
   const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'queued' | 'active' | 'completed'>('all')
   const [allExpanded, setAllExpanded] = useState(false)
 
   useEffect(() => {
@@ -935,6 +937,14 @@ export default function Tasks() {
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [])
+
+  // Debounce søgning (300ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [search])
 
   const tasks: Task[] = useMemo(() => {
     const transcriptTasks = allSessions.map(transcriptToTask)
@@ -1000,16 +1010,16 @@ export default function Tasks() {
     return { name: next.name, timeStr: hours > 0 ? `${hours}t ${mins % 60}m` : `${mins}m` }
   }, [cronJobs])
 
-  // Filter by search
+  // Filter by debounced search
   const filteredTasks = useMemo(() => {
-    if (!search.trim()) return tasks
-    const q = search.toLowerCase()
-    return tasks.filter(t => 
-      t.title.toLowerCase().includes(q) || 
-      t.agent.toLowerCase().includes(q) || 
+    if (!debouncedSearch.trim()) return tasks
+    const q = debouncedSearch.toLowerCase()
+    return tasks.filter(t =>
+      t.title.toLowerCase().includes(q) ||
+      (t.label || '').toLowerCase().includes(q) ||
       (t.firstMessage || '').toLowerCase().includes(q)
     )
-  }, [tasks, search])
+  }, [tasks, debouncedSearch])
 
   const handleStartTask = async (task: Task) => {
     try {
@@ -1045,24 +1055,22 @@ export default function Tasks() {
     }
   }
 
-  const queuedFiltered = queued.filter(t => 
-    !search.trim() || 
-    t.title.toLowerCase().includes(search.toLowerCase()) || 
-    t.agent.toLowerCase().includes(search.toLowerCase()) || 
-    (t.firstMessage || '').toLowerCase().includes(search.toLowerCase())
-  )
-  const activeFiltered = active.filter(t => 
-    !search.trim() || 
-    t.title.toLowerCase().includes(search.toLowerCase()) || 
-    t.agent.toLowerCase().includes(search.toLowerCase()) || 
-    (t.firstMessage || '').toLowerCase().includes(search.toLowerCase())
-  )
-  const completedFiltered = completed.filter(t => 
-    !search.trim() || 
-    t.title.toLowerCase().includes(search.toLowerCase()) || 
-    t.agent.toLowerCase().includes(search.toLowerCase()) || 
-    (t.firstMessage || '').toLowerCase().includes(search.toLowerCase())
-  )
+  const matchesSearch = (t: Task) => {
+    if (!debouncedSearch.trim()) return true
+    const q = debouncedSearch.toLowerCase()
+    return (
+      t.title.toLowerCase().includes(q) ||
+      (t.label || '').toLowerCase().includes(q) ||
+      (t.firstMessage || '').toLowerCase().includes(q)
+    )
+  }
+
+  const queuedFiltered = queued.filter(matchesSearch)
+  const activeFiltered = active.filter(matchesSearch)
+  const completedFiltered = completed.filter(matchesSearch)
+
+  const totalFiltered = queuedFiltered.length + activeFiltered.length + completedFiltered.length
+  const hasActiveSearch = debouncedSearch.trim().length > 0
 
   return (
     <div className="h-full flex flex-col animate-page-in">
@@ -1125,19 +1133,123 @@ export default function Tasks() {
         </div>
       </div>
 
-      {/* Search + Activity Status */}
-      <div className="flex gap-4 mb-6">
-        <div className="flex-1 relative">
-          <Icon name="magnifying-glass" size={16} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: 'rgba(255,255,255,0.3)' }} />
+      {/* Search + Status Filter + Activity Status */}
+      <div className="flex gap-3 mb-6 flex-wrap">
+        {/* Søgefelt */}
+        <div style={{ flex: '1 1 220px', position: 'relative', minWidth: 0 }}>
+          <Icon
+            name="magnifying-glass"
+            size={16}
+            style={{
+              position: 'absolute',
+              left: 14,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              color: search ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.25)',
+              pointerEvents: 'none',
+            }}
+          />
           <input
             type="text"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Søg opgaver..."
-            className="w-full pl-11 pr-4 py-3 rounded-xl text-sm text-white placeholder-white/20"
-            style={{ background: 'rgba(255,255,255,0.04)', border: 'none', outline: 'none' }}
+            placeholder="Søg i opgaver..."
+            style={{
+              width: '100%',
+              paddingLeft: 42,
+              paddingRight: search ? 36 : 16,
+              paddingTop: 10,
+              paddingBottom: 10,
+              borderRadius: 12,
+              fontSize: 14,
+              color: '#fff',
+              background: search ? 'rgba(0,122,255,0.08)' : 'rgba(255,255,255,0.04)',
+              border: `1px solid ${search ? 'rgba(0,122,255,0.3)' : 'rgba(255,255,255,0.06)'}`,
+              outline: 'none',
+              transition: 'all 0.2s',
+            }}
           />
+          {search && (
+            <button
+              onClick={() => setSearch('')}
+              style={{
+                position: 'absolute',
+                right: 10,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                background: 'rgba(255,255,255,0.1)',
+                border: 'none',
+                borderRadius: 6,
+                padding: '2px 4px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Icon name="xmark" size={11} style={{ color: 'rgba(255,255,255,0.5)' }} />
+            </button>
+          )}
         </div>
+
+        {/* Status filter pills */}
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
+          {[
+            { id: 'all',       label: 'Alle',      color: '#8E8E93', count: tasks.length },
+            { id: 'queued',    label: 'I Kø',      color: '#FF9F0A', count: queued.length },
+            { id: 'active',    label: 'Aktive',    color: '#007AFF', count: active.length },
+            { id: 'completed', label: 'Afsluttet', color: '#30D158', count: completed.length },
+          ].map(f => {
+            const isActive = statusFilter === f.id
+            return (
+              <button
+                key={f.id}
+                onClick={() => setStatusFilter(f.id as typeof statusFilter)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '8px 14px',
+                  borderRadius: 10,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  border: `1px solid ${isActive ? `${f.color}40` : 'rgba(255,255,255,0.07)'}`,
+                  background: isActive ? `${f.color}18` : 'rgba(255,255,255,0.04)',
+                  color: isActive ? f.color : 'rgba(255,255,255,0.45)',
+                  transition: 'all 0.15s',
+                }}
+                onMouseEnter={e => {
+                  if (!isActive) {
+                    e.currentTarget.style.background = `${f.color}10`
+                    e.currentTarget.style.color = f.color
+                    e.currentTarget.style.borderColor = `${f.color}30`
+                  }
+                }}
+                onMouseLeave={e => {
+                  if (!isActive) {
+                    e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
+                    e.currentTarget.style.color = 'rgba(255,255,255,0.45)'
+                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'
+                  }
+                }}
+              >
+                {f.label}
+                <span style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  padding: '1px 6px',
+                  borderRadius: 6,
+                  background: isActive ? `${f.color}25` : 'rgba(255,255,255,0.07)',
+                  color: isActive ? f.color : 'rgba(255,255,255,0.35)',
+                }}>
+                  {f.count}
+                </span>
+              </button>
+            )
+          })}
+        </div>
+
         {nextCron && (
           <div className="flex items-center gap-2 px-4 py-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.04)' }}>
             <Icon name="clock" size={14} style={{ color: '#FF9F0A' }} />
@@ -1148,9 +1260,56 @@ export default function Tasks() {
         )}
       </div>
 
-      {/* 3-Column Kanban */}
-      <div className="flex-1 overflow-hidden grid grid-cols-3 gap-4">
+      {/* Kombineret tomt state ved søgning uden resultater */}
+      {hasActiveSearch && totalFiltered === 0 ? (
+        <div className="flex-1 flex items-center justify-center">
+          <div style={{ textAlign: 'center' }}>
+            <div style={{
+              width: 56,
+              height: 56,
+              borderRadius: 16,
+              background: 'rgba(255,255,255,0.04)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 16px',
+            }}>
+              <Icon name="magnifying-glass" size={24} style={{ color: 'rgba(255,255,255,0.15)' }} />
+            </div>
+            <p style={{ color: 'rgba(255,255,255,0.6)', fontWeight: 600, fontSize: 15, marginBottom: 6 }}>
+              Ingen opgaver fundet
+            </p>
+            <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: 13 }}>
+              Ingen opgaver matcher "{debouncedSearch}"
+            </p>
+            <button
+              onClick={() => setSearch('')}
+              style={{
+                marginTop: 16,
+                padding: '8px 18px',
+                borderRadius: 10,
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: 'pointer',
+                background: 'rgba(0,122,255,0.15)',
+                border: '1px solid rgba(0,122,255,0.3)',
+                color: '#5AC8FA',
+              }}
+            >
+              Ryd søgning
+            </button>
+          </div>
+        </div>
+      ) : (
+      <div className="flex-1 overflow-hidden" style={{
+        display: 'grid',
+        gridTemplateColumns: statusFilter === 'all'
+          ? 'repeat(3, 1fr)'
+          : '1fr',
+        gap: 16,
+      }}>
         {/* I KØ */}
+        {(statusFilter === 'all' || statusFilter === 'queued') && (
         <div className="flex flex-col">
           <div className="flex items-center gap-2 mb-4 px-2">
             <div className="w-3 h-3 rounded-full" style={{ background: '#FF9F0A' }} />
@@ -1177,8 +1336,10 @@ export default function Tasks() {
             )}
           </div>
         </div>
+        )}
 
         {/* AKTIVE */}
+        {(statusFilter === 'all' || statusFilter === 'active') && (
         <div className="flex flex-col">
           <div className="flex items-center gap-2 mb-4 px-2">
             <div className="w-3 h-3 rounded-full" style={{ background: '#007AFF' }} />
@@ -1204,8 +1365,10 @@ export default function Tasks() {
             )}
           </div>
         </div>
+        )}
 
         {/* AFSLUTTET */}
+        {(statusFilter === 'all' || statusFilter === 'completed') && (
         <div className="flex flex-col">
           <div className="flex items-center gap-2 mb-4 px-2">
             <div className="w-3 h-3 rounded-full" style={{ background: '#30D158' }} />
@@ -1231,7 +1394,9 @@ export default function Tasks() {
             )}
           </div>
         </div>
+        )}
       </div>
+      )}
 
       {/* Popups */}
       {selectedTask && <DetailPanel task={selectedTask} onClose={() => setSelectedTask(null)} />}
