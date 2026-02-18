@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import Icon from '../components/Icon'
+import EmptyState from '../components/EmptyState'
 import { useLiveData } from '../api/LiveDataContext'
 import { fetchInstalledSkills, installSkill, searchSkills, SkillInfo } from '../api/openclaw'
 import { usePageTitle } from '../hooks/usePageTitle'
@@ -248,11 +249,11 @@ export default function Skills() {
               {[1, 2, 3, 4, 5, 6].map(i => <SkeletonCard key={i} lines={2} />)}
             </div>
           ) : installedSkills.length === 0 ? (
-            <div className="text-center py-12">
-              <Icon name="sparkle" size={32} className="text-white/20 mx-auto mb-3" />
-              <p style={{ color: 'rgba(255,255,255,0.4)' }}>Ingen skills fundet</p>
-              <p className="caption mt-1">Tjek Gateway forbindelsen i Indstillinger</p>
-            </div>
+            <EmptyState
+              icon="sparkle"
+              title="Ingen skills fundet"
+              description="Tjek Gateway forbindelsen i Indstillinger"
+            />
           ) : (
             <>
               {workspaceSkills.length > 0 && (
@@ -330,12 +331,12 @@ export default function Skills() {
               <p style={{ color: 'rgba(255,255,255,0.4)' }}>Søger på ClawHub...</p>
             </div>
           ) : recommendedSkills.length === 0 ? (
-            <div className="text-center py-12">
-              <p style={{ color: 'rgba(255,255,255,0.4)' }}>Ingen anbefalinger fundet</p>
-              <button onClick={fetchRecommended} className="mt-3 text-xs px-4 py-2 rounded-lg" style={{ background: '#007AFF', color: '#fff', minHeight: '44px' }}>
-                Prøv igen
-              </button>
-            </div>
+            <EmptyState
+              icon="sparkle"
+              title="Ingen anbefalinger fundet"
+              description="Ingen ClawHub-resultater matchede din tech stack"
+              action={{ label: 'Prøv igen', onClick: fetchRecommended }}
+            />
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {recommendedSkills.map(s => (

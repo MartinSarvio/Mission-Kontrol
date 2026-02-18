@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import Icon from '../components/Icon'
+import EmptyState from '../components/EmptyState'
 import { fetchMemoryFiles, fetchAllSessions, MemoryEntry, TranscriptSession } from '../api/openclaw'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { formatRelativeTime } from '../hooks/useRelativeTime'
@@ -434,12 +435,11 @@ function DayContent({ day, allExpanded }: { day: DayData; allExpanded?: boolean 
       
       {/* Empty state */}
       {!day.memory && day.sessions.length === 0 && (
-        <div className="text-center py-12">
-          <Icon name="calendar-week" size={32} className="mx-auto mb-2" style={{ color: 'rgba(255,255,255,0.1)' }} />
-          <p className="text-sm" style={{ color: 'rgba(255,255,255,0.3)' }}>
-            Ingen aktivitet denne dag
-          </p>
-        </div>
+        <EmptyState
+          icon="calendar-week"
+          title="Ingen aktivitet denne dag"
+          description="Ingen sessions eller noter registreret"
+        />
       )}
     </div>
   )
@@ -848,34 +848,16 @@ export default function Journal() {
         </div>
         
         <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <Icon name={debouncedSearchTerm ? 'search' : 'calendar-week'} size={48} className="mx-auto mb-4" style={{ color: 'rgba(255,255,255,0.1)' }} />
-            <p className="text-sm" style={{ color: 'rgba(255,255,255,0.3)' }}>
-              {debouncedSearchTerm ? 'Ingen resultater matcher søgningen' : 'Ingen journalindlæg endnu'}
-            </p>
-            {debouncedSearchTerm && (
-              <button
-                onClick={() => setSearchTerm('')}
-                style={{
-                  marginTop: '12px',
-                  background: 'rgba(0,122,255,0.15)',
-                  border: '1px solid rgba(0,122,255,0.3)',
-                  backdropFilter: 'blur(20px)',
-                  color: '#5AC8FA',
-                  padding: '8px 16px',
-                  borderRadius: '10px',
-                  fontSize: '13px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                }}
-              >
-                Ryd søgning
-              </button>
-            )}
-          </div>
+          <EmptyState
+            icon={debouncedSearchTerm ? 'magnifying-glass' : 'calendar-week'}
+            title={debouncedSearchTerm ? 'Ingen resultater fundet' : 'Ingen journalindlæg endnu'}
+            description={
+              debouncedSearchTerm
+                ? `Ingen indlæg matcher "${debouncedSearchTerm}"`
+                : 'Sessions og noter vises her, når der er aktivitet'
+            }
+            action={debouncedSearchTerm ? { label: 'Ryd søgning', onClick: () => setSearchTerm('') } : undefined}
+          />
         </div>
       </div>
     )
@@ -1086,12 +1068,11 @@ export default function Journal() {
               <DayContent day={currentDayData} allExpanded={allExpanded} />
             </div>
           ) : (
-            <div className="text-center py-12">
-              <Icon name="calendar-week" size={32} className="mx-auto mb-2" style={{ color: 'rgba(255,255,255,0.1)' }} />
-              <p className="text-sm" style={{ color: 'rgba(255,255,255,0.3)' }}>
-                Vælg en dato fra sidebaren
-              </p>
-            </div>
+            <EmptyState
+              icon="calendar-week"
+              title="Vælg en dato"
+              description="Klik på en dato i sidebaren for at se aktiviteten"
+            />
           )}
         </div>
       </div>

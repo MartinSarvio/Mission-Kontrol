@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
 import Icon from '../components/Icon'
+import EmptyState from '../components/EmptyState'
 import { useToast } from '../components/Toast'
 import { useLiveData } from '../api/LiveDataContext'
 import { usePageTitle } from '../hooks/usePageTitle'
@@ -790,10 +791,11 @@ function ArchiveModal({ open, onClose, tasks, onSelectTask }: {
         {/* Task List */}
         <div className="p-4 overflow-y-auto" style={{ maxHeight: 'calc(85vh - 160px)' }}>
           {filteredTasks.length === 0 ? (
-            <div className="text-center py-12">
-              <Icon name="doc-text" size={32} className="mx-auto mb-2" style={{ color: 'rgba(255,255,255,0.1)' }} />
-              <p className="text-sm" style={{ color: 'rgba(255,255,255,0.3)' }}>Ingen opgaver fundet</p>
-            </div>
+            <EmptyState
+              icon="doc-text"
+              title="Ingen opgaver fundet"
+              description="Prøv at ændre filteret eller opret en ny opgave"
+            />
           ) : (
             <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.02)', backdropFilter: 'blur(20px)' }}>
               <Table

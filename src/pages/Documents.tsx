@@ -4,6 +4,7 @@ import Table from '../components/Table'
 import SearchBar from '../components/SearchBar'
 import Modal from '../components/Modal'
 import Icon from '../components/Icon'
+import EmptyState from '../components/EmptyState'
 import { fetchWorkspaceFiles, readFileContent, downloadFile } from '../api/openclaw'
 import { useLiveData } from '../api/LiveDataContext'
 import { useToast } from '../components/Toast'
@@ -97,11 +98,15 @@ export default function Documents() {
       </div>
 
       {filtered.length === 0 ? (
-        <Card>
-          <div className="text-center py-8 text-white/50">
-            {files.length === 0 ? 'Ingen filer fundet i workspace' : 'Ingen filer matchede din søgning'}
-          </div>
-        </Card>
+        <EmptyState
+          icon="doc"
+          title={files.length === 0 ? 'Ingen filer fundet' : 'Ingen filer matchede søgningen'}
+          description={
+            files.length === 0
+              ? 'Workspace er tomt eller Gateway er ikke forbundet'
+              : 'Prøv et andet søgeord'
+          }
+        />
       ) : (
         <Card>
           <div className="overflow-x-auto -mx-6 px-6">
