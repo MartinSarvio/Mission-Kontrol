@@ -19,7 +19,7 @@ import {
   type ReactNode,
 } from 'react'
 import CommandPalette from './CommandPalette'
-import KeyboardShortcutsHelp from './KeyboardShortcutsHelp'
+import KeyboardShortcutsModal from './KeyboardShortcutsModal'
 import { NUMBER_SHORTCUTS } from '../hooks/useKeyboardShortcuts'
 
 // ── Context ──────────────────────────────────────────────────────────────────
@@ -160,7 +160,7 @@ export function KeyboardShortcutsProvider({
       {children}
       {/* Modals rendes her så de altid er tilgængelige globalt */}
       <CommandPalette open={cmdOpen} onClose={closeCmd} onNavigate={handleNavigate} />
-      <KeyboardShortcutsHelp open={helpOpen} onClose={closeHelp} />
+      <KeyboardShortcutsModal open={helpOpen} onClose={closeHelp} />
     </KeyboardShortcutsContext.Provider>
   )
 }
