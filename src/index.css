@@ -415,3 +415,62 @@ select.input option {
   animation: modalScaleIn 0.22s cubic-bezier(0.34, 1.2, 0.64, 1) both;
   will-change: opacity, transform;
 }
+
+/* ── Responsive / Mobile ─────────────────────────────────────── */
+@media (max-width: 767px) {
+  /* Reduceret card padding på mobil */
+  .card {
+    padding: 14px 16px;
+  }
+
+  /* Cards fylder fuld bredde */
+  .glass-column {
+    width: 100%;
+    min-width: 0;
+  }
+
+  /* Justerede font-sizes på small screens */
+  .page-title {
+    font-size: 22px;
+  }
+
+  .page-subtitle {
+    font-size: 17px;
+  }
+
+  .section-title {
+    font-size: 13px;
+  }
+
+  .caption {
+    font-size: 11px;
+  }
+
+  /* Tabel: reducer celle-padding på mobil */
+  .overflow-x-auto td,
+  .overflow-x-auto th {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  /* Sidebar-items: kompakter */
+  .sidebar-item {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 479px) {
+  /* Endnu smallere skærme */
+  .card {
+    padding: 12px 14px;
+  }
+
+  .page-title {
+    font-size: 19px;
+  }
+
+  .caption {
+    font-size: 10px;
+  }
+}

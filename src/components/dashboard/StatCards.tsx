@@ -29,7 +29,7 @@ const StatCards = memo(function StatCards({
   cronJobsTotal,
 }: StatCardsProps) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 mb-6 sm:mb-8">
       <Card style={{ position: 'relative', overflow: 'visible', animationDelay: '0ms' }}>
         <div style={{
           position: 'absolute', bottom: '-10px', left: '20%', right: '20%',

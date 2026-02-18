@@ -345,7 +345,7 @@ export default function Dashboard() {
   return (
     <div className="animate-page-in">
       {/* Header */}
-      <div className="flex items-center gap-3 mb-1">
+      <div className="flex items-center flex-wrap gap-2 sm:gap-3 mb-1">
         <h1 className="text-xl sm:text-2xl font-bold text-white">{greeting}</h1>
         <ConnectionStatus />
         {!isConnected && (
@@ -366,7 +366,7 @@ export default function Dashboard() {
             display: 'flex',
             alignItems: 'center',
             gap: 6,
-            padding: '6px 12px',
+            padding: '6px 10px',
             borderRadius: 8,
             border: '1px solid rgba(255,255,255,0.1)',
             background: 'rgba(255,255,255,0.05)',
@@ -376,6 +376,7 @@ export default function Dashboard() {
             cursor: 'pointer',
             transition: 'all 0.15s ease',
             whiteSpace: 'nowrap',
+            flexShrink: 0,
           }}
           onMouseEnter={e => {
             const el = e.currentTarget
@@ -389,10 +390,10 @@ export default function Dashboard() {
           }}
         >
           <Icon name="arrow-counterclockwise" size={13} />
-          Nulstil layout
+          <span className="hidden sm:inline">Nulstil layout</span>
         </button>
       </div>
-      <p className="text-sm mb-8" style={{ color: 'rgba(255,255,255,0.5)' }}>
+      <p className="text-sm mb-6 sm:mb-8" style={{ color: 'rgba(255,255,255,0.5)' }}>
         Oversigt &mdash; {new Date().toLocaleDateString('da-DK', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
       </p>
 

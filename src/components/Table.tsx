@@ -474,8 +474,20 @@ function Table<T extends { id: string }>({
         </div>
       )}
 
-      <div className="overflow-x-auto">
-        <table className="w-full" ref={tableRef} tabIndex={0} onKeyDown={handleTableKeyDown} style={{ outline: 'none' }}>
+      <div
+        className="overflow-x-auto"
+        style={{
+          WebkitOverflowScrolling: 'touch',
+          overscrollBehaviorX: 'contain',
+        }}
+      >
+        <table
+          className="w-full"
+          ref={tableRef}
+          tabIndex={0}
+          onKeyDown={handleTableKeyDown}
+          style={{ outline: 'none', minWidth: '520px' }}
+        >
           <thead>
             <tr
               style={{
