@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useEffect } from 'react'
 import Card from '../components/Card'
 import Icon from '../components/Icon'
 import Table, { Column } from '../components/Table'
@@ -294,6 +294,16 @@ export default function CronJobs() {
   const [loadingRuns, setLoadingRuns] = useState<Record<string, boolean>>({})
   const [runningJobs, setRunningJobs] = useState<Record<string, boolean>>({})
   const [togglingJobs, setTogglingJobs] = useState<Record<string, boolean>>({})
+
+  // Auto-refresh hvert 10. sekund — kun når siden er synlig
+  useEffect(() => {
+    const id = setInterval(() => {
+      if (!document.hidden) {
+        refresh()
+      }
+    }, 10_000)
+    return () => clearInterval(id)
+  }, [refresh])
 
   const rawJobs = Array.isArray(cronJobs) ? cronJobs : []
   const jobs: CronJobRow[] = useMemo(() =>
